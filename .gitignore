@@ -1,0 +1,18 @@
+# 環境變數與密碼
+.env
+.env.*
+
+# 系統暫存檔
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node.js
+node_modules/
+
+# 編輯器
+.vscode/settings.json
