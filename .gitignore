@@ -1,3 +1,6 @@
+# 外部工具（有自己的 Git repo，不納入追蹤）
+notebooklm-py/
+
 # 環境變數與密碼
 .env
 .env.*
