@@ -4,6 +4,18 @@ notebooklm-py/
 # 環境變數與密碼
 .env
 .env.*
+**/credentials.json
+**/.credentials.json
+**/*.key
+
+# Claude Code 本機狀態（含 API 金鑰，不上雲）
+.claude/settings.json
+.claude/settings.local.json
+.claude/projects/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/statsig/
+.claude/.credentials.json
 
 # 系統暫存檔
 .DS_Store
