@@ -9,7 +9,7 @@
 
 - [x] 1-1 安裝並配置 Claude Code
 - [x] 1-2 GitHub 與 Git 入門（已完成 Git 設定、建立 ZY-Agent repo）
-- [ ] 1-3 怎麼跟 Claude Code 提問／協作最有效？
+- [x] 1-3 怎麼跟 Claude Code 提問／協作最有效？
 
 ## 武功秘笈（pro-kit）— 建議照順序執行
 
