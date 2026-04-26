@@ -19,26 +19,26 @@
 - [x] Pro-kit 03：工具整合（接上 Gmail、Calendar 等）
 - [x] Pro-kit 04：腦力激盪工作流（/brainstorm Skill 已安裝；計劃書存放 100_Todo/plans/）
 - [x] Pro-kit 05：社群圖卡自動生成
-- [ ] Pro-kit 06：品牌 Landing Page
-- [ ] Pro-kit 07：跨裝置同步
+- [x] Pro-kit 06：品牌 Landing Page（/landing Skill + UUPM 已安裝）
+- [x] Pro-kit 07：跨裝置同步
 
 ## 基礎篇
 
 - [x] 2-1 讓 AI 記住你的偏好（CLAUDE.md 深化）
 - [x] 2-2 Claude Code 完整架構速覽
 - [x] 2-3 用 AI 管理筆記和每日反思
-- [ ] 2-4 AI 分身資料夾結構（雷小蒙拆解）
+- [x] 2-4 AI 分身資料夾結構（雷小蒙拆解）
 
 ## 應用篇
 
 - [x] 3-1 用 Plan Mode 讓 AI 先想清楚再動手（Pro-kit 04 已完成）
 - [x] 3-2 建立 DESIGN.md 品牌說明書（Pro-kit 05 已完成；DESIGN.md 本身⏳ 待確認品牌方向後建立）
-- [ ] 3-3 把每日反思變成自動化 Skill
-- [ ] 3-4 日本旅行 AI 拍照收據自動記帳
-- [ ] 3-5 做一個自己的品牌 Landing Page（完成後安裝 Starter Kit 05 線上部署）
+- [x] 3-3 把每日反思變成自動化 Skill（/reflect 已安裝）
+- [x] 3-4 日本旅行 AI 拍照收據自動記帳
+- [x] 3-5 做一個自己的品牌 Landing Page（/landing + UUPM 已安裝；⏳ 試跑待進行）
 
 ## 技能書（skills）— 配合應用篇安裝
 
 - [ ] learning-journal（學習日誌 skill）
 - [ ] social-cards（社群圖卡 skill）
-- [ ] landing-page（Landing Page skill）
+- [x] landing-page（Landing Page skill）
