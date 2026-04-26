@@ -35,10 +35,19 @@
 - [x] 3-2 建立 DESIGN.md 品牌說明書（Pro-kit 05 已完成；DESIGN.md 本身⏳ 待確認品牌方向後建立）
 - [x] 3-3 把每日反思變成自動化 Skill（/reflect 已安裝）
 - [x] 3-4 日本旅行 AI 拍照收據自動記帳
-- [x] 3-5 做一個自己的品牌 Landing Page（/landing + UUPM 已安裝；⏳ 試跑待進行）
+- [x] 3-5 做一個自己的品牌 Landing Page（/landing + UUPM 已安裝；試跑完成，輸出於 generated-pages/stork-campus-recruit/）
 
 ## 技能書（skills）— 配合應用篇安裝
 
-- [ ] learning-journal（學習日誌 skill）
-- [ ] social-cards（社群圖卡 skill）
+- [x] learning-journal（學習日誌 skill）
+- [x] social-cards（社群圖卡 skill，即已裝的 cards）
 - [x] landing-page（Landing Page skill）
+
+---
+
+## 課程附帶完成的環境設定
+
+- [x] 設定 Git 全域設定（user.name、email、editor、defaultBranch）
+- [x] 安裝 GitHub CLI 並授權帳號 ZYooo00
+- [x] 建立 GitHub repo：ZY-Agent（私有）
+- [x] 初始化本機 Git 並完成第一次推送
