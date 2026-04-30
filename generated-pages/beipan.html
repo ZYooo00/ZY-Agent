@@ -156,14 +156,14 @@
         </div>
       </div>
 
-      <!-- 估盤確認 bar -->
-      <div class="bg-green-50 border border-green-200 rounded-xl px-5 py-3 flex items-center gap-3 flex-wrap">
+      <!-- 估盤確認 bar（由 gupan-confirmed localStorage 動態填入） -->
+      <div id="gupan-import-banner" class="hidden bg-green-50 border border-green-200 rounded-xl px-5 py-3 flex items-center gap-3 flex-wrap">
         <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
         <span class="text-sm font-semibold text-green-800">估盤已確認</span>
         <span class="text-green-300">|</span>
-        <span class="text-sm text-green-700">估盤人：高任佑 / 林OO</span>
+        <span class="text-sm text-green-700" id="gupan-banner-staff">估盤人：— / —</span>
         <span class="text-green-300">|</span>
-        <span class="text-sm text-green-600">今日 10:32</span>
+        <span class="text-sm text-green-600" id="gupan-banner-time">今日 —</span>
       </div>
 
       <!-- 備盤人員 -->
@@ -268,12 +268,12 @@
               <tbody>
                 <tr class="hover:bg-slate-50 transition-colors" id="glue-row">
                   <td class="pl-4 py-2.5 text-sm font-medium text-slate-700">Glue</td>
-                  <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular">3</td>
+                  <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular" id="glue-plan-cell">3</td>
                   <td class="px-3 pr-4 py-2.5 text-center">
                     <div>
-                      <input type="number" value="3" min="0" max="99"
+                      <input type="number" value="3" min="0" max="99" id="glue-plan-input"
                         class="w-14 text-center text-sm border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
-                        oninput="checkSimpleDiff(this, 3, 'glue-row')">
+                        oninput="checkSimpleDiff(this, gluePlan, 'glue-row')">
                       <div class="diff-note-wrap hidden mt-1">
                         <input type="text" placeholder="修改原因（必填）" class="text-xs border border-red-300 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-red-300 bg-red-50 placeholder-red-300">
                       </div>
@@ -821,6 +821,7 @@ const givfDishes = [
   { name:'AOA 弘優',  plan:2,   unit:'盤' },
   { name:'AOA 508',   plan:0,   unit:'盤' },
   { name:'精蟲',      plan:4,   unit:'盤' },
+  { name:'G-IVF pH', plan:0,   unit:'盤', key:'givf_ph' },
   { name:'多配 (mL)', plan:2.0, unit:'mL', calc:true, extraTarget:'givf' },
 ];
 
@@ -862,8 +863,7 @@ function checkGivfDiff(input, plan, i) {
   input.classList.toggle('border-red-300', hasDiff);
   const noteWrap = tr.querySelector('.diff-note-wrap');
   if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
-  const d = givfDishes[i];
-  if (d && d.extraTarget) updateNeeded(d.extraTarget, parseFloat(input.value) || 0);
+  recalcAllNeeded();
 }
 
 // ── 胚胎矩陣（H5GT 左、GxTL 右） ──
@@ -873,6 +873,7 @@ const matrixDishes = [
   { name:'TB',          h5gt:1,   gxtl:0   },
   { name:'Geri-受精',   h5gt:2,   gxtl:3   },
   { name:'Geri-FBT',    h5gt:1,   gxtl:0   },
+  { name:'pH 盤',       h5gt:0,   gxtl:0,   key:'ph'  },
   { name:'多配 (mL)',   h5gt:2.0, gxtl:2.0, isMl:true },
 ];
 
@@ -935,6 +936,7 @@ function checkMatrixDiff(input, plan) {
   input.classList.toggle('ring-red-200', hasDiff);
   const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
   if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
+  recalcAllNeeded();
 }
 
 function checkMatrixDiffMl(input, plan, side) {
@@ -944,13 +946,14 @@ function checkMatrixDiffMl(input, plan, side) {
   input.classList.toggle('ring-red-200', hasDiff);
   const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
   if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
-  if (side === 'h5gt' || side === 'gxtl') updateNeeded(side, parseFloat(input.value) || 0);
+  recalcAllNeeded();
 }
 
 function checkSimpleDiff(input, plan, rowId) {
   const hasDiff = ((parseInt(input.value) || 0) - plan) !== 0;
   const tr = document.getElementById(rowId);
   tr.classList.toggle('row-diff', hasDiff);
+  recalcAllNeeded();
   input.classList.toggle('border-red-300', hasDiff);
   const noteWrap = tr.querySelector('.diff-note-wrap');
   if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
@@ -995,20 +998,138 @@ function buildAllBulkCards() {
   bulkReagents.forEach(cfg => container.insertAdjacentHTML('beforeend', buildBulkCard(cfg)));
 }
 
-// ── Update "今日需用" when extra mL changes ──
-function updateNeeded(cfgId, newExtra) {
-  const cfg = reagentConfig.find(c => c.id === cfgId);
-  if (!cfg || cfg.baseNeeded === undefined) return;
-  cfg.needed = parseFloat(Math.max(0, cfg.baseNeeded + (parseFloat(newExtra) || 0)).toFixed(1));
-  const el = document.getElementById('card-' + cfgId);
-  if (el) el.innerHTML = buildBatchCardHTML(cfg);
+// ── 今日需用：依盤數 × 每盤用量全算 ──
+function recalcAllNeeded() {
+  // 讀 GIVF 列實際值（空白時 fallback 到 plan）
+  function givfVal(i) {
+    const inp = document.querySelector('#givf-row-' + i + ' input[type="number"]');
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (givfDishes[i]?.plan ?? 0);
+  }
+  // 讀矩陣 H5GT / GxTL 值
+  function mxH5(i) {
+    const inp = document.querySelector('#mrow-' + i + ' .cell-h5gt input');
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (matrixDishes[i]?.h5gt ?? 0);
+  }
+  function mxGx(i) {
+    const inp = document.querySelector('#mrow-' + i + ' .cell-gxtl input');
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (matrixDishes[i]?.gxtl ?? 0);
+  }
+
+  // GIVF 盤子索引：0=OPU 1=De 2=TE 3=AOA弘優 4=AOA508 5=精蟲(台) 6=G-IVF pH 7=多配mL
+  const opu       = givfVal(0);
+  const de        = givfVal(1);
+  const te        = givfVal(2);
+  const aoaCi     = givfVal(3);
+  const aoa508    = givfVal(4);
+  const spermTai  = givfVal(5);  // 台數
+  const givfPh    = givfVal(6);
+  const givfMulti = givfVal(7);  // 已是 mL
+
+  // 矩陣索引：0=D0 1=Bx 2=TB 3=Geri受精 4=GeriFBT 5=pH盤 6=多配mL
+  const h5Multi = mxH5(6), gxMulti = mxGx(6);
+
+  // Glue 獨立卡片
+  const glueInp = document.getElementById('glue-plan-input');
+  const gluePanCount = (glueInp && glueInp.value !== '') ? (parseFloat(glueInp.value) || 0) : gluePlan;
+
+  // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508)×0.5 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
+  const givfNeeded = opu*3 + (de+te+aoaCi+aoa508)*0.5 + spermTai*0.7 + givfPh*1 + givfMulti;
+
+  // ── AOA 弘優 CI: 盤數 × 0.3 mL ──
+  const aoaCiNeeded = aoaCi * 0.3;
+
+  // ── AOA 明美 GM508: 盤數 × 0.3 mL ──
+  const aoa508Needed = aoa508 * 0.3;
+
+  // ── H5GT: (D0+Bx+TB+Geri受精+GeriFBT)×0.4 + pH×1 + 多配mL ──
+  const h5gtNeeded = (mxH5(0)+mxH5(1)+mxH5(2)+mxH5(3)+mxH5(4))*0.4 + mxH5(5)*1 + h5Multi;
+
+  // ── GxTL: (D0+Bx+TB+Geri受精+GeriFBT)×0.4 + pH×1 + 多配mL ──
+  const gxTLNeeded = (mxGx(0)+mxGx(1)+mxGx(2)+mxGx(3)+mxGx(4))*0.4 + mxGx(5)*1 + gxMulti;
+
+  // ── EmbryoGlue: Glue盤 × 0.8 mL ──
+  const glueNeeded = gluePanCount * 0.8;
+
+  function setNeeded(cfgId, val) {
+    const cfg = reagentConfig.find(c => c.id === cfgId);
+    if (!cfg) return;
+    cfg.needed = parseFloat(Math.max(0, val).toFixed(1));
+    const el = document.getElementById('card-' + cfgId);
+    if (el) el.innerHTML = buildBatchCardHTML(cfg);
+  }
+
+  // GM508 must be set before aoa-ci card re-renders (buildGM508HTML reads gm508Config.needed)
+  gm508Config.needed = parseFloat(Math.max(0, aoa508Needed).toFixed(1));
+
+  setNeeded('givf', givfNeeded);
+  setNeeded('aoa-ci', aoaCiNeeded);
+  setNeeded('h5gt', h5gtNeeded);
+  setNeeded('gxtl', gxTLNeeded);
+  setNeeded('embryoglue', glueNeeded);
+}
+
+// ── Glue 計畫值（可由 gupan 覆蓋）──
+let gluePlan = 3;
+
+// ── 讀取 gupan 估盤確認資料 ──
+function loadGupanData() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem('gupan-confirmed') || 'null'); } catch(e) {}
+  if (!data) return;
+
+  // 驗證日期（只接受今天的估盤）
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  if (data.date !== todayStr) return;
+
+  const { givf, matrix } = data;
+
+  // GIVF 陣列映射（依順序：OPU/De/TE/AOA弘優/AOA508/精蟲/G-IVF pH/多配）
+  const givfKeys = ['opu','de','te','aoa_ci','aoa508','sperm','givf_ph','givf_x'];
+  givfKeys.forEach((k, i) => {
+    if (givf[k] != null) givfDishes[i].plan = givf[k];
+  });
+
+  // 矩陣陣列映射（依順序：D0/Bx/TB/Geri-受精/Geri-FBT/pH盤/多配）
+  const mxKeys = ['d0','bx','tb','geri_szu','geri_fbt','ph','multi'];
+  mxKeys.forEach((k, i) => {
+    if (!matrix[k]) return;
+    matrixDishes[i].h5gt = matrix[k].h5;
+    matrixDishes[i].gxtl = matrix[k].gx;
+  });
+
+  // Glue（H5GT 值帶入）
+  if (matrix.glue != null) {
+    gluePlan = matrix.glue.h5;
+    const cell = document.getElementById('glue-plan-cell');
+    const inp  = document.getElementById('glue-plan-input');
+    if (cell) cell.textContent = gluePlan;
+    if (inp)  { inp.value = gluePlan; }
+  }
+
+  // 顯示 banner
+  const banner = document.getElementById('gupan-import-banner');
+  if (banner) {
+    const a = data.staffA || '—';
+    const b = data.staffB || '—';
+    const t = data.confirmedAt || '—';
+    const staffEl = document.getElementById('gupan-banner-staff');
+    const timeEl  = document.getElementById('gupan-banner-time');
+    if (staffEl) staffEl.textContent = `估盤人：${a} / 核對：${b}`;
+    if (timeEl)  timeEl.textContent  = `今日 ${t}`;
+    banner.classList.remove('hidden');
+  }
 }
 
 // ── Init ──
+loadGupanData();
 buildGivfTable();
 buildMatrixTable();
 buildAllBatchCards();
 buildAllBulkCards();
+
+// 初始化「今日需用」（以計畫值全算）
+recalcAllNeeded();
 </script>
 </body>
 </html>

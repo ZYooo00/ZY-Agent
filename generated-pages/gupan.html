@@ -264,12 +264,11 @@
           <div class="text-xs text-slate-500 mb-1.5">Spindle 幾盤
             <span class="suggest-tag ml-1">建議 <span id="oil-spindle-sug" class="suggest-val text-primary-dark">—</span></span>
           </div>
+
           <input type="number" class="bulk-field" id="oil-spindle" placeholder="0" min="0" oninput="calcOil()">
         </div>
         <div>
-          <div class="text-xs text-slate-500 mb-1.5">Bx 幾盤
-            <span class="suggest-tag ml-1">建議 <span id="oil-bx-sug" class="suggest-val text-primary-dark">—</span></span>
-          </div>
+          <div class="text-xs text-slate-500 mb-1.5">Bx 幾盤</div>
           <input type="number" class="bulk-field" id="oil-bx" placeholder="0" min="0" oninput="calcOil()">
         </div>
       </div>
@@ -398,7 +397,7 @@ const taiFields = [
 // ── 資料：GIVF 盤子 ──
 const givfDishes = [
   { key:'opu',     name:'OPU',      unit:'盤', suggest: t => t.opu },
-  { key:'de',      name:'De',       unit:'盤', suggest: t => t.szu },
+  { key:'de',      name:'De',       unit:'盤', suggest: t => t.opu },
   { key:'te',      name:'TE',       unit:'盤', suggest: t => t.te  },
   { key:'aoa_ci',  name:'AOA 弘優', unit:'盤', suggest: t => 0 },
   { key:'aoa508',  name:'AOA 508',  unit:'盤', suggest: t => 0 },
@@ -411,9 +410,9 @@ const givfDishes = [
 const matrixDishes = [
   { key:'geri_szu', name:'Geri-受精', h5: t => t.szu, gx: t => t.szu },
   { key:'d0',       name:'D0',        h5: t => 0,     gx: t => 0     },
-  { key:'bx',       name:'Bx',        h5: t => t.bt,  gx: t => t.bt  },
-  { key:'tb',       name:'TB',        h5: t => t.te,  gx: t => 0     },
-  { key:'glue',     name:'Glue',      h5: t => 0,     gx: t => 0     },
+  { key:'bx',       name:'Bx',        h5: t => t.tbx, gx: t => 0     },
+  { key:'tb',       name:'TB',        h5: t => t.fbt + t.tbx, gx: t => 0 },
+  { key:'glue',     name:'Glue',      h5: t => t.fbt + t.bt, gx: t => 0 },
   { key:'geri_fbt', name:'Geri-FBT',  h5: t => t.fbt, gx: t => 0     },
   { key:'ph',       name:'pH 盤',     h5: t => 0,     gx: t => 0,     manual: true },
   { key:'multi',    name:'多配',      h5: t => 2.0,   gx: t => 2.0,   isMl: true  },
@@ -576,11 +575,9 @@ function updateAllSuggestions() {
     if (inGx && inGx.value !== '') checkMatrixDiff(d.key, 'gx', inGx);
   });
 
-  // Oil 的建議值（Spindle = 受精台數, Bx = BT台數）
+  // Oil 的建議值（Spindle = OPU 台數）
   const spindleSug = document.getElementById('oil-spindle-sug');
-  const bxSug      = document.getElementById('oil-bx-sug');
-  if (spindleSug) spindleSug.textContent = taiVals.szu || '—';
-  if (bxSug)      bxSug.textContent      = taiVals.bt  || '—';
+  if (spindleSug) spindleSug.textContent = taiVals.opu || '—';
 }
 
 // ══════════════════════════════════════════
@@ -720,7 +717,41 @@ function confirmGupan() {
   document.getElementById('confirm-time-display').textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${t}`;
   document.getElementById('confirm-info-text').textContent = `${staffB} 核對，${t}`;
   switchState('C');
+  saveConfirmedData(now, t, staffA, staffB);
   saveToStorage();
+}
+
+function saveConfirmedData(now, t, staffA, staffB) {
+  const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+
+  function effGivf(d) {
+    const v = parseFloat(document.getElementById(`givf-in-${d.key}`)?.value);
+    return isNaN(v) ? d.suggest(taiVals) : v;
+  }
+  function effMatrix(d, side) {
+    const v = parseFloat(document.getElementById(`mx-in-${side}-${d.key}`)?.value);
+    return isNaN(v) ? (side === 'h5' ? d.h5(taiVals) : d.gx(taiVals)) : v;
+  }
+
+  const givf = {};
+  givfDishes.forEach(d => { givf[d.key] = effGivf(d); });
+
+  const matrix = {};
+  matrixDishes.forEach(d => {
+    matrix[d.key] = { h5: effMatrix(d, 'h5'), gx: effMatrix(d, 'gx') };
+  });
+
+  const payload = {
+    date: dateStr,
+    confirmedAt: t,
+    staffA,
+    staffB,
+    taiVals: { ...taiVals },
+    givf,
+    matrix,
+  };
+
+  try { localStorage.setItem('gupan-confirmed', JSON.stringify(payload)); } catch(e) {}
 }
 
 // ══════════════════════════════════════════
