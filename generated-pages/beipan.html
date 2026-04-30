@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>培養液管理系統 — 今日備盤</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: { DEFAULT: '#9590D0', light: '#BDB8E8', dark: '#7A75BB', xlight: '#EDE9FF' },
+          secondary: '#E2E4F4',
+        },
+        fontFamily: {
+          sans: ['Noto Sans TC', 'sans-serif'],
+          heading: ['Figtree', 'Noto Sans TC', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Noto Sans TC', sans-serif; }
+  .font-heading, h1, h2, h3 { font-family: 'Figtree', 'Noto Sans TC', sans-serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .badge-ok     { background:#DCFCE7; color:#166534; }
+  .badge-info   { background:#EFF6FF; color:#1D4ED8; }
+  .badge-warn   { background:#FFF7ED; color:#9A3412; }
+  .badge-danger { background:#FEF2F2; color:#991B1B; }
+  .badge-block  { background:#F1F5F9; color:#94A3B8; }
+
+  .row-ok    { background:#fff; }
+  .row-danger { background:#FFF1F2; }
+  .row-block  { background:#F8FAFC; color:#94A3B8; }
+  .row-diff   { background:#FEF2F2; }
+
+  .cell-h5gt { background:#F5F0FB; }
+  .cell-gxtl { background:#EEF0FB; }
+  .cell-na   { background:#F8FAFC; color:#CBD5E1; }
+
+  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
+  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
+  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
+
+  .demo-btn { padding:4px 14px; border-radius:20px; font-size:12px; font-weight:500; border:1.5px solid #E2E8F0; color:#64748B; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .demo-btn:hover { border-color:#9590D0; color:#9590D0; }
+  .demo-btn.active { background:#9590D0; color:#fff; border-color:#9590D0; }
+
+  input[type=radio] { accent-color:#9590D0; width:16px; height:16px; cursor:pointer; }
+  input[type=number], input[type=text], input[type=date], select { font-family:'Noto Sans TC',sans-serif; }
+
+  .right-col::-webkit-scrollbar { width:4px; }
+  .right-col::-webkit-scrollbar-track { background:transparent; }
+  .right-col::-webkit-scrollbar-thumb { background:#E2E8F0; border-radius:4px; }
+
+  .section-divider { display:flex; align-items:center; gap:12px; }
+  .section-divider::before, .section-divider::after { content:''; flex:1; height:1px; background:#E2E8F0; }
+  .section-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#94A3B8; white-space:nowrap; }
+
+  .diff-note-wrap { margin-top:4px; }
+</style>
+</head>
+
+<body class="bg-slate-50 min-h-screen">
+
+<!-- ──────────── HEADER ──────────── -->
+<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shadow-sm">
+  <div class="flex items-center gap-3">
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    </div>
+    <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="text-sm text-slate-500 tabular">2026/04/30 (四)</span>
+    <div class="flex items-center gap-2 cursor-pointer">
+      <div class="w-7 h-7 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
+      <span class="text-sm text-slate-700 font-medium">高任佑</span>
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </div>
+  </div>
+</header>
+
+<!-- ──────────── LAYOUT ──────────── -->
+<div class="flex pt-14">
+
+  <!-- SIDEBAR -->
+  <aside class="fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex flex-col py-4">
+    <div class="px-3 space-y-0.5">
+      <div class="sidebar-link active">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        今日備盤
+      </div>
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        進貨記錄
+      </div>
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        庫存總覽
+      </div>
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        訂貨管理
+      </div>
+    </div>
+    <div class="mt-auto px-3 pt-4 border-t border-slate-100">
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        後台設定
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="ml-52 flex-1">
+
+    <!-- DEMO SWITCHER -->
+    <div class="sticky top-14 z-10 bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-2 overflow-x-auto">
+      <span class="text-xs text-slate-400 font-medium whitespace-nowrap">示範：</span>
+      <button class="demo-btn" id="btn-a" onclick="switchState('a')">🔒 A：備盤鎖定</button>
+      <button class="demo-btn active" id="btn-b" onclick="switchState('b')">📋 B：備盤作業中</button>
+      <button class="demo-btn" id="btn-c" onclick="switchState('c')">✅ C：確認送出</button>
+    </div>
+
+    <!-- ════ STATE A ════ -->
+    <div id="state-a" class="hidden p-8">
+      <div class="max-w-lg mx-auto mt-16">
+        <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+          <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <h2 class="font-heading text-xl font-semibold text-slate-700 mb-2">備盤尚未解鎖</h2>
+          <p class="text-slate-500 text-sm">估盤確認後才能開始備盤。</p>
+          <div class="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm text-amber-700">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            高任佑已送出估盤，等待第二人核對確認
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ STATE B ════ -->
+    <div id="state-b" class="p-6 space-y-5">
+
+      <!-- Title row -->
+      <div class="flex items-center justify-between">
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤</h1>
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+          <svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          草稿已自動儲存 14:22
+        </div>
+      </div>
+
+      <!-- 估盤確認 bar -->
+      <div class="bg-green-50 border border-green-200 rounded-xl px-5 py-3 flex items-center gap-3 flex-wrap">
+        <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        <span class="text-sm font-semibold text-green-800">估盤已確認</span>
+        <span class="text-green-300">|</span>
+        <span class="text-sm text-green-700">估盤人：高任佑 / 林OO</span>
+        <span class="text-green-300">|</span>
+        <span class="text-sm text-green-600">今日 10:32</span>
+      </div>
+
+      <!-- 備盤人員 -->
+      <div class="bg-white rounded-xl border border-slate-200 px-5 py-3.5 flex items-center gap-4 flex-wrap">
+        <span class="text-sm font-medium text-slate-700">今日備盤人員</span>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+          <option>高任佑</option><option>林OO</option><option>曾OO</option>
+        </select>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+          <option>林OO</option><option>高任佑</option><option>曾OO</option>
+        </select>
+        <span class="text-xs text-slate-400">兩人皆可操作，任一人可送出</span>
+      </div>
+
+      <!-- 估盤摘要 -->
+      <div class="bg-secondary border border-primary-light rounded-xl px-5 py-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-xs font-heading font-semibold text-primary-dark uppercase tracking-wide whitespace-nowrap">今日估盤摘要</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">OPU <span class="font-bold text-primary-dark tabular">3</span> 台</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">TE <span class="font-bold text-primary-dark tabular">2</span> 台</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">受精 <span class="font-bold text-primary-dark tabular">5</span> 台</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">FBT <span class="font-bold text-primary-dark tabular">2</span> 台</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">BT <span class="font-bold text-primary-dark tabular">1</span> 台</span>
+          <span class="text-slate-300">·</span>
+          <span class="text-sm text-slate-700">TBx <span class="font-bold text-primary-dark tabular">1</span> 台</span>
+        </div>
+      </div>
+
+      <!-- ── 左右兩欄 ── -->
+      <div class="grid gap-6" style="grid-template-columns: minmax(0,430px) 1fr;">
+
+        <!-- ██ LEFT：盤子計數 ██ -->
+        <div class="space-y-4">
+          <div class="section-divider"><span class="section-label">盤子數量</span></div>
+
+          <!-- 卵子 (GIVF) -->
+          <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+              <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">卵子 (GIVF)</span>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="border-b border-slate-100">
+                <tr class="text-xs text-slate-400">
+                  <th class="py-2 pl-4 text-left font-medium">盤子</th>
+                  <th class="py-2 px-3 text-center font-medium">估盤</th>
+                  <th class="py-2 px-3 pr-4 text-center font-medium">實際備盤</th>
+                </tr>
+              </thead>
+              <tbody id="givf-dish-body" class="divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+
+          <!-- 胚胎矩陣 H5GT × GxTL -->
+          <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">胚胎 (H5GT × GxTL)</span>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="w-3 h-3 rounded-sm cell-h5gt border border-purple-100 inline-block"></span><span class="text-slate-500">H5GT</span>
+                <span class="w-3 h-3 rounded-sm cell-gxtl border border-blue-100 inline-block ml-1"></span><span class="text-slate-500">GxTL</span>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-slate-100">
+                  <tr class="text-xs">
+                    <th class="py-2 pl-4 text-left font-medium text-slate-400 w-28">盤子</th>
+                    <th class="py-2 px-2 text-center font-semibold text-purple-500 cell-h5gt" colspan="2">H5GT</th>
+                    <th class="py-2 px-2 text-center font-semibold text-blue-500 cell-gxtl" colspan="2">GxTL</th>
+                  </tr>
+                  <tr class="text-xs border-b border-slate-100">
+                    <th class="pb-2 pl-4 text-left"></th>
+                    <th class="pb-2 px-2 text-center text-slate-400 font-medium cell-h5gt">估盤</th>
+                    <th class="pb-2 px-2 text-center text-slate-400 font-medium cell-h5gt">實際</th>
+                    <th class="pb-2 px-2 text-center text-slate-400 font-medium cell-gxtl">估盤</th>
+                    <th class="pb-2 px-2 pr-4 text-center text-slate-400 font-medium cell-gxtl">實際</th>
+                  </tr>
+                </thead>
+                <tbody id="matrix-dish-body" class="divide-y divide-slate-50"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Glue 盤 -->
+          <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">Glue 盤</span>
+              <span class="text-xs text-slate-400">BT / FBT 適用</span>
+            </div>
+            <table class="w-full text-sm">
+              <thead class="border-b border-slate-100">
+                <tr class="text-xs text-slate-400">
+                  <th class="py-2 pl-4 text-left font-medium">盤子</th>
+                  <th class="py-2 px-3 text-center font-medium">估盤</th>
+                  <th class="py-2 px-3 pr-4 text-center font-medium">實際備盤</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="hover:bg-slate-50 transition-colors" id="glue-row">
+                  <td class="pl-4 py-2.5 text-sm font-medium text-slate-700">Glue</td>
+                  <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular">3</td>
+                  <td class="px-3 pr-4 py-2.5 text-center">
+                    <div>
+                      <input type="number" value="3" min="0" max="99"
+                        class="w-14 text-center text-sm border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
+                        oninput="checkSimpleDiff(this, 3, 'glue-row')">
+                      <div class="diff-note-wrap hidden mt-1">
+                        <input type="text" placeholder="修改原因（必填）" class="text-xs border border-red-300 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-red-300 bg-red-50 placeholder-red-300">
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="bulk-reagent-section" class="space-y-4"></div>
+        </div>
+
+        <!-- ██ RIGHT：試劑批號選擇（動態渲染） ██ -->
+        <div class="space-y-4">
+          <div class="section-divider"><span class="section-label">試劑批號選擇</span></div>
+          <div id="card-givf"></div>
+          <div id="card-aoa-ci"></div>
+          <div id="card-h5gt"></div>
+          <div id="card-gxtl"></div>
+          <div id="card-embryoglue"></div>
+        </div>
+
+      </div><!-- end two-col grid -->
+
+      <!-- 備盤備註 -->
+      <div class="bg-white rounded-xl border border-slate-200 px-5 py-4">
+        <label class="block text-sm font-medium text-slate-700 mb-2">備盤備註（選填）</label>
+        <textarea rows="2" placeholder="例：G-IVF 53189 瓶底有沉澱，提前開新瓶；Geri-FBT 多備 1 盤備用"
+          class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300"></textarea>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex justify-end gap-3 pt-2 pb-8">
+        <button class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">儲存草稿</button>
+        <button onclick="switchState('c')" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
+          備盤完成
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div><!-- end state-b -->
+
+    <!-- ════ STATE C ════ -->
+    <div id="state-c" class="hidden p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤</h1>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
+        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div>
+          <div class="font-medium text-amber-800 text-sm">確認備盤結果</div>
+          <div class="text-xs text-amber-600 mt-0.5">備盤人員：高任佑 · 林OO　·　請核對盤子數量（批號與開封日由備盤人員負責）</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
+        <div class="text-sm font-medium text-slate-700 mb-3">批號使用摘要（唯讀）</div>
+        <div class="grid grid-cols-3 gap-3 text-sm">
+          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">G-IVF</span><span class="font-mono font-semibold text-slate-800">53651</span></div>
+          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">AOA CI</span><span class="font-mono font-semibold text-slate-800">AA1023</span></div>
+          <div class="bg-purple-50 rounded-lg p-3 border border-purple-100"><span class="text-purple-400 text-xs block">H5GT</span><span class="font-mono font-semibold text-slate-800">88392</span></div>
+          <div class="bg-blue-50 rounded-lg p-3 border border-blue-100"><span class="text-blue-400 text-xs block">GxTL</span><span class="font-mono font-semibold text-slate-800">44201</span></div>
+          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">EmbryoGlue</span><span class="font-mono font-semibold text-slate-800">EG501</span></div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pb-8">
+        <button onclick="switchState('b')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
+        <button class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          確認無誤，送出備盤
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════ MODAL：登記新開瓶 ════ -->
+<div id="modal-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeModal()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h3 class="font-heading text-lg font-bold text-slate-800">登記新開瓶</h3>
+        <p class="text-sm text-primary font-semibold mt-0.5" id="modal-reagent">G-IVF</p>
+      </div>
+      <button onclick="closeModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">廠商批號 <span class="text-red-500">*</span></label>
+        <select id="modal-lot-select" onchange="onLotChange()"
+          class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary font-mono bg-white">
+        </select>
+        <div id="modal-new-lot-wrap" class="hidden mt-2">
+          <input type="text" id="modal-new-lot-input" placeholder="輸入新批號" class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary font-mono">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">批號效期 <span class="text-red-500">*</span></label>
+        <input type="date" id="modal-expiry-date" class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary">
+        <p class="text-xs text-slate-400 mt-1">選擇現有批號時自動帶入，新批號請手動填寫</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">開封日期</label>
+        <input type="date" value="2026-04-30" class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary">
+        <p class="text-xs text-slate-400 mt-1">預設今日，開封後效期計時開始</p>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">取消</button>
+      <button onclick="confirmOpenBottle()" class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-colors shadow-sm">確認登記</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State switching ──
+function switchState(s) {
+  ['a','b','c'].forEach(id => {
+    document.getElementById('state-'+id).classList.toggle('hidden', id !== s);
+    const btn = document.getElementById('btn-'+id);
+    if (btn) btn.classList.toggle('active', id === s);
+  });
+}
+
+// ── Date utilities ──
+const TODAY = new Date('2026-04-30');
+
+function daysUntilExpiry(isoStr) {
+  if (!isoStr) return null;
+  return Math.floor((new Date(isoStr) - TODAY) / 86400000);
+}
+
+function fmtDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
+}
+
+// ── Batch status calculation ──
+// 可用量 = 已開封剩餘 + 未開封瓶數 × 單瓶容量
+// 充足：開封瓶已夠 / 需開新瓶：總量夠但開封瓶不夠 / 批號不足：總量也不夠
+function calcBadge(b, needed) {
+  if (b.blocked) return { status:'blocked', cls:'badge-block', text:'❌ 已過期' };
+  const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
+  if (total < needed)          return { status:'insufficient', cls:'badge-warn',   text:'⚠️ 批號不足' };
+  if ((b.remaining||0) < needed) return { status:'needOpen',   cls:'badge-info',   text:'🔄 需開新瓶' };
+  const days = daysUntilExpiry(b.expiry);
+  if (days !== null) {
+    if (days <= 0)  return { status:'todayLast',  cls:'badge-danger', text:'🔴 今天最後' };
+    if (days === 1) return { status:'expire1',    cls:'badge-danger', text:'🔴 明天到期' };
+    if (days <= 3)  return { status:'expireWarn', cls:'badge-warn',   text:`🟠 ${days}天到期` };
+  }
+  return { status:'ok', cls:'badge-ok', text:'✅ 充足' };
+}
+
+// ── Bulk dispensing reagents (Oil / HEPES) ──
+// 罐 = 小包裝（分裝後），瓶 = 大包裝（原裝，庫存扣除單位）
+const bulkReagents = [
+  {
+    id: 'oil',
+    name: 'Heavy Oil',
+    bigUnit: '罐',
+    smallUnit: '瓶',
+    planBig: 5,
+    planSmall: 0,
+  },
+  {
+    id: 'hepes',
+    name: 'HEPES',
+    bigUnit: '罐',
+    smallUnit: '瓶',
+    planBig: 9,
+    planSmall: 0,
+  },
+];
+
+// ── Reagent configuration data ──
+const reagentConfig = [
+  {
+    id: 'givf', name: 'G-IVF', label: '卵子培養液',
+    labelCls: 'text-slate-400 bg-slate-100',
+    border: 'border border-slate-200', headerBg: '', needed: 11.5, baseNeeded: 9.5,
+    batches: [
+      { lot:'53189', expiry:'2026-05-01', openExpiry:'2026-05-02', openDate:'04/25', remaining:3.2,  unopened:2, bottleVol:60 },
+      { lot:'53651', expiry:'2026-05-04', openExpiry:'2026-05-05', openDate:'04/28', remaining:47.0, unopened:0, bottleVol:60 },
+      { lot:'52100', expiry:'2026-04-01', openExpiry:null,          openDate:null,    remaining:0,    unopened:0, bottleVol:60, blocked:true },
+    ]
+  },
+  {
+    id: 'aoa-ci', name: 'AOA 弘優 CI', label: '卵子添加劑',
+    labelCls: 'text-slate-400 bg-slate-100',
+    border: 'border border-slate-200', headerBg: '', needed: 2.0,
+    batches: [
+      { lot:'AA1023', expiry:'2026-05-04', openExpiry:'2026-05-04', openDate:'04/20', remaining:8.5, unopened:1, bottleVol:10 },
+    ],
+    extra: 'gm508'
+  },
+  {
+    id: 'h5gt', name: 'H5GT', label: '胚胎培養液',
+    labelCls: 'text-purple-500 bg-purple-50 border border-purple-100',
+    border: 'border-2 border-purple-200', headerBg: 'background:#faf8ff', needed: 8.0, baseNeeded: 6.0,
+    batches: [
+      { lot:'88392', expiry:'2026-05-01', openExpiry:'2026-05-02', openDate:'04/25', remaining:6.0, unopened:1, bottleVol:30 },
+      { lot:'88511', expiry:'2026-05-08', openExpiry:null,          openDate:null,    remaining:0,   unopened:3, bottleVol:30 },
+    ]
+  },
+  {
+    id: 'gxtl', name: 'GxTL', label: '胚胎培養液',
+    labelCls: 'text-blue-500 bg-blue-50 border border-blue-100',
+    border: 'border-2 border-blue-200', headerBg: 'background:#f5f8ff', needed: 12.0, baseNeeded: 10.0,
+    batches: [
+      { lot:'44201', expiry:'2026-05-03', openExpiry:'2026-05-04', openDate:'04/27', remaining:38.0, unopened:1, bottleVol:30 },
+    ]
+  },
+  {
+    id: 'embryoglue', name: 'EmbryoGlue', label: '植入培養液',
+    labelCls: 'text-slate-400 bg-slate-100',
+    border: 'border border-slate-200', headerBg: '', needed: 1.6,
+    batches: [
+      { lot:'EG501', expiry:'2026-04-30', openExpiry:'2026-04-29', openDate:'04/15', remaining:12.0, unopened:0, bottleVol:10 },
+    ]
+  }
+];
+
+const gm508Config = {
+  id: 'gm508', name: 'AOA 明美 GM508', needed: 2.0,
+  batches: [
+    { lot:'GM0801', expiry:'2026-04-30', openExpiry:'2026-04-29', openDate:'04/22', remaining:5.0, unopened:0, bottleVol:1 },
+  ]
+};
+
+// ── Build a single batch table row ──
+function buildBatchRow(b, needed, cardId, checked) {
+  if (b.blocked) {
+    return `<tr class="row-block">
+      <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
+      <td class="px-3 py-3 font-mono line-through text-slate-300">${b.lot}</td>
+      <td class="px-3 py-3 tabular text-slate-300">—</td>
+      <td class="px-3 py-3 tabular text-slate-300">—</td>
+      <td class="px-3 py-3 text-right tabular text-slate-300">—</td>
+      <td class="px-3 py-3 text-right tabular text-slate-300 text-xs">—</td>
+      <td class="px-3 py-3"><span class="badge-block text-xs px-2 py-0.5 rounded-full font-medium">❌ 已過期</span></td>
+    </tr>`;
+  }
+  const badge    = calcBadge(b, needed);
+  const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
+  const days     = daysUntilExpiry(b.expiry);
+  const expCls   = (days !== null && days <= 1) ? 'text-red-600 font-semibold' :
+                   (days !== null && days <= 3) ? 'text-amber-600 font-semibold' : 'text-slate-700';
+  const openLine = b.openExpiry
+    ? `<div class="text-xs text-slate-400">開封 → ${fmtDate(b.openExpiry)}</div>`
+    : `<div class="text-xs text-slate-400">未開封</div>`;
+  const remCls   = badge.status === 'insufficient' ? 'text-red-600' :
+                   badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
+  const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
+  const unopText = `+${b.unopened || 0} 瓶未開封`;
+
+  return `<tr class="row-ok hover:bg-slate-50 transition-colors">
+    <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
+    <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
+    <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
+    <td class="px-3 py-3 tabular">
+      <div class="${expCls}">${fmtDate(b.expiry)}</div>
+      ${openLine}
+    </td>
+    <td class="px-3 py-3 text-right tabular">
+      <div class="font-semibold ${remCls}">${remText}</div>
+      <div class="text-xs text-slate-400">${unopText}</div>
+    </td>
+    <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
+    <td class="px-3 py-3">${badgeHtml}</td>
+  </tr>`;
+}
+
+// ── Build GM508 expandable section HTML ──
+function buildGM508HTML() {
+  const gm  = gm508Config;
+  const b   = gm.batches[0];
+  const badge    = calcBadge(b, gm.needed);
+  const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
+  const days = daysUntilExpiry(b.expiry);
+  const expCls = (days !== null && days <= 1) ? 'text-red-600 font-semibold' :
+                 (days !== null && days <= 3) ? 'text-amber-600 font-semibold' : 'text-slate-700';
+  return `
+  <div class="px-5 py-2.5 border-t border-dashed border-slate-200">
+    <button onclick="toggleGM508()" id="btn-gm508" class="text-xs font-medium flex items-center gap-1.5 transition-colors text-primary hover:text-primary-dark">
+      <svg id="gm508-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <span id="gm508-btn-label">AOA 明美 GM508</span>
+    </button>
+  </div>
+  <div id="gm508-section" class="hidden border-t border-amber-100">
+    <div class="px-5 py-2.5 bg-amber-50 flex items-center justify-between flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <span class="font-heading font-semibold text-slate-700 text-sm">AOA 明美 GM508</span>
+        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">卵子添加劑</span>
+        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⚠️ 需填病歷號</span>
+      </div>
+      <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${gm.needed.toFixed(1)} mL</span></span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-amber-50 border-b border-amber-100 text-xs text-slate-400">
+          <tr>
+            <th class="w-9 py-2.5 pl-4 text-center font-medium">選</th>
+            <th class="py-2.5 px-3 text-left font-medium">批號</th>
+            <th class="py-2.5 px-3 text-left font-medium">開封日</th>
+            <th class="py-2.5 px-3 text-left font-medium">到期日</th>
+            <th class="py-2.5 px-3 text-right font-medium">剩餘量</th>
+            <th class="py-2.5 px-3 text-right font-medium">今日需用</th>
+            <th class="py-2.5 px-3 text-left font-medium">狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-ok hover:bg-amber-50 transition-colors">
+            <td class="pl-4 py-3 text-center"><input type="radio" name="r-gm508" checked onchange="onBatchSelect('gm508','${badge.status}')"></td>
+            <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
+            <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
+            <td class="px-3 py-3 tabular">
+              <div class="${expCls}">${fmtDate(b.expiry)}</div>
+              <div class="text-xs text-slate-400">${b.openExpiry ? '開封 → '+fmtDate(b.openExpiry) : '未開封'}</div>
+            </td>
+            <td class="px-3 py-3 text-right tabular">
+              <div class="font-semibold text-slate-800">${b.remaining.toFixed(1)} mL</div>
+              <div class="text-xs text-slate-400">+${b.unopened||0} 瓶未開封</div>
+            </td>
+            <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${gm.needed.toFixed(1)} mL</td>
+            <td class="px-3 py-3">${badgeHtml}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="px-5 py-3 border-t border-amber-100 bg-amber-50 flex items-center gap-3 flex-wrap">
+      <label class="text-sm font-semibold text-amber-800 whitespace-nowrap">病歷號（必填）</label>
+      <span class="text-xs text-amber-500">多筆用逗號隔開</span>
+      <input type="text" placeholder="例：123456 或 123456, 789012" class="flex-1 min-w-48 text-sm border border-amber-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
+    </div>
+    <div class="px-5 py-2.5 border-t border-amber-100 flex items-center gap-4">
+      <button onclick="toggleSecondBatch('gm508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>加入第二批號
+      </button>
+      <span class="text-slate-200">|</span>
+      <button onclick="openModal('AOA 明美 GM508','gm508')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
+      </button>
+    </div>
+    <div id="gm508-second" class="hidden px-5 py-4 bg-slate-50 border-t border-amber-100">
+      <div class="text-xs text-slate-500 mb-3 font-medium">第二批次</div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-400 w-10">批次 2</span>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary"><option>GM0801</option></select>
+        <input type="text" placeholder="用途備註" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+      <button onclick="toggleSecondBatch('gm508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除第二批次</button>
+    </div>
+  </div>`;
+}
+
+// ── Build a full batch card HTML ──
+function buildBatchCardHTML(cfg) {
+  let firstActive = true;
+  const rows = cfg.batches.map(b => {
+    const isChecked = !b.blocked && firstActive;
+    if (!b.blocked) firstActive = false;
+    return buildBatchRow(b, cfg.needed, cfg.id, isChecked);
+  }).join('');
+
+  const activeLots = cfg.batches.filter(b => !b.blocked);
+  const lotOpts    = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
+  const hdrStyle   = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
+  const extraHTML  = cfg.extra === 'gm508' ? buildGM508HTML() : '';
+
+  return `
+<div class="bg-white rounded-xl ${cfg.border} overflow-hidden">
+  <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2"${hdrStyle}>
+    <div class="flex items-center gap-2">
+      <span class="font-heading font-semibold text-slate-800">${cfg.name}</span>
+      <span class="text-xs ${cfg.labelCls} px-2 py-0.5 rounded-full font-medium">${cfg.label}</span>
+    </div>
+    <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${cfg.needed.toFixed(1)} mL</span></span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="border-b border-slate-100 text-xs text-slate-400"${hdrStyle}>
+        <tr>
+          <th class="w-9 py-2.5 pl-4 text-center font-medium">選</th>
+          <th class="py-2.5 px-3 text-left font-medium">批號</th>
+          <th class="py-2.5 px-3 text-left font-medium">開封日</th>
+          <th class="py-2.5 px-3 text-left font-medium">到期日</th>
+          <th class="py-2.5 px-3 text-right font-medium">剩餘量</th>
+          <th class="py-2.5 px-3 text-right font-medium">今日需用</th>
+          <th class="py-2.5 px-3 text-left font-medium">狀態</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">${rows}</tbody>
+    </table>
+  </div>
+  <div id="${cfg.id}-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
+    <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    <span class="text-xs font-semibold text-amber-800">此批號不足今日需用量，已自動展開第二批次</span>
+  </div>
+  <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
+    <button onclick="toggleSecondBatch('${cfg.id}')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>加入第二批號
+    </button>
+    <span class="text-slate-200">|</span>
+    <button onclick="openModal('${cfg.name}','${cfg.id}')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
+    </button>
+  </div>
+  <div id="${cfg.id}-second" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
+    <div class="text-xs text-slate-500 mb-3 font-medium">第二批次</div>
+    <div class="space-y-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-400 w-10">批次 1</span>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
+        <input type="text" placeholder="用途備註（例：De 盤用完）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-400 w-10">批次 2</span>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
+        <input type="text" placeholder="用途備註（例：其餘盤）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+    </div>
+    <div id="${cfg.id}-mix-note" class="hidden mt-3">
+      <input type="text" placeholder="混批備註（必填）：說明為何需要混批"
+        class="w-full text-sm border border-amber-300 rounded-lg px-3 py-1.5 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
+    </div>
+    <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除第二批次</button>
+  </div>
+  ${extraHTML}
+</div>`;
+}
+
+// ── Render all batch cards ──
+function buildAllBatchCards() {
+  reagentConfig.forEach(cfg => {
+    const el = document.getElementById('card-' + cfg.id);
+    if (el) el.innerHTML = buildBatchCardHTML(cfg);
+  });
+}
+
+// ── Batch selection: show/hide warning banner + auto-expand second batch ──
+function onBatchSelect(cardId, status) {
+  const banner      = document.getElementById(cardId + '-warn-banner');
+  const mixNote     = document.getElementById(cardId + '-mix-note');
+  const secondPanel = document.getElementById(cardId + '-second');
+  const isInsuff    = (status === 'insufficient');
+  if (banner)    banner.classList.toggle('hidden', !isInsuff);
+  if (mixNote)   mixNote.classList.toggle('hidden', !isInsuff);
+  if (isInsuff && secondPanel && secondPanel.classList.contains('hidden')) {
+    secondPanel.classList.remove('hidden');
+  }
+}
+
+// ── Second batch toggle ──
+function toggleSecondBatch(id) {
+  document.getElementById(id+'-second').classList.toggle('hidden');
+}
+
+// ── GM508 expand / collapse ──
+function toggleGM508() {
+  const section = document.getElementById('gm508-section');
+  const icon    = document.getElementById('gm508-icon');
+  const label   = document.getElementById('gm508-btn-label');
+  const isOpen  = !section.classList.contains('hidden');
+  section.classList.toggle('hidden', isOpen);
+  if (isOpen) {
+    icon.innerHTML  = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>';
+    label.textContent = 'AOA 明美 GM508';
+  } else {
+    icon.innerHTML  = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>';
+    label.textContent = '收合 GM508';
+  }
+}
+
+// ── Modal ──
+let _modalCardId = null;
+
+function openModal(r, cardId) {
+  _modalCardId = cardId || null;
+  document.getElementById('modal-reagent').textContent = r;
+  const cfg = (cardId === 'gm508') ? gm508Config :
+              reagentConfig.find(c => c.id === cardId) ||
+              reagentConfig.find(c => c.name === r) || null;
+  const batches = cfg ? cfg.batches.filter(b => !b.blocked) : [];
+  const sel = document.getElementById('modal-lot-select');
+  sel.innerHTML = batches.map(b =>
+    `<option value="${b.lot}" data-expiry="${b.expiry||''}" data-vol="${b.bottleVol||0}">${b.lot}</option>`
+  ).join('') + '<option value="__new__">＋ 輸入新批號…</option>';
+  document.getElementById('modal-new-lot-wrap').classList.add('hidden');
+  if (batches.length > 0) {
+    sel.value = batches[0].lot;
+    document.getElementById('modal-expiry-date').value = batches[0].expiry || '';
+  } else {
+    document.getElementById('modal-expiry-date').value = '';
+  }
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function confirmOpenBottle() {
+  const sel    = document.getElementById('modal-lot-select');
+  const lotVal = sel.value;
+  if (lotVal !== '__new__' && _modalCardId) {
+    const cfg = (_modalCardId === 'gm508') ? gm508Config :
+                reagentConfig.find(c => c.id === _modalCardId);
+    if (cfg) {
+      const batch = cfg.batches.find(b => b.lot === lotVal);
+      if (batch && (batch.unopened || 0) > 0) {
+        batch.unopened  -= 1;
+        batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || 0)).toFixed(1));
+      }
+      if (batch) batch.openDate = '今日';
+    }
+    const renderId  = (_modalCardId === 'gm508') ? 'aoa-ci' : _modalCardId;
+    const renderCfg = reagentConfig.find(c => c.id === renderId);
+    const el = document.getElementById('card-' + renderId);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  }
+  closeModal();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+function onLotChange() {
+  const sel     = document.getElementById('modal-lot-select');
+  const newWrap = document.getElementById('modal-new-lot-wrap');
+  if (sel.value === '__new__') {
+    newWrap.classList.remove('hidden');
+    document.getElementById('modal-expiry-date').value = '';
+  } else {
+    newWrap.classList.add('hidden');
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('modal-expiry-date').value = opt.dataset.expiry || '';
+  }
+}
+
+// ── GIVF 盤子表格 ──
+const givfDishes = [
+  { name:'OPU',       plan:3,   unit:'盤' },
+  { name:'De',        plan:5,   unit:'盤' },
+  { name:'TE',        plan:2,   unit:'盤' },
+  { name:'AOA 弘優',  plan:2,   unit:'盤' },
+  { name:'AOA 508',   plan:0,   unit:'盤' },
+  { name:'精蟲',      plan:4,   unit:'盤' },
+  { name:'多配 (mL)', plan:2.0, unit:'mL', calc:true, extraTarget:'givf' },
+];
+
+function buildGivfTable() {
+  const tbody = document.getElementById('givf-dish-body');
+  givfDishes.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.id = 'givf-row-' + i;
+    tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-50';
+    const planDisplay = d.unit === 'mL' ? d.plan.toFixed(1) + ' mL' : d.plan;
+    const step = d.unit === 'mL' ? '0.1' : '1';
+    tr.innerHTML = `
+      <td class="pl-4 py-2.5 text-sm font-medium text-slate-700">${d.name}</td>
+      <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular">
+        ${d.calc ? '<span class="text-xs text-slate-300 mr-0.5">(估)</span>' : ''}${planDisplay}
+      </td>
+      <td class="px-3 pr-4 py-2.5 text-center">
+        <div>
+          <span class="inline-flex items-center gap-1">
+            <input type="number" value="${d.plan}" min="0" max="999" step="${step}"
+              class="w-16 text-center text-sm border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
+              oninput="checkGivfDiff(this,${d.plan},${i})">
+            ${d.unit === 'mL' ? '<span class="text-xs text-slate-400">mL</span>' : ''}
+          </span>
+          <div class="diff-note-wrap hidden mt-1">
+            <input type="text" placeholder="修改原因（必填）" class="text-xs border border-red-300 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-red-300 bg-red-50 placeholder-red-300">
+          </div>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function checkGivfDiff(input, plan, i) {
+  const diff    = parseFloat(input.value || 0) - plan;
+  const hasDiff = Math.abs(diff) > 0.01;
+  const tr = document.getElementById('givf-row-' + i);
+  tr.classList.toggle('row-diff', hasDiff);
+  input.classList.toggle('border-red-300', hasDiff);
+  const noteWrap = tr.querySelector('.diff-note-wrap');
+  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
+  const d = givfDishes[i];
+  if (d && d.extraTarget) updateNeeded(d.extraTarget, parseFloat(input.value) || 0);
+}
+
+// ── 胚胎矩陣（H5GT 左、GxTL 右） ──
+const matrixDishes = [
+  { name:'D0',          h5gt:2,   gxtl:3   },
+  { name:'Bx',          h5gt:1,   gxtl:1,  note:'*不PGS者 ≥5# 須備' },
+  { name:'TB',          h5gt:1,   gxtl:0   },
+  { name:'Geri-受精',   h5gt:2,   gxtl:3   },
+  { name:'Geri-FBT',    h5gt:1,   gxtl:0   },
+  { name:'多配 (mL)',   h5gt:2.0, gxtl:2.0, isMl:true },
+];
+
+function cellCls(val, side) {
+  if (val === null) return 'cell-na text-slate-300';
+  return side === 'h5gt' ? 'cell-h5gt' : 'cell-gxtl';
+}
+
+function buildMatrixTable() {
+  const tbody = document.getElementById('matrix-dish-body');
+  matrixDishes.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.id = 'mrow-' + i;
+    tr.className = 'border-b border-slate-50';
+
+    let nameHtml = d.name;
+    if (d.note) nameHtml += `<div class="text-xs text-slate-400 mt-0.5">${d.note}</div>`;
+
+    const planH = d.h5gt !== null ? (d.isMl ? d.h5gt.toFixed(1) : d.h5gt) : '—';
+    const planG = d.gxtl !== null ? (d.isMl ? d.gxtl.toFixed(1) : d.gxtl) : '—';
+
+    const makeInput = (val, side, isMl = false) => {
+      if (val === null) return `<td class="px-2 py-2.5 text-center ${cellCls(null,side)}">—</td>`;
+      const step     = isMl ? '0.1' : '1';
+      const width    = isMl ? 'w-16' : 'w-12';
+      const unitHtml = isMl ? '<span class="text-xs text-slate-400 ml-0.5">mL</span>' : '';
+      const diffFn   = isMl ? `checkMatrixDiffMl(this,${val},'${side}')` : `checkMatrixDiff(this,${val})`;
+      return `<td class="px-2 py-2.5 text-center ${cellCls(val,side)}">
+        <div>
+          <span class="inline-flex items-center gap-0.5">
+            <input type="number" value="${val}" min="0" max="999" step="${step}"
+              class="${width} text-center text-sm border border-white/60 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
+              style="background:rgba(255,255,255,0.7)"
+              oninput="${diffFn}">
+            ${unitHtml}
+          </span>
+          <div class="diff-note-wrap hidden mt-1">
+            <input type="text" placeholder="修改原因（必填）"
+              class="text-xs border border-red-300 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-red-300 bg-red-50 placeholder-red-300">
+          </div>
+        </div>
+      </td>`;
+    };
+
+    tr.innerHTML = `
+      <td class="pl-4 py-2.5 text-sm font-medium text-slate-700">${nameHtml}</td>
+      <td class="px-2 py-2.5 text-center text-xs text-slate-400 tabular ${cellCls(d.h5gt,'h5gt')}">${planH}</td>
+      ${makeInput(d.h5gt,'h5gt', d.isMl)}
+      <td class="px-2 py-2.5 text-center text-xs text-slate-400 tabular ${cellCls(d.gxtl,'gxtl')}">${planG}</td>
+      ${makeInput(d.gxtl,'gxtl', d.isMl)}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function checkMatrixDiff(input, plan) {
+  const hasDiff = ((parseInt(input.value) || 0) - plan) !== 0;
+  input.classList.toggle('border-red-300', hasDiff);
+  input.classList.toggle('ring-1', hasDiff);
+  input.classList.toggle('ring-red-200', hasDiff);
+  const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
+  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
+}
+
+function checkMatrixDiffMl(input, plan, side) {
+  const hasDiff = Math.abs((parseFloat(input.value) || 0) - plan) > 0.01;
+  input.classList.toggle('border-red-300', hasDiff);
+  input.classList.toggle('ring-1', hasDiff);
+  input.classList.toggle('ring-red-200', hasDiff);
+  const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
+  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
+  if (side === 'h5gt' || side === 'gxtl') updateNeeded(side, parseFloat(input.value) || 0);
+}
+
+function checkSimpleDiff(input, plan, rowId) {
+  const hasDiff = ((parseInt(input.value) || 0) - plan) !== 0;
+  const tr = document.getElementById(rowId);
+  tr.classList.toggle('row-diff', hasDiff);
+  input.classList.toggle('border-red-300', hasDiff);
+  const noteWrap = tr.querySelector('.diff-note-wrap');
+  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
+}
+
+// ── Bulk card builder (Oil / HEPES) ──
+function buildBulkCard(cfg) {
+  return `
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+    <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">${cfg.name}</span>
+  </div>
+  <div class="px-4 py-3">
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div class="bg-slate-50 rounded-lg px-3 py-2.5">
+        <div class="text-xs text-slate-400 mb-1">待分裝（估盤）</div>
+        <div class="text-xl font-bold tabular text-slate-700">
+          ${cfg.planBig} <span class="text-sm font-normal text-slate-400">${cfg.bigUnit}</span>
+        </div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-400 mb-1">今日開封（庫存扣除）</div>
+        <span class="inline-flex items-center gap-1">
+          <input type="number" value="${cfg.planSmall}" min="0" max="99"
+            class="w-16 text-center text-xl font-bold border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary">
+          <span class="text-sm text-slate-400">${cfg.smallUnit}</span>
+        </span>
+      </div>
+    </div>
+    <div>
+      <label class="text-xs text-slate-400">今日批號（選填）</label>
+      <input type="text" placeholder="例：OIL-20240501"
+        class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300 font-mono">
+    </div>
+  </div>
+</div>`;
+}
+
+function buildAllBulkCards() {
+  const container = document.getElementById('bulk-reagent-section');
+  if (!container) return;
+  bulkReagents.forEach(cfg => container.insertAdjacentHTML('beforeend', buildBulkCard(cfg)));
+}
+
+// ── Update "今日需用" when extra mL changes ──
+function updateNeeded(cfgId, newExtra) {
+  const cfg = reagentConfig.find(c => c.id === cfgId);
+  if (!cfg || cfg.baseNeeded === undefined) return;
+  cfg.needed = parseFloat(Math.max(0, cfg.baseNeeded + (parseFloat(newExtra) || 0)).toFixed(1));
+  const el = document.getElementById('card-' + cfgId);
+  if (el) el.innerHTML = buildBatchCardHTML(cfg);
+}
+
+// ── Init ──
+buildGivfTable();
+buildMatrixTable();
+buildAllBatchCards();
+buildAllBulkCards();
+</script>
+</body>
+</html>
