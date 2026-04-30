@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>培養液管理系統 — 今日估盤</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: { DEFAULT: '#9590D0', light: '#BDB8E8', dark: '#7A75BB', xlight: '#EDE9FF' },
+          secondary: '#E2E4F4',
+        },
+        fontFamily: {
+          sans: ['Noto Sans TC', 'sans-serif'],
+          heading: ['Figtree', 'Noto Sans TC', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .font-heading, h1, h2, h3 { font-family: 'Figtree', 'Noto Sans TC', sans-serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ── 卡片 ── */
+  .card { background:#fff; border-radius:16px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:16px; margin-bottom:12px; }
+  .card-title { font-family:'Figtree','Noto Sans TC',sans-serif; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#94A3B8; margin-bottom:12px; }
+
+  /* ── 台類輸入格 ── */
+  .tai-input {
+    width:100%; height:48px; text-align:center; font-size:20px; font-weight:600; font-variant-numeric:tabular-nums;
+    border:1.5px solid #E2E8F0; border-radius:10px; background:#F8FAFC; color:#0F172A;
+    outline:none; transition:border-color .15s, background .15s;
+  }
+  .tai-input:focus { border-color:#9590D0; background:#fff; }
+
+  /* ── 盤子輸入格 ── */
+  .dish-input {
+    width:60px; height:40px; text-align:center; font-size:16px; font-weight:500; font-variant-numeric:tabular-nums;
+    border:1.5px solid #E2E8F0; border-radius:8px; background:#F8FAFC; color:#0F172A;
+    outline:none; transition:border-color .15s, background .15s;
+  }
+  .dish-input:focus { border-color:#9590D0; background:#fff; }
+
+  /* 矩陣輸入格 */
+  .matrix-input {
+    width:50px; height:36px; text-align:center; font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;
+    border:1.5px solid #E2E8F0; border-radius:7px; background:#F8FAFC; color:#0F172A;
+    outline:none; transition:border-color .15s;
+  }
+  .matrix-input:focus { border-color:#9590D0; background:#fff; }
+
+  /* 已覆蓋建議值 → 淡黃 */
+  .row-overridden { background:#FFFBEB; }
+  .dish-input.overridden { border-color:#F59E0B; }
+  .matrix-input.overridden { border-color:#F59E0B; }
+
+  /* 建議值標籤 */
+  .suggest-tag { font-size:11px; color:#94A3B8; white-space:nowrap; }
+  .suggest-val { font-weight:600; font-variant-numeric:tabular-nums; }
+
+  /* H5GT / GxTL 儲存格 */
+  .cell-h5gt { background:#F5F0FB; }
+  .cell-gxtl { background:#EEF0FB; }
+
+  /* ── 人員選擇 ── */
+  .staff-select {
+    flex:1; height:44px; border:1.5px solid #E2E8F0; border-radius:10px;
+    background:#F8FAFC; color:#0F172A; font-size:15px; padding:0 10px;
+    outline:none; font-family:'Noto Sans TC',sans-serif;
+    -webkit-appearance:none; appearance:none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239590D0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+    padding-right:28px;
+  }
+  .staff-select:focus { border-color:#9590D0; }
+
+  /* ── Bottom Tab ── */
+  .tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:8px 0; color:#94A3B8; cursor:pointer; transition:color .15s; border:none; background:transparent; }
+  .tab-btn.active { color:#9590D0; }
+  .tab-btn svg { width:22px; height:22px; }
+  .tab-label { font-size:11px; font-weight:500; }
+
+  /* ── 按鈕 ── */
+  .btn-primary { width:100%; height:52px; background:#9590D0; color:#fff; font-size:16px; font-weight:600; border-radius:14px; border:none; cursor:pointer; transition:background .15s; font-family:'Noto Sans TC',sans-serif; }
+  .btn-primary:active { background:#7A75BB; }
+  .btn-secondary { width:100%; height:44px; background:#F1F5F9; color:#475569; font-size:14px; font-weight:500; border-radius:10px; border:none; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+  .btn-secondary:active { background:#E2E8F0; }
+  .btn-confirm { width:100%; height:52px; background:#2563EB; color:#fff; font-size:16px; font-weight:600; border-radius:14px; border:none; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+  .btn-confirm:active { background:#1D4ED8; }
+
+  /* disabled state */
+  input:disabled, select:disabled { opacity:.55; cursor:not-allowed; }
+  .form-locked .tai-input,
+  .form-locked .dish-input,
+  .form-locked .matrix-input,
+  .form-locked .staff-select { pointer-events:none; opacity:.65; }
+
+  /* ── State Banner ── */
+  .banner { padding:12px 16px; font-size:13.5px; font-weight:500; display:flex; align-items:center; gap:8px; }
+  .banner-blue { background:#EFF6FF; color:#1D4ED8; border-bottom:1px solid #BFDBFE; }
+  .banner-green { background:#F0FDF4; color:#166534; border-bottom:1px solid #BBF7D0; }
+
+  /* ── Demo 狀態切換 ── */
+  .demo-btn { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:500; border:1.5px solid #E2E8F0; color:#64748B; cursor:pointer; white-space:nowrap; }
+  .demo-btn.active { background:#9590D0; color:#fff; border-color:#9590D0; }
+
+  /* ── 自動儲存 ── */
+  .autosave-dot { width:6px; height:6px; border-radius:50%; background:#22C55E; display:inline-block; margin-right:4px; }
+
+  /* ── Oil / HEPES 輸入格 ── */
+  .bulk-field {
+    width:100%; height:44px; text-align:center; font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;
+    border:1.5px solid #E2E8F0; border-radius:10px; background:#F8FAFC; color:#0F172A;
+    outline:none; transition:border-color .15s, background .15s;
+  }
+  .bulk-field:focus { border-color:#9590D0; background:#fff; }
+
+  /* ── 備盤備註 ── */
+  .note-textarea { width:100%; min-height:72px; border:1.5px solid #E2E8F0; border-radius:10px; background:#F8FAFC; padding:10px 12px; font-size:14px; font-family:'Noto Sans TC',sans-serif; resize:none; outline:none; }
+  .note-textarea:focus { border-color:#9590D0; }
+
+  /* ── 鎖定確認卡片 ── */
+  .confirm-info { background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:14px 16px; }
+</style>
+</head>
+
+<body class="bg-slate-50" style="padding-top:56px; padding-bottom:60px;">
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+  <div class="flex items-center gap-2.5">
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="font-heading font-semibold text-slate-800 text-sm leading-tight">今日估盤</div>
+      <div class="text-xs text-slate-400 tabular leading-tight" id="header-date">2026/04/30</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="autosave-dot"></span>
+    <span class="text-xs text-slate-400 tabular">自動儲存 <span id="autosave-time">14:22</span></span>
+  </div>
+</header>
+
+<!-- ════════════════ STATE BANNER ════════════════ -->
+<div id="banner-b" class="banner banner-blue hidden" style="position:sticky; top:56px; z-index:20;">
+  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  等待第二人核對確認
+</div>
+<div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
+  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  <span>估盤已確認鎖定 — <span id="confirm-info-text">胚胎師乙 核對，14:38</span></span>
+</div>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<main class="px-3">
+
+  <!-- ── Demo 狀態切換 ── -->
+  <div class="flex gap-2 py-3 overflow-x-auto">
+    <span class="text-xs text-slate-400 whitespace-nowrap self-center">預覽狀態：</span>
+    <button class="demo-btn active" onclick="switchState('A')">A 輸入中</button>
+    <button class="demo-btn" onclick="switchState('B')">B 等待核對</button>
+    <button class="demo-btn" onclick="switchState('C')">C 已確認</button>
+  </div>
+
+  <!-- ════ PAGE: 今日估盤 ════ -->
+  <div id="page-gupan">
+
+    <!-- ① 人員選擇 -->
+    <div class="card">
+      <div class="card-title">人員選擇</div>
+      <div class="flex gap-3">
+        <div class="flex-1">
+          <div class="text-xs text-slate-400 mb-1.5">估盤人 甲</div>
+          <select class="staff-select" id="staff-a">
+            <option value="">（選擇）</option>
+            <option>胚胎師 ZY</option>
+            <option>胚胎師 Lin</option>
+            <option>胚胎師 Chen</option>
+            <option>胚胎師 Wang</option>
+          </select>
+        </div>
+        <div class="flex-1">
+          <div class="text-xs text-slate-400 mb-1.5">核對人 乙</div>
+          <select class="staff-select" id="staff-b">
+            <option value="">（選擇）</option>
+            <option>胚胎師 ZY</option>
+            <option>胚胎師 Lin</option>
+            <option>胚胎師 Chen</option>
+            <option>胚胎師 Wang</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 台類台數 -->
+    <div class="card">
+      <div class="card-title">今日台數</div>
+      <div id="tai-grid" class="grid grid-cols-2 gap-3"></div>
+    </div>
+
+    <!-- ③ GIVF 盤子 -->
+    <div class="card">
+      <div class="card-title">GIVF 盤子</div>
+      <table class="w-full" id="givf-table">
+        <thead>
+          <tr class="border-b border-slate-100">
+            <th class="text-left text-xs text-slate-400 font-medium pb-2" style="width:90px">盤子</th>
+            <th class="text-center text-xs text-slate-400 font-medium pb-2" style="width:56px">建議</th>
+            <th class="text-center text-xs text-slate-400 font-medium pb-2" style="width:68px">實際</th>
+            <th class="text-left text-xs text-slate-400 font-medium pb-2 pl-1"></th>
+          </tr>
+        </thead>
+        <tbody id="givf-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ④ 胚胎矩陣 -->
+    <div class="card">
+      <div class="card-title">胚胎培養液</div>
+      <div class="overflow-x-auto -mx-1">
+        <table class="w-full min-w-0" id="matrix-table" style="border-spacing:0 2px; border-collapse:separate;">
+          <thead>
+            <tr>
+              <th class="text-left text-xs text-slate-400 font-medium pb-2" style="min-width:76px; padding-left:4px">盤子</th>
+              <th class="cell-h5gt text-center text-xs font-semibold pb-2 rounded-t-lg" style="min-width:96px; color:#7A75BB; padding:6px 4px;">H5GT</th>
+              <th style="width:8px"></th>
+              <th class="cell-gxtl text-center text-xs font-semibold pb-2 rounded-t-lg" style="min-width:96px; color:#1D4ED8; padding:6px 4px;">GxTL</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ⑤ 油 -->
+    <div class="card">
+      <div class="card-title">油</div>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">總受精數
+            <span class="text-slate-300 ml-0.5">sona+解卵</span>
+          </div>
+          <input type="number" class="bulk-field" id="oil-szu" placeholder="0" min="0" oninput="calcOil()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">STD 幾台</div>
+          <input type="number" class="bulk-field" id="oil-std" placeholder="0" min="0" oninput="calcOil()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">Spindle 幾盤
+            <span class="suggest-tag ml-1">建議 <span id="oil-spindle-sug" class="suggest-val text-primary-dark">—</span></span>
+          </div>
+          <input type="number" class="bulk-field" id="oil-spindle" placeholder="0" min="0" oninput="calcOil()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">Bx 幾盤
+            <span class="suggest-tag ml-1">建議 <span id="oil-bx-sug" class="suggest-val text-primary-dark">—</span></span>
+          </div>
+          <input type="number" class="bulk-field" id="oil-bx" placeholder="0" min="0" oninput="calcOil()">
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-2xl px-4 py-3 flex items-center justify-between">
+        <span class="text-sm text-slate-400">估計需要</span>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-4xl font-bold tabular" style="color:#9590D0;" id="oil-result">—</span>
+          <span class="text-base text-slate-500">罐</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ HEPES -->
+    <div class="card">
+      <div class="card-title">HEPES</div>
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">≤5 幾台</div>
+          <input type="number" class="bulk-field" id="he-lt5" placeholder="0" min="0" oninput="calcHepes()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">6-9 幾台</div>
+          <input type="number" class="bulk-field" id="he-69" placeholder="0" min="0" oninput="calcHepes()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">≥10 幾台</div>
+          <input type="number" class="bulk-field" id="he-ge10" placeholder="0" min="0" oninput="calcHepes()">
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 mb-1.5">梁+金 幾台</div>
+          <input type="number" class="bulk-field" id="he-ljk" placeholder="0" min="0" oninput="calcHepes()">
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-2xl px-4 py-3 flex items-center justify-between">
+        <span class="text-sm text-slate-400">估計需要</span>
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-4xl font-bold tabular" style="color:#9590D0;" id="he-result">8</span>
+          <span class="text-base text-slate-500">罐</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ 備盤備註 -->
+    <div class="card">
+      <div class="card-title">備盤備註（選填）</div>
+      <textarea class="note-textarea" id="gupan-note" placeholder="特殊情況、術者指示等..."></textarea>
+    </div>
+
+    <!-- ⑦ 確認卡片（State C 顯示）-->
+    <div id="confirm-card" class="confirm-info mb-3 hidden">
+      <div class="flex items-center gap-2 text-green-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="font-semibold text-sm">估盤已核對確認</span>
+      </div>
+      <div class="mt-2 text-xs text-green-600 space-y-0.5">
+        <div>估盤人甲：<span id="confirm-staff-a" class="font-medium">—</span></div>
+        <div>核對人乙：<span id="confirm-staff-b" class="font-medium">—</span></div>
+        <div>確認時間：<span id="confirm-time-display" class="font-medium tabular">—</span></div>
+      </div>
+    </div>
+
+    <!-- ⑧ 操作按鈕 -->
+    <div id="btn-area" class="pb-2">
+      <!-- State A: 送出 -->
+      <div id="btn-a">
+        <button class="btn-primary" onclick="submitGupan()">送出估盤</button>
+      </div>
+      <!-- State B: 核對確認 + 返回修改 -->
+      <div id="btn-b" class="hidden space-y-2">
+        <button class="btn-confirm" onclick="confirmGupan()">核對確認</button>
+        <button class="btn-secondary" onclick="switchState('A')">返回修改</button>
+      </div>
+      <!-- State C: 鎖定（無按鈕） -->
+      <div id="btn-c" class="hidden text-center text-sm text-slate-400 py-2">
+        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        估盤已鎖定，備盤頁可開始作業
+      </div>
+    </div>
+
+  </div><!-- /page-gupan -->
+
+  <!-- ════ PAGE: 庫存盤點 (placeholder) ════ -->
+  <div id="page-stock" class="hidden">
+    <div class="card text-center py-12">
+      <div class="text-3xl mb-3">📦</div>
+      <div class="font-heading font-semibold text-slate-600 mb-1">庫存盤點</div>
+      <div class="text-sm text-slate-400">功能建置中（Session 4）</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ════════════════ BOTTOM TAB BAR ════════════════ -->
+<nav class="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-slate-200 flex z-30" id="bottom-nav">
+  <button class="tab-btn active" id="tab-gupan" onclick="switchPage('gupan')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    </svg>
+    <span class="tab-label">今日估盤</span>
+  </button>
+  <button class="tab-btn" id="tab-stock" onclick="switchPage('stock')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+    </svg>
+    <span class="tab-label">庫存盤點</span>
+  </button>
+</nav>
+
+<!-- ════════════════ SCRIPT ════════════════ ─────────────────────────────── -->
+<script>
+
+// ── 資料：台類輸入欄位 ──
+const taiFields = [
+  { id: 'opu', label: 'OPU' },
+  { id: 'te',  label: 'TE'  },
+  { id: 'szu', label: '受精' },
+  { id: 'fbt', label: 'FBT' },
+  { id: 'bt',  label: 'BT'  },
+  { id: 'tbx', label: 'TBx' },
+];
+
+// ── 資料：GIVF 盤子 ──
+const givfDishes = [
+  { key:'opu',     name:'OPU',      unit:'盤', suggest: t => t.opu },
+  { key:'de',      name:'De',       unit:'盤', suggest: t => t.szu },
+  { key:'te',      name:'TE',       unit:'盤', suggest: t => t.te  },
+  { key:'aoa_ci',  name:'AOA 弘優', unit:'盤', suggest: t => 0 },
+  { key:'aoa508',  name:'AOA 508',  unit:'盤', suggest: t => 0 },
+  { key:'sperm',   name:'精蟲',     unit:'台',  suggest: t => t.szu },
+  { key:'givf_ph', name:'G-IVF pH', unit:'盤', suggest: t => 0, manual: true },
+  { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 2.0, note:'評估受精與 STD 台數' },
+];
+
+// ── 資料：胚胎矩陣 ──
+const matrixDishes = [
+  { key:'geri_szu', name:'Geri-受精', h5: t => t.szu, gx: t => t.szu },
+  { key:'d0',       name:'D0',        h5: t => 0,     gx: t => 0     },
+  { key:'bx',       name:'Bx',        h5: t => t.bt,  gx: t => t.bt  },
+  { key:'tb',       name:'TB',        h5: t => t.te,  gx: t => 0     },
+  { key:'glue',     name:'Glue',      h5: t => 0,     gx: t => 0     },
+  { key:'geri_fbt', name:'Geri-FBT',  h5: t => t.fbt, gx: t => 0     },
+  { key:'ph',       name:'pH 盤',     h5: t => 0,     gx: t => 0,     manual: true },
+  { key:'multi',    name:'多配',      h5: t => 2.0,   gx: t => 2.0,   isMl: true  },
+];
+
+// ── 全局狀態 ──
+let currentState = 'A';
+let taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
+
+// ── 日期初始化 ──
+(function initDate() {
+  const now = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  const d = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+  document.getElementById('header-date').textContent = d;
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('autosave-time').textContent = t;
+})();
+
+// ══════════════════════════════════════════
+// BUILD: 台類台數輸入格
+// ══════════════════════════════════════════
+function buildTaiGrid() {
+  const grid = document.getElementById('tai-grid');
+  grid.innerHTML = taiFields.map(f => `
+    <div>
+      <div class="text-xs text-slate-500 mb-1.5 font-medium text-center">${f.label}</div>
+      <input type="number" class="tai-input" id="tai-${f.id}" min="0" max="30"
+        placeholder="0" oninput="onTaiChange('${f.id}', this.value)">
+    </div>
+  `).join('');
+  // 強制 3 欄排版（OPU/TE/受精 一列，FBT/BT/TBx 一列）
+  document.getElementById('tai-grid').style.gridTemplateColumns = 'repeat(3, 1fr)';
+}
+
+function onTaiChange(id, val) {
+  taiVals[id] = parseInt(val) || 0;
+  updateAllSuggestions();
+}
+
+// ══════════════════════════════════════════
+// BUILD: GIVF 表格
+// ══════════════════════════════════════════
+function buildGivfTable() {
+  const tbody = document.getElementById('givf-tbody');
+  tbody.innerHTML = givfDishes.map(d => {
+    const sug = Math.max(0, d.suggest(taiVals));
+    const sugDisplay = d.unit === 'mL' ? sug.toFixed(1) : sug;
+    const tagTxt = d.manual ? '—（手動填）' : sugDisplay;
+    const noteHtml = d.note ? `<span class="text-slate-300 text-xs ml-1">/ ${d.note}</span>` : '';
+    return `
+    <tr id="givf-row-${d.key}" class="border-b border-slate-50 last:border-0">
+      <td class="py-2.5 text-sm text-slate-700 font-medium pr-2" style="width:90px">
+        ${d.name}${d.unit && d.unit !== '' ? '' : ''}
+      </td>
+      <td class="py-2.5 text-center" style="width:56px">
+        <span class="suggest-tag">
+          <span id="givf-sug-${d.key}" class="suggest-val">${tagTxt}</span>
+          ${d.unit && !d.manual ? `<span class="text-slate-300"> ${d.unit}</span>` : ''}
+        </span>
+      </td>
+      <td class="py-2.5 text-center" style="width:68px">
+        <input type="number" class="dish-input" id="givf-in-${d.key}"
+          placeholder="—" min="0" step="${d.unit === 'mL' ? '0.1' : '1'}"
+          oninput="checkGivfDiff('${d.key}', this)">
+      </td>
+      <td class="py-2.5 pl-1 text-xs text-slate-400 whitespace-nowrap">
+        ${d.unit}${noteHtml}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function checkGivfDiff(key, input) {
+  const row = document.getElementById(`givf-row-${key}`);
+  const dish = givfDishes.find(d => d.key === key);
+  const sug = dish.suggest(taiVals);
+  const val = parseFloat(input.value);
+  const isDiff = !isNaN(val) && val !== sug;
+  row.classList.toggle('row-overridden', isDiff);
+  input.classList.toggle('overridden', isDiff);
+}
+
+// ══════════════════════════════════════════
+// BUILD: 胚胎矩陣表格
+// ══════════════════════════════════════════
+function buildMatrixTable() {
+  const tbody = document.getElementById('matrix-tbody');
+  tbody.innerHTML = matrixDishes.map(d => {
+    const sh5 = d.h5(taiVals);
+    const sgx = d.gx(taiVals);
+    const fmtSug = (v, isMl) => isMl ? v.toFixed(1) : v;
+
+    const h5SugTxt = d.manual ? '—' : fmtSug(sh5, d.isMl);
+    const gxSugTxt = d.manual ? '—' : fmtSug(sgx, d.isMl);
+    const step = d.isMl ? '0.1' : '1';
+
+    return `
+    <tr id="mx-row-${d.key}" class="mb-1">
+      <td class="py-2 text-sm text-slate-700 font-medium" style="min-width:76px; padding-left:4px">${d.name}</td>
+      <td class="cell-h5gt py-2 px-2 text-center" style="min-width:96px">
+        <div class="suggest-tag text-slate-400 mb-1">
+          <span id="mx-sug-h5-${d.key}">${h5SugTxt}</span>${d.isMl && !d.manual ? ' mL' : ''}
+        </div>
+        <input type="number" class="matrix-input" id="mx-in-h5-${d.key}"
+          placeholder="—" min="0" step="${step}"
+          oninput="checkMatrixDiff('${d.key}','h5',this)">
+      </td>
+      <td style="width:6px"></td>
+      <td class="cell-gxtl py-2 px-2 text-center" style="min-width:96px">
+        <div class="suggest-tag text-slate-400 mb-1">
+          <span id="mx-sug-gx-${d.key}">${gxSugTxt}</span>${d.isMl && !d.manual ? ' mL' : ''}
+        </div>
+        <input type="number" class="matrix-input" id="mx-in-gx-${d.key}"
+          placeholder="—" min="0" step="${step}"
+          oninput="checkMatrixDiff('${d.key}','gx',this)">
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function checkMatrixDiff(key, side, input) {
+  const dish = matrixDishes.find(d => d.key === key);
+  const sug = side === 'h5' ? dish.h5(taiVals) : dish.gx(taiVals);
+  const val = parseFloat(input.value);
+  input.classList.toggle('overridden', !isNaN(val) && val !== sug);
+}
+
+// ══════════════════════════════════════════
+// UPDATE: 建議值即時更新（台數輸入後觸發）
+// ══════════════════════════════════════════
+function updateAllSuggestions() {
+  // GIVF
+  givfDishes.forEach(d => {
+    const el = document.getElementById(`givf-sug-${d.key}`);
+    if (!el || d.manual) return;
+    const sug = Math.max(0, d.suggest(taiVals));
+    el.textContent = d.unit === 'mL' ? sug.toFixed(1) : sug;
+    // 重新檢查 diff
+    const input = document.getElementById(`givf-in-${d.key}`);
+    if (input && input.value !== '') checkGivfDiff(d.key, input);
+  });
+
+  // Matrix
+  matrixDishes.forEach(d => {
+    if (d.manual) return;
+    const sh5 = Math.max(0, d.h5(taiVals));
+    const sgx = Math.max(0, d.gx(taiVals));
+    const fmt = v => d.isMl ? v.toFixed(1) : v;
+
+    const elH5 = document.getElementById(`mx-sug-h5-${d.key}`);
+    const elGx = document.getElementById(`mx-sug-gx-${d.key}`);
+    if (elH5) elH5.textContent = fmt(sh5);
+    if (elGx) elGx.textContent = fmt(sgx);
+
+    // Re-check diff
+    const inH5 = document.getElementById(`mx-in-h5-${d.key}`);
+    const inGx = document.getElementById(`mx-in-gx-${d.key}`);
+    if (inH5 && inH5.value !== '') checkMatrixDiff(d.key, 'h5', inH5);
+    if (inGx && inGx.value !== '') checkMatrixDiff(d.key, 'gx', inGx);
+  });
+
+  // Oil 的建議值（Spindle = 受精台數, Bx = BT台數）
+  const spindleSug = document.getElementById('oil-spindle-sug');
+  const bxSug      = document.getElementById('oil-bx-sug');
+  if (spindleSug) spindleSug.textContent = taiVals.szu || '—';
+  if (bxSug)      bxSug.textContent      = taiVals.bt  || '—';
+}
+
+// ══════════════════════════════════════════
+// CALC: 油
+// 公式：ROUNDUP(((總受精/3)×7 + (Spindle+Bx)×5 + STD×10 + 50) / 50, 0)
+// ══════════════════════════════════════════
+function calcOil() {
+  const szu     = parseFloat(document.getElementById('oil-szu').value)     || 0;
+  const std     = parseFloat(document.getElementById('oil-std').value)     || 0;
+  const spindle = parseFloat(document.getElementById('oil-spindle').value) || 0;
+  const bx      = parseFloat(document.getElementById('oil-bx').value)      || 0;
+  const raw = ((szu / 3) * 7 + (spindle + bx) * 5 + std * 10 + 50) / 50;
+  const result = Math.ceil(raw);
+  const el = document.getElementById('oil-result');
+  el.textContent = (szu || std || spindle || bx) ? result : '—';
+}
+
+// ══════════════════════════════════════════
+// CALC: HEPES
+// 公式：MAX(8, ROUNDUP(≤5×0.5 + 6-9×1 + ≥10×2 + 梁金×1 + 1, 0))
+// ══════════════════════════════════════════
+function calcHepes() {
+  const lt5  = parseFloat(document.getElementById('he-lt5').value)  || 0;
+  const s69  = parseFloat(document.getElementById('he-69').value)   || 0;
+  const ge10 = parseFloat(document.getElementById('he-ge10').value) || 0;
+  const ljk  = parseFloat(document.getElementById('he-ljk').value)  || 0;
+  const raw = lt5 * 0.5 + s69 * 1 + ge10 * 2 + ljk * 1 + 1;
+  const result = Math.max(8, Math.ceil(raw));
+  document.getElementById('he-result').textContent = result;
+}
+
+// ══════════════════════════════════════════
+// LOCAL STORAGE 自動儲存
+// ══════════════════════════════════════════
+const STORAGE_KEY = 'gupan-draft';
+
+function saveToStorage() {
+  const fields = {};
+  document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => {
+    if (el.id) fields[el.id] = el.value;
+  });
+  const data = {
+    state: currentState,
+    taiVals: { ...taiVals },
+    fields,
+    confirm: {
+      staffA:   document.getElementById('confirm-staff-a')?.textContent,
+      staffB:   document.getElementById('confirm-staff-b')?.textContent,
+      timeDisp: document.getElementById('confirm-time-display')?.textContent,
+      infoText: document.getElementById('confirm-info-text')?.textContent,
+    }
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  const now = new Date();
+  document.getElementById('autosave-time').textContent =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+function loadFromStorage() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
+  if (!data) return;
+
+  // 還原 taiVals
+  if (data.taiVals) Object.assign(taiVals, data.taiVals);
+
+  // 還原所有欄位值
+  if (data.fields) {
+    Object.entries(data.fields).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el && val !== undefined) el.value = val;
+    });
+  }
+
+  // 還原確認資訊（State C 才有意義）
+  if (data.confirm && data.state === 'C') {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
+    set('confirm-staff-a',    data.confirm.staffA);
+    set('confirm-staff-b',    data.confirm.staffB);
+    set('confirm-time-display', data.confirm.timeDisp);
+    set('confirm-info-text',  data.confirm.infoText);
+  }
+
+  // 還原 State 並刷新計算
+  if (data.state) switchState(data.state);
+  updateAllSuggestions();
+  calcOil();
+  calcHepes();
+}
+
+// ══════════════════════════════════════════
+// STATE MACHINE
+// ══════════════════════════════════════════
+function switchState(state) {
+  currentState = state;
+
+  // Demo buttons
+  document.querySelectorAll('.demo-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['A','B','C'][i] === state);
+  });
+
+  // Banners
+  document.getElementById('banner-b').classList.toggle('hidden', state !== 'B');
+  document.getElementById('banner-c').classList.toggle('hidden', state !== 'C');
+
+  // Action buttons
+  document.getElementById('btn-a').classList.toggle('hidden', state !== 'A');
+  document.getElementById('btn-b').classList.toggle('hidden', state !== 'B');
+  document.getElementById('btn-c').classList.toggle('hidden', state !== 'C');
+
+  // Confirm card
+  document.getElementById('confirm-card').classList.toggle('hidden', state !== 'C');
+
+  // Form lock
+  const formEl = document.getElementById('page-gupan');
+  formEl.classList.toggle('form-locked', state !== 'A');
+
+  // Inputs disabled
+  const inputs = formEl.querySelectorAll('input, select, textarea');
+  inputs.forEach(inp => { inp.disabled = (state !== 'A'); });
+}
+
+function submitGupan() {
+  const staffA = document.getElementById('staff-a').value;
+  if (!staffA) { alert('請先選擇估盤人甲'); return; }
+  switchState('B');
+}
+
+function confirmGupan() {
+  const staffB = document.getElementById('staff-b').value;
+  if (!staffB) { alert('請先選擇核對人乙'); return; }
+  const now = new Date();
+  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const staffA = document.getElementById('staff-a').value || '—';
+  document.getElementById('confirm-staff-a').textContent = staffA;
+  document.getElementById('confirm-staff-b').textContent = staffB;
+  document.getElementById('confirm-time-display').textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${t}`;
+  document.getElementById('confirm-info-text').textContent = `${staffB} 核對，${t}`;
+  switchState('C');
+  saveToStorage();
+}
+
+// ══════════════════════════════════════════
+// PAGE SWITCHING（Tab Bar）
+// ══════════════════════════════════════════
+function switchPage(page) {
+  document.getElementById('page-gupan').classList.toggle('hidden', page !== 'gupan');
+  document.getElementById('page-stock').classList.toggle('hidden', page !== 'stock');
+  document.getElementById('tab-gupan').classList.toggle('active', page === 'gupan');
+  document.getElementById('tab-stock').classList.toggle('active', page === 'stock');
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+(function init() {
+  buildTaiGrid();
+  buildGivfTable();
+  buildMatrixTable();
+  switchState('A');
+  loadFromStorage();
+
+  // 事件委派：任何輸入變動都自動儲存
+  const formEl = document.getElementById('page-gupan');
+  formEl.addEventListener('input',  saveToStorage);
+  formEl.addEventListener('change', saveToStorage);
+})();
+
+</script>
+</body>
+</html>
