@@ -51,10 +51,13 @@
   #html5qr-code-full-region { width:min(88vw,340px) !important; border-radius:14px; overflow:hidden; }
   #html5qr-code-full-region img[alt="Info icon"] { display:none !important; }
 
+  /* 防止手機瀏覽器下拉重新整理 */
+  html, body { overscroll-behavior: none; }
+
   /* Step 2: confirm bottom sheet */
   #scan-step2 {
     position:absolute; bottom:0; left:0; right:0;
-    max-height:91vh; overflow-y:auto;
+    min-height:65vh; max-height:91vh; overflow-y:auto;
     background:white; border-radius:20px 20px 0 0;
     transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1);
   }
@@ -486,7 +489,8 @@ const PRODUCTS = [
 let records = [];
 let scanResult = null;
 let html5QrCode = null;
-let sessionTray = [];   // items confirmed this session, cleared on page refresh
+let sessionTray = JSON.parse(localStorage.getItem('session-tray') || '[]');
+function saveTray() { localStorage.setItem('session-tray', JSON.stringify(sessionTray)); }
 let editingTrayIdx = -1; // -1 = adding new; >=0 = editing tray item at this index
 
 // ───────────────────────────────────────
@@ -724,7 +728,7 @@ function startScan() {
   html5QrCode = new Html5Qrcode('html5qr-code-full-region');
   html5QrCode.start(
     { facingMode: 'environment' },
-    { fps: 12, qrbox: { width: 220, height: 220 }, rememberLastUsedCamera: true },
+    { fps: 12, qrbox: { width: 280, height: 120 }, rememberLastUsedCamera: true },
     (text) => { html5QrCode.pause(true); onScanSuccess(text); },
     () => {}
   ).catch(err => {
@@ -988,6 +992,7 @@ function addToTray() {
   const isEditing = editingTrayIdx >= 0;
   if (isEditing) {
     sessionTray[editingTrayIdx] = item;
+    saveTray();
     editingTrayIdx = -1;
     renderTray();
     showToast('已更新');
@@ -995,6 +1000,7 @@ function addToTray() {
     setTimeout(openTrayDrawer, 300);
   } else {
     sessionTray.push(item);
+    saveTray();
     renderTray();
     showToast(`✓ 已加入暫存（共 ${sessionTray.length} 筆）`);
     // Resume scanning step 1
@@ -1059,6 +1065,7 @@ function renderTray() {
 
 function removeTrayItem(idx) {
   sessionTray.splice(idx, 1);
+  saveTray();
   renderTray();
   if (sessionTray.length === 0) closeTrayDrawer();
 }
@@ -1260,6 +1267,7 @@ function reviewRemoveItem(idx) {
   const savedBy = document.getElementById('review-received-by')?.value || '';
   const savedAt = document.getElementById('review-received-at')?.value || '';
   sessionTray.splice(idx, 1);
+  saveTray();
   renderTray();
   if (sessionTray.length === 0) { closeReview(); return; }
   _renderReviewContent(savedBy, savedAt);
@@ -1341,6 +1349,7 @@ function batchSaveAll() {
   saveRecords();
   renderRecords();
   sessionTray = [];
+  saveTray();
   renderTray();
   closeReview();
   showToast(`✓ 已新增 ${count} 筆進貨記錄`);
