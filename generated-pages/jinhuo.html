@@ -194,7 +194,7 @@
 
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
-      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.2</span></h1>
+      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.3</span></h1>
       <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
       </button>
@@ -248,7 +248,7 @@
     <div id="scan-status" class="mt-3 w-full max-w-[360px] bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-center">
       <p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>
     </div>
-    <button id="scan-manual-btn" onclick="openManualEntry()" class="hidden mt-3 text-white/50 text-sm underline">手動輸入品項</button>
+    <button id="scan-manual-btn" onclick="openManualEntry()" class="mt-3 px-4 py-2 rounded-xl bg-white/15 text-white text-sm font-medium hover:bg-white/25 transition-colors">手動輸入</button>
   </div>
 
   <!-- Step 2: Confirm (white bottom sheet) -->
@@ -725,7 +725,7 @@ function startScan() {
 
   if (html5QrCode) { try { html5QrCode.stop().catch(()=>{}); } catch {} html5QrCode = null; }
 
-  html5QrCode = new Html5Qrcode('html5qr-code-full-region');
+  html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
   html5QrCode.start(
     { facingMode: 'environment' },
     { fps: 12, qrbox: { width: 280, height: 120 }, rememberLastUsedCamera: true },
@@ -1393,6 +1393,7 @@ function parseBarcode(text) {
     if (ai === '10') r.lotNumber = val;
     if (ai === '17') r.expiryDate = gs1Date(val);
   }
+  if (r.lotNumber) r.lotNumber = r.lotNumber.replace(/[^\x20-\x7E]/g, '').trim() || null;
   if (foundGS1) return r;
 
   // GS1 raw (no parens): starts with 01 + 14 digits — parse AIs sequentially
@@ -1416,6 +1417,7 @@ function parseBarcode(text) {
         break;
       }
     }
+    if (r.lotNumber) r.lotNumber = r.lotNumber.replace(/[^\x20-\x7E]/g, '').trim() || null;
     if (r.gtin || r.lotNumber || r.expiryDate) return r;
   }
 
