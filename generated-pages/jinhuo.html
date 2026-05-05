@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>培養液管理系統 — 進貨記錄</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: { DEFAULT:'#9590D0', light:'#BDB8E8', dark:'#7A75BB', xlight:'#EDE9FF' },
+          secondary: '#E2E4F4',
+        },
+        fontFamily: {
+          sans: ['Noto Sans TC','sans-serif'],
+          heading: ['Figtree','Noto Sans TC','sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  body { font-family:'Noto Sans TC',sans-serif; background:#F8FAFC; }
+  h1,h2,h3,.heading { font-family:'Figtree','Noto Sans TC',sans-serif; }
+  .tabular { font-variant-numeric:tabular-nums; }
+
+  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
+  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
+  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
+
+  .vendor-group { background:white; border-radius:14px; border:1px solid #E2E8F0; overflow:hidden; }
+  .vendor-group-header { padding:11px 16px; background:#F8F7FD; border-bottom:1px solid #E2E4F4; display:flex; align-items:center; justify-content:space-between; }
+  .record-row { padding:13px 16px; border-bottom:1px solid #F1F5F9; }
+  .record-row:last-child { border-bottom:none; }
+
+  /* FAB */
+  #fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:50%; background:#9590D0; color:white; box-shadow:0 4px 16px rgba(149,144,208,.45); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:30; transition:transform .15s,background .15s; font-size:24px; }
+  #fab:hover { background:#7A75BB; transform:scale(1.08); }
+  @media(min-width:768px){ #fab { display:none; } }
+
+  /* Scan modal */
+  #scan-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:50; }
+  #scan-modal.open { display:block; }
+
+  /* Step 1: camera view */
+  #scan-step1 { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+  #html5qr-code-full-region { width:min(88vw,340px) !important; border-radius:14px; overflow:hidden; }
+  #html5qr-code-full-region img[alt="Info icon"] { display:none !important; }
+
+  /* Step 2: confirm bottom sheet */
+  #scan-step2 {
+    position:absolute; bottom:0; left:0; right:0;
+    max-height:91vh; overflow-y:auto;
+    background:white; border-radius:20px 20px 0 0;
+    transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  #scan-step2.open { transform:translateY(0); }
+
+  /* Compact form inputs for step 2 */
+  .sc-label { font-size:13px; font-weight:500; color:#475569; margin-bottom:5px; display:block; }
+  .sc-input {
+    width:100%; padding:10px 13px; border:1.5px solid #E2E8F0; border-radius:10px;
+    font-size:15px; font-family:'Noto Sans TC',sans-serif; background:white;
+    transition:border-color .15s; outline:none; min-height:42px; color:#0F172A;
+  }
+  .sc-input:focus { border-color:#9590D0; box-shadow:0 0 0 3px rgba(149,144,208,.12); }
+  select.sc-input {
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; background-size:16px; padding-right:36px;
+  }
+
+  /* Tray bar */
+  #tray-bar { display:none; position:fixed; bottom:92px; left:0; right:0; z-index:28; padding:0 16px; pointer-events:none; }
+  #tray-bar.visible { display:block; }
+  #tray-bar-inner { max-width:520px; margin:0 auto; background:#1E293B; color:white; border-radius:14px; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; gap:8px; box-shadow:0 4px 20px rgba(0,0,0,.3); pointer-events:all; }
+  @media(min-width:768px){ #tray-bar { bottom:24px; left:208px; right:auto; min-width:340px; } }
+
+  /* Tray drawer */
+  #tray-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:36; }
+  #tray-overlay.open { display:block; }
+  #tray-drawer { position:fixed; bottom:0; left:0; right:0; max-height:82vh; overflow-y:auto; background:white; border-radius:20px 20px 0 0; z-index:37; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); }
+  #tray-drawer.open { transform:translateY(0); }
+
+  /* Review modal */
+  #review-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:44; }
+  #review-overlay.open { display:block; }
+  #review-modal { position:fixed; bottom:0; left:0; right:0; max-height:93vh; overflow-y:auto; background:white; border-radius:20px 20px 0 0; z-index:45; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); }
+  #review-modal.open { transform:translateY(0); }
+  @media(min-width:768px){
+    #review-modal { top:4%; bottom:auto; left:50%; right:auto; transform:translateX(-50%) translateY(20px); width:min(92vw,600px); max-height:92vh; border-radius:18px; opacity:0; transition:opacity .2s,transform .2s; pointer-events:none; }
+    #review-modal.open { transform:translateX(-50%) translateY(0); opacity:1; pointer-events:all; }
+  }
+
+  /* 102 alert overlay */
+  #alert-102-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:62; align-items:center; justify-content:center; padding:20px; }
+  #alert-102-overlay.open { display:flex; }
+
+  /* Mobile nav drawer */
+  #nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+  #nav-overlay.open { display:block; }
+  #nav-drawer { position:fixed; left:0; top:0; bottom:0; width:240px; background:white; z-index:42; padding:16px 12px; transform:translateX(-100%); transition:transform .25s ease; box-shadow:4px 0 24px rgba(0,0,0,.12); }
+  #nav-drawer.open { transform:translateX(0); }
+
+  /* Toast */
+  #toast { position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(10px); background:#0F172A; color:white; padding:9px 18px; border-radius:10px; font-size:13.5px; font-weight:500; z-index:70; opacity:0; transition:opacity .22s,transform .22s; pointer-events:none; white-space:nowrap; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  @media(min-width:768px){ #toast { bottom:24px; } }
+
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<!-- MOBILE NAV OVERLAY + DRAWER -->
+<div id="nav-overlay" onclick="closeNav()"></div>
+<div id="nav-drawer">
+  <div class="flex items-center gap-2 px-2 mb-4 pb-4 border-b border-slate-100">
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    </div>
+    <span class="heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
+  </div>
+  <div class="space-y-0.5">
+    <div class="sidebar-link" onclick="location.href='beipan.html'">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤
+    </div>
+    <div class="sidebar-link active">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄
+    </div>
+    <div class="sidebar-link">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽
+    </div>
+    <div class="sidebar-link" onclick="location.href='order.html'">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理
+    </div>
+  </div>
+</div>
+
+<!-- FIXED HEADER -->
+<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+  <div class="flex items-center gap-3">
+    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" onclick="openNav()">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    </div>
+    <span class="heading font-semibold text-slate-800 text-base">培養液管理系統</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="flex pt-14">
+
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4">
+    <div class="px-3 space-y-0.5">
+      <div class="sidebar-link" onclick="location.href='beipan.html'">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤
+      </div>
+      <div class="sidebar-link active">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄
+      </div>
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽
+      </div>
+      <div class="sidebar-link" onclick="location.href='order.html'">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理
+      </div>
+    </div>
+    <div class="mt-auto px-3 pt-4 border-t border-slate-100">
+      <div class="sidebar-link">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
+
+    <!-- Title row -->
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄</h1>
+      <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
+      </button>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+      <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      <span class="text-sm text-slate-500 font-medium">篩選：</span>
+      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-vendor" onchange="renderRecords()">
+        <option value="">所有廠商</option>
+      </select>
+      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-date" onchange="renderRecords()">
+        <option value="30">最近 30 天</option>
+        <option value="7">最近 7 天</option>
+        <option value="90">最近 3 個月</option>
+        <option value="0">全部</option>
+      </select>
+      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="sort-mode" onchange="renderRecords()">
+        <option value="date">依日期</option>
+        <option value="vendor">依廠商</option>
+      </select>
+      <span class="text-xs text-slate-400 ml-auto tabular" id="record-count"></span>
+    </div>
+
+    <!-- Records container -->
+    <div id="records-container"></div>
+
+  </main>
+</div>
+
+<!-- FAB (mobile) -->
+<div id="fab" onclick="startScan()">
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCAN MODAL  (Step 1 + Step 2)
+══════════════════════════════════════════ -->
+<div id="scan-modal">
+
+  <!-- Step 1: Camera -->
+  <div id="scan-step1">
+    <div class="mb-3 flex items-center justify-between w-full max-w-[360px]">
+      <span class="text-white font-semibold heading">掃描收貨條碼</span>
+      <button onclick="stopScan()" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-white/25">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="html5qr-code-full-region"></div>
+    <div id="scan-status" class="mt-3 w-full max-w-[360px] bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-center">
+      <p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>
+    </div>
+    <button id="scan-manual-btn" onclick="openManualEntry()" class="hidden mt-3 text-white/50 text-sm underline">手動輸入品項</button>
+  </div>
+
+  <!-- Step 2: Confirm (white bottom sheet) -->
+  <div id="scan-step2">
+    <!-- Drag handle -->
+    <div class="flex justify-center pt-3 pb-1">
+      <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
+    </div>
+    <div class="px-5 pb-6 pt-3">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="heading font-semibold text-slate-800 text-base">確認收貨</h3>
+        <button onclick="stopScan()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Product card (when GTIN matched) -->
+      <div id="s2-product-card" class="hidden mb-3"></div>
+
+      <!-- Product select (when GTIN unmatched or manual entry) -->
+      <div id="s2-product-select-wrap" class="hidden mb-3">
+        <label class="sc-label">品項名稱 *</label>
+        <select id="s2-product" class="sc-input" onchange="onScanProductChange()">
+          <option value="">選擇品項…</option>
+        </select>
+      </div>
+
+      <!-- Order match area -->
+      <div id="s2-order-area" class="mb-3"></div>
+
+      <!-- LOT + Expiry -->
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="sc-label">批號</label>
+          <input type="text" id="s2-lot" class="sc-input" placeholder="掃碼或手填">
+        </div>
+        <div>
+          <label class="sc-label">廠商效期</label>
+          <input type="date" id="s2-expiry" class="sc-input">
+        </div>
+      </div>
+
+      <!-- Qty -->
+      <div class="mb-4">
+        <label class="sc-label">數量 *</label>
+        <div class="flex items-center gap-3">
+          <input type="number" id="s2-qty" class="sc-input flex-1" min="1" step="1" placeholder="1">
+          <span id="s2-unit" class="text-slate-500 text-sm flex-shrink-0 min-w-[2rem]"></span>
+        </div>
+      </div>
+
+      <!-- Subtle action links -->
+      <div class="flex gap-5 mb-3 text-xs text-slate-400">
+        <button onclick="toggleQualityNote()" class="underline hover:text-orange-500 transition-colors">品質 / 包裝異常…</button>
+        <button onclick="toggleReject()" class="underline hover:text-red-500 transition-colors">拒收此品項</button>
+      </div>
+
+      <!-- Quality anomaly note (hidden by default) -->
+      <div id="s2-quality-wrap" class="hidden mb-3">
+        <label class="sc-label text-orange-600">異常說明</label>
+        <input type="text" id="s2-quality-note" class="sc-input" placeholder="如：凹損、包裝破損、溫控異常">
+      </div>
+
+      <!-- Reject reason (hidden by default) -->
+      <div id="s2-reject-wrap" class="hidden mb-3 bg-red-50 border border-red-200 rounded-xl p-3">
+        <p class="text-sm font-semibold text-red-700 mb-2">⚠ 拒收：此品項數量記為 0</p>
+        <label class="sc-label text-red-700">拒收原因 *</label>
+        <input type="text" id="s2-reject-reason" class="sc-input" placeholder="如：效期不符、外包裝破損">
+      </div>
+
+      <!-- Hidden state fields -->
+      <input type="hidden" id="s2-order-id">
+      <input type="hidden" id="s2-ordered-qty">
+      <input type="hidden" id="s2-ordered-at">
+      <input type="hidden" id="s2-ordered-by">
+      <input type="hidden" id="s2-raw">
+
+      <!-- Buttons -->
+      <div class="flex gap-3 mt-4">
+        <button onclick="retryScan()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">重新掃</button>
+        <button onclick="addToTray()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">加入暫存</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TRAY BAR  (sticky above FAB)
+══════════════════════════════════════════ -->
+<div id="tray-bar">
+  <div id="tray-bar-inner">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="openTrayDrawer()">
+      <div class="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" id="tray-count-bubble">0</div>
+      <span class="text-sm font-medium">本次暫存 <span id="tray-count">0</span> 筆</span>
+    </div>
+    <button onclick="openReview()" class="flex items-center gap-1.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors flex-shrink-0">
+      審核 &amp; 入庫
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TRAY DRAWER  (bottom sheet)
+══════════════════════════════════════════ -->
+<div id="tray-overlay" onclick="closeTrayDrawer()"></div>
+<div id="tray-drawer">
+  <!-- Drag handle + header -->
+  <div class="flex justify-center pt-3 pb-1">
+    <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
+  </div>
+  <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+    <h3 class="heading font-semibold text-slate-800">暫存清單 <span id="tray-drawer-count" class="text-primary">0</span> 筆</h3>
+    <button onclick="closeTrayDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <!-- List -->
+  <div id="tray-list" class="px-4 py-2"></div>
+  <!-- Footer -->
+  <div class="px-4 py-3 border-t border-slate-100 flex gap-3">
+    <button onclick="closeTrayDrawer(); startScan();" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">繼續掃碼</button>
+    <button onclick="openReview()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">審核 &amp; 入庫 →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     REVIEW MODAL  (batch confirm)
+══════════════════════════════════════════ -->
+<div id="review-overlay" onclick="closeReview()"></div>
+<div id="review-modal">
+  <div class="flex justify-center pt-3 pb-1 md:hidden">
+    <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
+  </div>
+  <div class="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100">
+    <h2 class="heading font-semibold text-slate-800 text-base">審核本次進貨（<span id="review-count">0</span> 筆）</h2>
+    <button onclick="closeReview()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="review-content" class="px-5 pt-4 pb-2"></div>
+  <div class="px-5 pb-8 pt-3 flex gap-3 border-t border-slate-100">
+    <button onclick="closeReviewToTray()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">返回修改</button>
+    <button onclick="batchSaveAll()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">批次新增</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     102 QC ALERT
+══════════════════════════════════════════ -->
+<div id="alert-102-overlay">
+  <div class="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <h3 class="heading font-semibold text-slate-800">102 到貨提醒</h3>
+    </div>
+    <p class="text-sm text-slate-600 mb-5">到貨後 3 天內（禮拜日順延）需新增 <strong>TE QC 盤 +1</strong></p>
+    <button onclick="close102Alert()" class="w-full py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">了解，已記錄</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ───────────────────────────────────────
+// DATA
+// ───────────────────────────────────────
+
+const VENDORS = ['亞樸','弘優','億宸','磊柏','明美','岑祥'];
+
+const PRODUCTS = [
+  // 培養液
+  {id:'givf',    name:'G-IVF',              vendor:'亞樸', unit:'瓶', gtin:'07350025910550'},
+  {id:'gxtl',    name:'GxTL',               vendor:'亞樸', unit:'瓶', gtin:'07350025910611'},
+  {id:'glue',    name:'EmbryoGlue',          vendor:'亞樸', unit:'瓶', gtin:'07350025910048'},
+  {id:'h5gt',    name:'H5GT',               vendor:'弘優', unit:'瓶', gtin:'00815965020426'},
+  {id:'aoa-ci',  name:'AOA 弘優 CI',        vendor:'弘優', unit:'瓶', gtin:'04582231465118'},
+  {id:'aoa-508', name:'AOA 明美 GM508',     vendor:'明美', unit:'罐', gtin:'04260173194943'},
+  {id:'hepes',   name:'HEPES',              vendor:'億宸', unit:'瓶', gtin:'00888937818314'},
+  {id:'oil',     name:'Heavy Oil',          vendor:'億宸', unit:'瓶', gtin:'05411967001224'},
+  // 試劑
+  {id:'pvp',     name:'PVP',               vendor:'億宸', unit:'管', gtin:'20888937818813'},
+  {id:'cumulase',name:'Cumulase',           vendor:'億宸', unit:'管', gtin:'20888937817977'},
+  {id:'fertipro',name:'Fertipro',           vendor:'億宸', unit:'瓶', gtin:'05411987000722'},
+  {id:'spermfr', name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶',gtin:'00888937800661'},
+  {id:'601',     name:'601',               vendor:'弘優', unit:'套', gtin:null},
+  {id:'602',     name:'602',               vendor:'弘優', unit:'套', gtin:'14582231460691'},
+  {id:'spas',    name:'S-PAS',             vendor:'弘優', unit:'盒', gtin:'14582231468048'},
+  {id:'101',     name:'101（磊柏）',        vendor:'磊柏', unit:'套', gtin:'04589700012170'},
+  {id:'102',     name:'102（磊柏）',        vendor:'磊柏', unit:'盒', gtin:'04589700012200'},
+  {id:'tyb',     name:'TYB',              vendor:'磊柏', unit:'盒', gtin:'00893727002217'},
+  {id:'brightv', name:'BrightVit',         vendor:'磊柏', unit:'個', gtin:null},
+  {id:'mountgl', name:'Mounting Glue',     vendor:'磊柏', unit:'瓶', gtin:null},
+  {id:'gm501',   name:'GM501 (SpermMobil)',vendor:'明美', unit:'瓶', gtin:'04260173193978'},
+  {id:'pure100', name:'Pure 100',          vendor:'明美', unit:'個', gtin:'07350025610030'},
+  {id:'110',     name:'110',              vendor:'明美', unit:'套', gtin:'04589700012217'},
+  // 耗材
+  {id:'toptip-y',name:'Top tips（黃）',     vendor:'弘優', unit:'盒', gtin:'14582231460929'},
+  {id:'toptip-g',name:'Top tips（綠）',     vendor:'弘優', unit:'盒', gtin:'14582231460882'},
+  {id:'toptip-r',name:'Top tips（紅）',     vendor:'弘優', unit:'盒', gtin:'14582231460899'},
+  {id:'toptip-b',name:'Top tips（藍）',     vendor:'弘優', unit:'盒', gtin:'14582231460912'},
+  {id:'toptip-w',name:'Top tips（白）',     vendor:'弘優', unit:'盒', gtin:'14582231460905'},
+  {id:'riez135', name:'RI-EZ tip 135',    vendor:'弘優', unit:'盒', gtin:'05060488047060'},
+  {id:'riez145', name:'RI-EZ tip 145',    vendor:'弘優', unit:'盒', gtin:'05060170181478'},
+  {id:'riez200', name:'RI-EZ tip 200',    vendor:'弘優', unit:'盒', gtin:null},
+  {id:'6well',   name:'6 Well dish',      vendor:'弘優', unit:'包', gtin:'04582231462414'},
+  {id:'mouth',   name:'Mouth piece',      vendor:'弘優', unit:'包', gtin:'04582231461103'},
+  {id:'oosafe-c',name:'Oosafe（培養箱用）',vendor:'弘優', unit:'罐', gtin:null},
+  {id:'oosafe-f',name:'Oosafe（地板用）', vendor:'弘優', unit:'罐', gtin:null},
+  {id:'3well',   name:'3 well dish',      vendor:'磊柏', unit:'包', gtin:'04589700012125'},
+  {id:'phsensor',name:'pH sensor dish',   vendor:'磊柏', unit:'包', gtin:null},
+  {id:'geridish',name:'Geri dish',        vendor:'磊柏', unit:'盒', gtin:null},
+  {id:'geriwat', name:'Geri water bottle',vendor:'磊柏', unit:'盒', gtin:'19348265003045'},
+  {id:'gerifl',  name:'Geri filter',      vendor:'磊柏', unit:'盒', gtin:null},
+  {id:'coda',    name:'Coda Filter K-730',vendor:'磊柏', unit:'個', gtin:null},
+  {id:'oritip135',name:'Origio tip 135',  vendor:'億宸', unit:'管', gtin:null},
+  {id:'oritip150',name:'Origio tip 150',  vendor:'億宸', unit:'管', gtin:null},
+  {id:'orifl',   name:'Origio Filter',    vendor:'億宸', unit:'個', gtin:'0888937014693'},
+  {id:'glasspip',name:'玻璃 pipette',     vendor:'億宸', unit:'箱', gtin:null},
+  {id:'cellvis', name:'Cellvis spindle dish',vendor:'岑祥',unit:'箱',gtin:null},
+];
+
+// ───────────────────────────────────────
+// STATE
+// ───────────────────────────────────────
+
+let records = [];
+let scanResult = null;
+let html5QrCode = null;
+let sessionTray = [];   // items confirmed this session, cleared on page refresh
+let editingTrayIdx = -1; // -1 = adding new; >=0 = editing tray item at this index
+
+// ───────────────────────────────────────
+// INIT
+// ───────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  initDate();
+  loadRecords();
+  buildScanProductSelect();
+  buildVendorFilter();
+  renderRecords();
+  renderTray();
+});
+
+function initDate() {
+  const now = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  const el = document.getElementById('today-display');
+  if (el) el.textContent = `${now.getFullYear()}/${p2(now.getMonth()+1)}/${p2(now.getDate())} (${days[now.getDay()]})`;
+}
+
+function p2(n) { return String(n).padStart(2,'0'); }
+
+function fmt(d) { return d ? d.replace(/-/g,'/') : ''; }
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ───────────────────────────────────────
+// LOCAL STORAGE
+// ───────────────────────────────────────
+
+function loadRecords() {
+  try { records = JSON.parse(localStorage.getItem('jinhuo-records') || '[]'); }
+  catch { records = []; }
+}
+
+function saveRecords() {
+  localStorage.setItem('jinhuo-records', JSON.stringify(records));
+}
+
+// ───────────────────────────────────────
+// ORDER HELPERS
+// ───────────────────────────────────────
+
+function loadPendingOrdersForProduct(productId) {
+  try {
+    const order = JSON.parse(localStorage.getItem('order-result') || 'null');
+    if (!order || !['pending','partial'].includes(order.status)) return [];
+    const product = PRODUCTS.find(p => p.id === productId);
+    if (!product) return [];
+    return order.orders.filter(item => {
+      const remaining = item.orderQty - (item.receivedQty || 0);
+      if (remaining <= 0) return false;
+      const n1 = item.name || '', n2 = product.name;
+      return n1 === n2 || n1.includes(n2) || n2.includes(n1);
+    }).map(item => ({
+      orderId: item.orderId,
+      name: item.name,
+      orderedQty: item.orderQty,
+      receivedQty: item.receivedQty || 0,
+      pendingQty: item.orderQty - (item.receivedQty || 0),
+      orderedBy: order.orderedBy || '',
+      orderedAt: order.date || '',
+    }));
+  } catch { return []; }
+}
+
+function updateOrderStatus(orderId, qty) {
+  try {
+    const order = JSON.parse(localStorage.getItem('order-result') || 'null');
+    if (!order) return;
+    const item = order.orders.find(o => o.orderId === orderId);
+    if (!item) return;
+    item.receivedQty = (item.receivedQty || 0) + qty;
+    const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
+    const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
+    order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
+    localStorage.setItem('order-result', JSON.stringify(order));
+  } catch {}
+}
+
+function getMaxExpiry(productId) {
+  const match = records.filter(r => r.productId === productId && r.expiryDate);
+  if (!match.length) return null;
+  return match.reduce((max, r) => r.expiryDate > max ? r.expiryDate : max, '');
+}
+
+// ───────────────────────────────────────
+// RENDER RECORDS
+// ───────────────────────────────────────
+
+function buildVendorFilter() {
+  const sel = document.getElementById('filter-vendor');
+  VENDORS.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+function renderRecords() {
+  const vendorFilter = document.getElementById('filter-vendor')?.value || '';
+  const dateRange = parseInt(document.getElementById('filter-date')?.value || '30');
+  const sortMode = document.getElementById('sort-mode')?.value || 'date';
+
+  let filtered = [...records];
+  if (vendorFilter) filtered = filtered.filter(r => r.vendor === vendorFilter);
+  if (dateRange > 0) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - dateRange);
+    const cutoffStr = `${cutoff.getFullYear()}-${p2(cutoff.getMonth()+1)}-${p2(cutoff.getDate())}`;
+    filtered = filtered.filter(r => !r.receivedAt || r.receivedAt >= cutoffStr);
+  }
+
+  const el = document.getElementById('record-count');
+  if (el) el.textContent = `共 ${filtered.length} 筆`;
+
+  const container = document.getElementById('records-container');
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div class="text-center py-16 text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <p class="text-sm font-medium">尚無收貨記錄</p>
+        <p class="text-xs mt-1 text-slate-300">點右下角 + 掃碼新增</p>
+      </div>`;
+    return;
+  }
+
+  if (sortMode === 'date') {
+    // Group by receivedAt date, newest first
+    filtered.sort((a, b) => (b.receivedAt || '') > (a.receivedAt || '') ? 1 : -1);
+    const byDate = {};
+    filtered.forEach(r => {
+      const key = r.receivedAt || '（無日期）';
+      (byDate[key] = byDate[key] || []).push(r);
+    });
+    const dateKeys = Object.keys(byDate).sort().reverse();
+    const days = ['日','一','二','三','四','五','六'];
+    container.innerHTML = dateKeys.map(dateKey => {
+      const recs = byDate[dateKey];
+      let dateLabel = dateKey;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        const d = new Date(dateKey + 'T00:00:00');
+        dateLabel = `${dateKey.replace(/-/g,'/')} (${days[d.getDay()]})`;
+      }
+      return `
+      <div class="vendor-group mb-3">
+        <div class="vendor-group-header">
+          <div class="flex items-center gap-2">
+            <span class="heading font-semibold text-slate-700 text-sm">${dateLabel}</span>
+            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} 筆</span>
+          </div>
+        </div>
+        ${recs.map(r => recordRowHtml(r)).join('')}
+      </div>`;
+    }).join('');
+  } else {
+    // Group by vendor
+    filtered.sort((a, b) => (b.receivedAt || '') > (a.receivedAt || '') ? 1 : -1);
+    const byVendor = {};
+    filtered.forEach(r => (byVendor[r.vendor] = byVendor[r.vendor] || []).push(r));
+    const vendorOrder = [...VENDORS.filter(v => byVendor[v]),
+      ...Object.keys(byVendor).filter(v => !VENDORS.includes(v))];
+    container.innerHTML = vendorOrder.map(vendor => {
+      const recs = byVendor[vendor];
+      return `
+      <div class="vendor-group mb-3">
+        <div class="vendor-group-header">
+          <div class="flex items-center gap-2">
+            <span class="heading font-semibold text-slate-700 text-sm">${vendor}</span>
+            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} 筆</span>
+          </div>
+          <span class="text-xs text-slate-400">最近：${fmt(recs[0].receivedAt)}</span>
+        </div>
+        ${recs.map(r => recordRowHtml(r)).join('')}
+      </div>`;
+    }).join('');
+  }
+}
+
+function recordRowHtml(r) {
+  const product = PRODUCTS.find(p => p.id === r.productId);
+  const unit = product?.unit || '';
+  const isRejected = r.status === '拒收';
+  return `
+  <div class="record-row">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="font-medium text-slate-800 text-sm">${escHtml(r.productName)}</span>
+          ${isRejected ? '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">拒收</span>' : ''}
+          ${r.rawScanText && !isRejected ? '<span class="text-xs bg-green-50 text-green-600 border border-green-100 px-1.5 py-0.5 rounded font-medium">掃碼</span>' : ''}
+          ${!r.orderId && !isRejected ? '<span class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium">⚠ 未串接訂單</span>' : ''}
+        </div>
+        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 tabular">
+          <span>${isRejected ? '<span class="text-red-500">拒收 0</span>' : '收 <b class="text-slate-700">' + r.receivedQty + '</b> ' + unit}</span>
+          <span>批號：${r.lotNumber || '<span class="text-slate-300">—</span>'}</span>
+          <span>效期：${r.expiryDate ? fmt(r.expiryDate) : '<span class="text-slate-300">—</span>'}</span>
+          <span>${escHtml(r.receivedBy)} · ${fmt(r.receivedAt)}</span>
+        </div>
+        ${r.note ? `<p class="mt-1 text-xs text-slate-400">${escHtml(r.note)}</p>` : ''}
+      </div>
+      <button onclick="deleteRecord('${r.id}')" class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function deleteRecord(id) {
+  if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  renderRecords();
+  showToast('已刪除');
+}
+
+// ───────────────────────────────────────
+// SCANNER — Step 1
+// ───────────────────────────────────────
+
+function startScan() {
+  scanResult = null;
+  editingTrayIdx = -1;
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>';
+  document.getElementById('scan-manual-btn').classList.add('hidden');
+  document.getElementById('scan-step1').style.display = 'flex';
+  document.getElementById('scan-step2').classList.remove('open');
+  document.getElementById('scan-modal').classList.add('open');
+
+  if (html5QrCode) { try { html5QrCode.stop().catch(()=>{}); } catch {} html5QrCode = null; }
+
+  html5QrCode = new Html5Qrcode('html5qr-code-full-region');
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 12, qrbox: { width: 220, height: 220 }, rememberLastUsedCamera: true },
+    (text) => { html5QrCode.pause(true); onScanSuccess(text); },
+    () => {}
+  ).catch(err => {
+    document.getElementById('scan-status').innerHTML =
+      `<p class="text-red-400 text-sm">無法開啟相機，請確認已授權相機權限</p><p class="text-white/40 text-xs mt-1">${err}</p>`;
+    document.getElementById('scan-manual-btn').classList.remove('hidden');
+  });
+}
+
+function stopScan() {
+  document.getElementById('scan-step2').classList.remove('open');
+  document.getElementById('scan-step1').style.display = 'flex';
+  document.getElementById('scan-modal').classList.remove('open');
+  try {
+    if (html5QrCode) { html5QrCode.stop().catch(()=>{}); html5QrCode = null; }
+  } catch { html5QrCode = null; }
+  scanResult = null;
+
+  // If editing, return to tray drawer after closing
+  if (editingTrayIdx >= 0) {
+    editingTrayIdx = -1;
+    setTimeout(openTrayDrawer, 200);
+  }
+}
+
+function onScanSuccess(text) {
+  const parsed = parseBarcode(text);
+  const matched = matchProductByGtin(parsed.gtin);
+  scanResult = { raw: text, parsed, matchedProduct: matched };
+  renderScanConfirm(matched, parsed, text);
+}
+
+function retryScan() {
+  if (editingTrayIdx >= 0) {
+    // Cancel edit → back to tray drawer
+    stopScan();
+    return;
+  }
+  // Close step 2 → resume camera in step 1
+  document.getElementById('scan-step2').classList.remove('open');
+  setTimeout(() => {
+    document.getElementById('scan-step1').style.display = 'flex';
+    document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>';
+    if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
+    scanResult = null;
+  }, 310);
+}
+
+function openManualEntry() {
+  scanResult = null;
+  _fillStep2Empty();
+  showScanStep2();
+}
+
+// ───────────────────────────────────────
+// SCANNER — Step 2
+// ───────────────────────────────────────
+
+function buildScanProductSelect() {
+  const sel = document.getElementById('s2-product');
+  const byVendor = {};
+  PRODUCTS.forEach(p => { (byVendor[p.vendor] = byVendor[p.vendor] || []).push(p); });
+  VENDORS.forEach(v => {
+    if (!byVendor[v]) return;
+    const grp = document.createElement('optgroup');
+    grp.label = v;
+    byVendor[v].forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = p.name;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+function showScanStep1() {
+  document.getElementById('scan-step1').style.display = 'flex';
+  document.getElementById('scan-step2').classList.remove('open');
+}
+
+function showScanStep2() {
+  document.getElementById('scan-step1').style.display = 'none';
+  setTimeout(() => document.getElementById('scan-step2').classList.add('open'), 30);
+}
+
+function renderScanConfirm(matchedProduct, parsed, rawText) {
+  document.getElementById('s2-raw').value = rawText || '';
+  document.getElementById('s2-lot').value = parsed.lotNumber || '';
+  document.getElementById('s2-expiry').value = parsed.expiryDate || '';
+  document.getElementById('s2-quality-wrap').classList.add('hidden');
+  document.getElementById('s2-reject-wrap').classList.add('hidden');
+  document.getElementById('s2-quality-note').value = '';
+  document.getElementById('s2-reject-reason').value = '';
+  document.getElementById('s2-order-id').value = '';
+  document.getElementById('s2-ordered-qty').value = '';
+  document.getElementById('s2-ordered-at').value = '';
+  document.getElementById('s2-ordered-by').value = '';
+
+  if (matchedProduct) {
+    document.getElementById('s2-product-card').classList.remove('hidden');
+    document.getElementById('s2-product-select-wrap').classList.add('hidden');
+    document.getElementById('s2-product-card').innerHTML = `
+      <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+        <div class="text-xs text-green-600 font-medium mb-0.5">✓ 品項識別成功</div>
+        <div class="font-semibold text-slate-800">${escHtml(matchedProduct.name)}</div>
+        <div class="text-xs text-slate-500 mt-0.5">廠商：${escHtml(matchedProduct.vendor)}</div>
+      </div>`;
+    document.getElementById('s2-unit').textContent = matchedProduct.unit;
+    renderOrderMatch(matchedProduct.id);
+    // Default qty = pendingQty or 1
+    const orders = loadPendingOrdersForProduct(matchedProduct.id);
+    document.getElementById('s2-qty').value = orders.length > 0 ? orders[0].pendingQty : 1;
+  } else {
+    document.getElementById('s2-product-card').innerHTML = parsed.gtin
+      ? `<div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+           <div class="text-xs text-yellow-700 font-medium">⚠ 條碼未建檔，請手動選擇品項</div>
+           <div class="text-xs text-slate-400 mt-0.5">${escHtml(parsed.gtin)}</div>
+         </div>`
+      : '';
+    document.getElementById('s2-product-card').classList.toggle('hidden', !parsed.gtin);
+    document.getElementById('s2-product-select-wrap').classList.remove('hidden');
+    document.getElementById('s2-product').value = '';
+    document.getElementById('s2-order-area').innerHTML = '';
+    document.getElementById('s2-unit').textContent = '';
+    document.getElementById('s2-qty').value = 1;
+  }
+
+  showScanStep2();
+}
+
+function _fillStep2Empty() {
+  document.getElementById('s2-product-card').classList.add('hidden');
+  document.getElementById('s2-product-select-wrap').classList.remove('hidden');
+  document.getElementById('s2-product').value = '';
+  document.getElementById('s2-order-area').innerHTML = '';
+  document.getElementById('s2-lot').value = '';
+  document.getElementById('s2-expiry').value = '';
+  document.getElementById('s2-qty').value = 1;
+  document.getElementById('s2-unit').textContent = '';
+  document.getElementById('s2-quality-wrap').classList.add('hidden');
+  document.getElementById('s2-reject-wrap').classList.add('hidden');
+  document.getElementById('s2-quality-note').value = '';
+  document.getElementById('s2-reject-reason').value = '';
+  document.getElementById('s2-raw').value = '';
+  document.getElementById('s2-order-id').value = '';
+  document.getElementById('s2-ordered-qty').value = '';
+  document.getElementById('s2-ordered-at').value = '';
+  document.getElementById('s2-ordered-by').value = '';
+}
+
+function renderOrderMatch(productId) {
+  const orders = loadPendingOrdersForProduct(productId);
+  const area = document.getElementById('s2-order-area');
+
+  if (orders.length === 0) {
+    area.innerHTML = `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 mb-1">
+      <span class="text-orange-500">⚠</span>
+      <span class="text-xs text-orange-700 font-medium">無對應訂單</span>
+    </div>`;
+    document.getElementById('s2-order-id').value = '';
+    return;
+  }
+
+  const o = orders[0];
+  document.getElementById('s2-order-id').value = o.orderId;
+  document.getElementById('s2-ordered-qty').value = o.orderedQty;
+  document.getElementById('s2-ordered-at').value = o.orderedAt;
+  document.getElementById('s2-ordered-by').value = o.orderedBy;
+  document.getElementById('s2-qty').value = o.pendingQty;
+
+  area.innerHTML = `<div class="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-1">
+    <div class="flex flex-wrap items-center justify-between gap-1">
+      <span class="text-xs font-semibold text-blue-700">對應訂單</span>
+      <span class="text-xs text-blue-600 tabular">訂購 ${o.orderedQty} ｜ 已收 ${o.receivedQty} ｜ <b>待到貨 ${o.pendingQty}</b></span>
+    </div>
+    ${o.orderedAt ? `<div class="text-xs text-slate-400 mt-0.5">${escHtml(o.orderedAt)}${o.orderedBy ? ' · ' + escHtml(o.orderedBy) : ''}</div>` : ''}
+  </div>`;
+}
+
+function onScanProductChange() {
+  const productId = document.getElementById('s2-product').value;
+  if (!productId) {
+    document.getElementById('s2-order-area').innerHTML = '';
+    document.getElementById('s2-unit').textContent = '';
+    return;
+  }
+  const product = PRODUCTS.find(p => p.id === productId);
+  document.getElementById('s2-unit').textContent = product?.unit || '';
+  renderOrderMatch(productId);
+  const orders = loadPendingOrdersForProduct(productId);
+  if (orders.length > 0) document.getElementById('s2-qty').value = orders[0].pendingQty;
+  else document.getElementById('s2-qty').value = 1;
+}
+
+function toggleQualityNote() {
+  const wrap = document.getElementById('s2-quality-wrap');
+  wrap.classList.toggle('hidden');
+  if (!wrap.classList.contains('hidden')) document.getElementById('s2-quality-note').focus();
+}
+
+function toggleReject() {
+  const wrap = document.getElementById('s2-reject-wrap');
+  wrap.classList.toggle('hidden');
+  if (!wrap.classList.contains('hidden')) document.getElementById('s2-reject-reason').focus();
+}
+
+// ───────────────────────────────────────
+// TRAY
+// ───────────────────────────────────────
+
+function addToTray() {
+  // Determine product
+  const productCardHidden = document.getElementById('s2-product-card').classList.contains('hidden');
+  const productSelectHidden = document.getElementById('s2-product-select-wrap').classList.contains('hidden');
+  let productId, productName, vendor, unit;
+
+  if (!productSelectHidden) {
+    // Manual select
+    productId = document.getElementById('s2-product').value;
+    if (!productId) { showToast('請選擇品項'); return; }
+    const p = PRODUCTS.find(x => x.id === productId);
+    productName = p?.name || productId;
+    vendor = p?.vendor || '';
+    unit = p?.unit || '';
+  } else {
+    // Matched from scan or edit
+    const p = scanResult?.matchedProduct || PRODUCTS.find(x => x.id === (sessionTray[editingTrayIdx]?.productId));
+    if (!p) { showToast('無法識別品項，請重新掃描'); return; }
+    productId = p.id; productName = p.name; vendor = p.vendor; unit = p.unit;
+  }
+
+  const isReject = !document.getElementById('s2-reject-wrap').classList.contains('hidden');
+  const rejectReason = document.getElementById('s2-reject-reason').value.trim();
+  if (isReject && !rejectReason) { showToast('請填入拒收原因'); return; }
+
+  const qtyRaw = parseInt(document.getElementById('s2-qty').value, 10);
+  if (!isReject && (isNaN(qtyRaw) || qtyRaw < 1)) { showToast('請填入有效數量（正整數）'); return; }
+
+  const orderedQtyRaw = parseInt(document.getElementById('s2-ordered-qty').value, 10);
+  const orderedQty = isNaN(orderedQtyRaw) || orderedQtyRaw <= 0 ? null : orderedQtyRaw;
+  const orderId = document.getElementById('s2-order-id').value || null;
+
+  const item = {
+    productId, productName, vendor, unit,
+    qty: isReject ? 0 : qtyRaw,
+    lotNumber: document.getElementById('s2-lot').value.trim() || null,
+    expiryDate: document.getElementById('s2-expiry').value || null,
+    rawScanText: document.getElementById('s2-raw').value || null,
+    orderId,
+    orderedQty,
+    orderedAt: document.getElementById('s2-ordered-at').value || null,
+    orderedBy: document.getElementById('s2-ordered-by').value || null,
+    overQtyReason: null,
+    anomalyNote: document.getElementById('s2-quality-note').value.trim() || null,
+    isRejected: isReject,
+    rejectReason: isReject ? rejectReason : null,
+  };
+
+  const isEditing = editingTrayIdx >= 0;
+  if (isEditing) {
+    sessionTray[editingTrayIdx] = item;
+    editingTrayIdx = -1;
+    renderTray();
+    showToast('已更新');
+    stopScan();
+    setTimeout(openTrayDrawer, 300);
+  } else {
+    sessionTray.push(item);
+    renderTray();
+    showToast(`✓ 已加入暫存（共 ${sessionTray.length} 筆）`);
+    // Resume scanning step 1
+    document.getElementById('scan-step2').classList.remove('open');
+    setTimeout(() => {
+      document.getElementById('scan-step1').style.display = 'flex';
+      document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">繼續掃下一個品項，或關閉開始審核</p>';
+      if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
+      scanResult = null;
+    }, 310);
+  }
+}
+
+function renderTray() {
+  const count = sessionTray.length;
+  const bar = document.getElementById('tray-bar');
+  if (count === 0) { bar.classList.remove('visible'); return; }
+
+  bar.classList.add('visible');
+  document.getElementById('tray-count').textContent = count;
+  document.getElementById('tray-count-bubble').textContent = count;
+  document.getElementById('tray-drawer-count').textContent = count;
+  document.getElementById('review-count').textContent = count;
+
+  document.getElementById('tray-list').innerHTML = sessionTray.map((item, idx) => {
+    let statusBadge;
+    if (item.isRejected) {
+      statusBadge = '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">拒收</span>';
+    } else if (!item.orderId) {
+      statusBadge = '<span class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium">⚠ 未串接訂單</span>';
+    } else if (item.orderedQty && item.qty > item.orderedQty) {
+      statusBadge = `<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">超量 +${item.qty - item.orderedQty}</span>`;
+    } else {
+      statusBadge = '';
+    }
+    return `
+    <div class="flex items-start justify-between gap-2 py-3 border-b border-slate-100 last:border-b-0">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="font-medium text-slate-800 text-sm">${escHtml(item.productName)}</span>
+          ${statusBadge}
+        </div>
+        <div class="mt-0.5 text-xs text-slate-500 flex flex-wrap gap-x-3">
+          <span>${item.isRejected ? '<span class="text-red-500">拒收</span>' : item.qty + ' ' + (item.unit || '')}</span>
+          ${item.lotNumber ? `<span>批：${escHtml(item.lotNumber)}</span>` : ''}
+          ${item.expiryDate ? `<span>效：${fmt(item.expiryDate)}</span>` : ''}
+        </div>
+        ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">⚠ ${escHtml(item.anomalyNote)}</p>` : ''}
+        ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">拒收：${escHtml(item.rejectReason)}</p>` : ''}
+      </div>
+      <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
+        <button onclick="editTrayItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button onclick="removeTrayItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeTrayItem(idx) {
+  sessionTray.splice(idx, 1);
+  renderTray();
+  if (sessionTray.length === 0) closeTrayDrawer();
+}
+
+function editTrayItem(idx) {
+  const item = sessionTray[idx];
+  editingTrayIdx = idx;
+  const matchedProduct = PRODUCTS.find(p => p.id === item.productId);
+  scanResult = { raw: item.rawScanText || '', parsed: { gtin: null, lotNumber: item.lotNumber, expiryDate: item.expiryDate }, matchedProduct };
+
+  closeTrayDrawer();
+
+  setTimeout(() => {
+    document.getElementById('scan-modal').classList.add('open');
+    document.getElementById('scan-step1').style.display = 'none';
+
+    // Fill step 2 with item data
+    document.getElementById('s2-raw').value = item.rawScanText || '';
+    document.getElementById('s2-lot').value = item.lotNumber || '';
+    document.getElementById('s2-expiry').value = item.expiryDate || '';
+    document.getElementById('s2-qty').value = item.qty || 1;
+    document.getElementById('s2-order-id').value = item.orderId || '';
+    document.getElementById('s2-ordered-qty').value = item.orderedQty || '';
+    document.getElementById('s2-ordered-at').value = item.orderedAt || '';
+    document.getElementById('s2-ordered-by').value = item.orderedBy || '';
+
+    if (matchedProduct) {
+      document.getElementById('s2-product-card').classList.remove('hidden');
+      document.getElementById('s2-product-select-wrap').classList.add('hidden');
+      document.getElementById('s2-product-card').innerHTML = `
+        <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+          <div class="text-xs text-green-600 font-medium mb-0.5">✓ 品項識別</div>
+          <div class="font-semibold text-slate-800">${escHtml(matchedProduct.name)}</div>
+          <div class="text-xs text-slate-500 mt-0.5">廠商：${escHtml(matchedProduct.vendor)}</div>
+        </div>`;
+      document.getElementById('s2-unit').textContent = matchedProduct.unit;
+      renderOrderMatch(matchedProduct.id);
+    } else {
+      document.getElementById('s2-product-card').classList.add('hidden');
+      document.getElementById('s2-product-select-wrap').classList.remove('hidden');
+      document.getElementById('s2-product').value = item.productId || '';
+      document.getElementById('s2-unit').textContent = item.unit || '';
+    }
+
+    if (item.anomalyNote) {
+      document.getElementById('s2-quality-wrap').classList.remove('hidden');
+      document.getElementById('s2-quality-note').value = item.anomalyNote;
+    } else {
+      document.getElementById('s2-quality-wrap').classList.add('hidden');
+      document.getElementById('s2-quality-note').value = '';
+    }
+    if (item.isRejected) {
+      document.getElementById('s2-reject-wrap').classList.remove('hidden');
+      document.getElementById('s2-reject-reason').value = item.rejectReason || '';
+    } else {
+      document.getElementById('s2-reject-wrap').classList.add('hidden');
+      document.getElementById('s2-reject-reason').value = '';
+    }
+
+    document.getElementById('scan-step2').classList.add('open');
+  }, 250);
+}
+
+function openTrayDrawer() {
+  document.getElementById('tray-overlay').classList.add('open');
+  document.getElementById('tray-drawer').classList.add('open');
+}
+
+function closeTrayDrawer() {
+  document.getElementById('tray-overlay').classList.remove('open');
+  document.getElementById('tray-drawer').classList.remove('open');
+}
+
+// ───────────────────────────────────────
+// REVIEW & BATCH SAVE
+// ───────────────────────────────────────
+
+function _renderReviewContent(savedBy, savedAt) {
+  const today = new Date().toISOString().slice(0, 10);
+  const noOrderItems = sessionTray.filter(i => !i.isRejected && !i.orderId);
+  const expiryIssues = sessionTray.filter(i => !i.isRejected && i.expiryDate && i.expiryDate < today);
+  const expiryOld = sessionTray.filter(i => !i.isRejected && i.expiryDate && getMaxExpiry(i.productId) && i.expiryDate < getMaxExpiry(i.productId));
+
+  let warnings = '';
+  if (expiryIssues.length > 0) {
+    warnings += `<div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
+      <p class="text-sm font-semibold text-red-700 mb-0.5">⚠ 效期已過期（${expiryIssues.length} 筆）— 需填寫收貨原因</p>
+      <p class="text-xs text-red-600">${expiryIssues.map(i => escHtml(i.productName) + '（' + fmt(i.expiryDate) + '）').join('、')}</p>
+    </div>`;
+  }
+  if (expiryOld.length > 0 && expiryIssues.length === 0) {
+    warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
+      <p class="text-sm font-semibold text-orange-700 mb-0.5">⚠ 效期早於現有庫存（${expiryOld.length} 筆）</p>
+      <p class="text-xs text-orange-600">${expiryOld.map(i => escHtml(i.productName)).join('、')}</p>
+    </div>`;
+  }
+  if (noOrderItems.length > 0) {
+    warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
+      <p class="text-sm font-semibold text-orange-700 mb-0.5">⚠ 未串接訂單（${noOrderItems.length} 筆）</p>
+      <p class="text-xs text-orange-600">${noOrderItems.map(i => escHtml(i.productName)).join('、')}</p>
+    </div>`;
+  }
+
+  const itemsHtml = sessionTray.map((item, idx) => {
+    let statusTag;
+    if (item.isRejected) statusTag = '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">拒收</span>';
+    else if (item.orderedQty && item.qty > item.orderedQty) statusTag = `<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">超量 +${item.qty - item.orderedQty}</span>`;
+    else if (!item.orderId) statusTag = '<span class="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">⚠ 未串接訂單</span>';
+    else statusTag = '';
+
+    const isExpired = !item.isRejected && item.expiryDate && item.expiryDate < today;
+    const overQtyField = !item.isRejected && item.orderedQty && item.qty > item.orderedQty
+      ? `<div class="mt-2">
+           <label class="text-xs font-medium text-red-700 mb-1 block">超量原因 *（必填）</label>
+           <input type="text" class="review-over-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="請說明超量原因" value="${escHtml(item.overQtyReason || '')}">
+         </div>` : '';
+    const expiryConfirmField = isExpired
+      ? `<div class="mt-2">
+           <label class="text-xs font-medium text-red-700 mb-1 block">效期過期 — 仍收貨原因 *（必填）</label>
+           <input type="text" class="review-expiry-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="例如：廠商補換確認、備用庫存" value="${escHtml(item.expiryReason || '')}">
+         </div>` : '';
+
+    return `<div class="py-3 border-b border-slate-100 last:border-b-0">
+      <div class="flex items-start gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-medium text-slate-800 text-sm">${escHtml(item.productName)}</span>
+            ${statusTag}
+          </div>
+          <div class="mt-0.5 text-xs text-slate-500 flex flex-wrap gap-x-3">
+            <span>${item.isRejected ? '<span class="text-red-500">拒收</span>' : item.qty + ' ' + (item.unit || '')}</span>
+            ${item.lotNumber ? `<span>批：${escHtml(item.lotNumber)}</span>` : ''}
+            ${item.expiryDate ? `<span class="${isExpired ? 'text-red-500 font-semibold' : ''}">效：${fmt(item.expiryDate)}</span>` : ''}
+            ${item.orderedQty ? `<span class="text-slate-400">訂：${item.orderedQty}</span>` : ''}
+          </div>
+          ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">⚠ ${escHtml(item.anomalyNote)}</p>` : ''}
+          ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">拒收：${escHtml(item.rejectReason)}</p>` : ''}
+          ${overQtyField}
+          ${expiryConfirmField}
+        </div>
+        <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
+          <button onclick="reviewEditItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors" title="編輯">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button onclick="reviewRemoveItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors" title="刪除">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('review-content').innerHTML = `
+    ${warnings}
+    <div class="bg-white border border-slate-200 rounded-xl mb-4 px-4 overflow-hidden">${itemsHtml}</div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1.5">簽收人 *</label>
+        <input type="text" id="review-received-by" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="簽收人姓名" value="${escHtml(savedBy || '')}">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1.5">到貨日期 *</label>
+        <input type="date" id="review-received-at" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+    </div>`;
+
+  document.getElementById('review-count').textContent = sessionTray.length;
+
+  setTimeout(() => {
+    const dateEl = document.getElementById('review-received-at');
+    if (dateEl) {
+      dateEl.value = savedAt || (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${p2(now.getMonth()+1)}-${p2(now.getDate())}`;
+      })();
+    }
+  }, 50);
+}
+
+function openReview() {
+  if (sessionTray.length === 0) { showToast('暫存區是空的'); return; }
+  _renderReviewContent('', '');
+  closeTrayDrawer();
+  document.getElementById('review-overlay').classList.add('open');
+  document.getElementById('review-modal').classList.add('open');
+}
+
+function closeReview() {
+  document.getElementById('review-overlay').classList.remove('open');
+  document.getElementById('review-modal').classList.remove('open');
+}
+
+function closeReviewToTray() {
+  closeReview();
+  setTimeout(openTrayDrawer, 200);
+}
+
+function reviewRemoveItem(idx) {
+  const savedBy = document.getElementById('review-received-by')?.value || '';
+  const savedAt = document.getElementById('review-received-at')?.value || '';
+  sessionTray.splice(idx, 1);
+  renderTray();
+  if (sessionTray.length === 0) { closeReview(); return; }
+  _renderReviewContent(savedBy, savedAt);
+}
+
+function reviewEditItem(idx) {
+  closeReview();
+  setTimeout(() => editTrayItem(idx), 200);
+}
+
+function batchSaveAll() {
+  const receivedBy = document.getElementById('review-received-by')?.value.trim();
+  const receivedAt = document.getElementById('review-received-at')?.value;
+  if (!receivedBy) { showToast('請填入簽收人'); return; }
+  if (!receivedAt) { showToast('請選擇到貨日期'); return; }
+
+  // Collect overQty reasons
+  document.querySelectorAll('.review-over-reason').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    if (!isNaN(idx) && sessionTray[idx]) sessionTray[idx].overQtyReason = el.value.trim();
+  });
+
+  // Validate overQty reasons
+  const missingReason = sessionTray.find(i => !i.isRejected && i.orderedQty && i.qty > i.orderedQty && !i.overQtyReason);
+  if (missingReason) {
+    showToast(`請填寫「${missingReason.productName}」超量原因`);
+    return;
+  }
+
+  // Collect expiry reasons
+  document.querySelectorAll('.review-expiry-reason').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    if (!isNaN(idx) && sessionTray[idx]) sessionTray[idx].expiryReason = el.value.trim();
+  });
+
+  // Validate expiry reasons
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const missingExpiryReason = sessionTray.find(i => !i.isRejected && i.expiryDate && i.expiryDate < todayStr && !i.expiryReason);
+  if (missingExpiryReason) {
+    showToast(`請填寫「${missingExpiryReason.productName}」效期過期的收貨原因`);
+    return;
+  }
+
+  let has102 = false;
+  const count = sessionTray.length;
+
+  sessionTray.forEach(item => {
+    const noteParts = [
+      item.isRejected && item.rejectReason ? `拒收：${item.rejectReason}` : null,
+      item.overQtyReason ? `超量原因：${item.overQtyReason}` : null,
+      item.expiryReason ? `效期過期原因：${item.expiryReason}` : null,
+      item.anomalyNote ? `品質異常：${item.anomalyNote}` : null,
+    ].filter(Boolean);
+
+    const record = {
+      id: `jr-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      productId: item.productId,
+      productName: item.productName,
+      vendor: item.vendor,
+      orderId: item.orderId || null,
+      orderedQty: item.orderedQty || null,
+      orderedAt: item.orderedAt || null,
+      orderedBy: item.orderedBy || null,
+      receivedQty: item.qty,
+      receivedAt,
+      receivedBy,
+      lotNumber: item.lotNumber || null,
+      expiryDate: item.expiryDate || null,
+      note: noteParts.length > 0 ? noteParts.join('；') : null,
+      rawScanText: item.rawScanText || null,
+      status: item.isRejected ? '拒收' : null,
+    };
+
+    records.unshift(record);
+    if (item.orderId && !item.isRejected) updateOrderStatus(item.orderId, item.qty);
+    if (['102','101'].includes(item.productId) || (item.productName || '').includes('102')) has102 = true;
+  });
+
+  saveRecords();
+  renderRecords();
+  sessionTray = [];
+  renderTray();
+  closeReview();
+  showToast(`✓ 已新增 ${count} 筆進貨記錄`);
+
+  if (has102) setTimeout(show102Alert, 500);
+}
+
+function show102Alert() {
+  document.getElementById('alert-102-overlay').classList.add('open');
+}
+
+function close102Alert() {
+  document.getElementById('alert-102-overlay').classList.remove('open');
+}
+
+// ───────────────────────────────────────
+// BARCODE / GS1 PARSER
+// ───────────────────────────────────────
+
+function matchProductByGtin(gtin) {
+  if (!gtin) return null;
+  const norm = gtin.padStart(14, '0');
+  return PRODUCTS.find(p => p.gtin && p.gtin.padStart(14, '0') === norm) || null;
+}
+
+function parseBarcode(text) {
+  const r = { lotNumber: null, expiryDate: null, gtin: null };
+
+  // GS1 with parentheses: (01)xxxx(10)LOT(17)YYMMDD
+  const reParen = /\((\d{2,4})\)([^(]*)/g;
+  let m; let foundGS1 = false;
+  while ((m = reParen.exec(text)) !== null) {
+    foundGS1 = true;
+    const ai = m[1], val = m[2].trim();
+    if (ai === '01') r.gtin = val;
+    if (ai === '10') r.lotNumber = val;
+    if (ai === '17') r.expiryDate = gs1Date(val);
+  }
+  if (foundGS1) return r;
+
+  // GS1 raw (no parens): starts with 01 + 14 digits
+  if (/^01\d{14}/.test(text)) {
+    r.gtin = text.slice(2, 16);
+    const rest = text.slice(16);
+    const m10 = rest.match(/10([^\x1d]{1,20})/);
+    if (m10) r.lotNumber = m10[1];
+    const m17 = rest.match(/17(\d{6})/);
+    if (m17) r.expiryDate = gs1Date(m17[1]);
+    if (r.gtin || r.lotNumber || r.expiryDate) return r;
+  }
+
+  // Fallback: treat as lot number
+  r.lotNumber = text.trim();
+  return r;
+}
+
+function gs1Date(yymmdd) {
+  if (!yymmdd || yymmdd.length < 6) return null;
+  const yy = yymmdd.slice(0,2), mm = yymmdd.slice(2,4), dd = yymmdd.slice(4,6);
+  const year = parseInt(yy) < 50 ? '20'+yy : '19'+yy;
+  return `${year}-${mm}-${dd === '00' ? '01' : dd}`;
+}
+
+// ───────────────────────────────────────
+// NAV
+// ───────────────────────────────────────
+
+function openNav() {
+  document.getElementById('nav-overlay').classList.add('open');
+  document.getElementById('nav-drawer').classList.add('open');
+}
+function closeNav() {
+  document.getElementById('nav-overlay').classList.remove('open');
+  document.getElementById('nav-drawer').classList.remove('open');
+}
+
+// ───────────────────────────────────────
+// TOAST
+// ───────────────────────────────────────
+
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
