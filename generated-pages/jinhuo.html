@@ -191,7 +191,7 @@
 
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
-      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄</h1>
+      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.2</span></h1>
       <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
       </button>
@@ -1453,6 +1453,5 @@ function showToast(msg) {
   _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 </script>
-<div id="app-version" style="position:fixed;top:6px;right:10px;font-size:10px;color:#94a3b8;opacity:0.6;pointer-events:none;z-index:9999;font-family:monospace;">v0.5.1</div>
 </body>
 </html>
