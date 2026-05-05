@@ -327,6 +327,7 @@
       <details class="mt-2">
         <summary class="text-xs text-slate-300 cursor-pointer select-none">原始條碼 ▾</summary>
         <p id="s2-raw-display" class="text-[11px] text-slate-400 mt-1 break-all font-mono leading-relaxed"></p>
+        <p id="s2-parse-debug" class="text-[11px] text-slate-400 mt-1 break-all font-mono leading-relaxed"></p>
       </details>
 
       <!-- Buttons -->
@@ -811,7 +812,8 @@ function showScanStep2() {
 
 function renderScanConfirm(matchedProduct, parsed, rawText) {
   document.getElementById('s2-raw').value = rawText || '';
-  document.getElementById('s2-raw-display').textContent = rawText || '';
+  document.getElementById('s2-raw-display').textContent = rawText ? JSON.stringify(rawText) : '';
+  document.getElementById('s2-parse-debug').textContent = `gtin:${parsed.gtin||'—'} lot:${parsed.lotNumber||'—'} exp:${parsed.expiryDate||'—'}`;
   document.getElementById('s2-lot').value = parsed.lotNumber || '';
   document.getElementById('s2-expiry').value = parsed.expiryDate || '';
   document.getElementById('s2-quality-wrap').classList.add('hidden');
@@ -1369,6 +1371,8 @@ function parseBarcode(text) {
 
   // 剝除 GS1 符號識別碼前綴 (]C1, ]d2, ]Q3 等，DataMatrix / QR 掃碼常見)
   text = text.replace(/^\][A-Za-z]\d/, '');
+  // 剝除開頭的 FNC1 分隔符（部分掃碼器在字串最前面加 \x1d）
+  text = text.replace(/^\x1d+/, '');
 
   // GS1 with parentheses: (01)xxxx(10)LOT(17)YYMMDD
   const reParen = /\((\d{2,4})\)([^(]*)/g;
