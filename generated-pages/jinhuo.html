@@ -324,6 +324,10 @@
       <input type="hidden" id="s2-ordered-at">
       <input type="hidden" id="s2-ordered-by">
       <input type="hidden" id="s2-raw">
+      <details class="mt-2">
+        <summary class="text-xs text-slate-300 cursor-pointer select-none">原始條碼 ▾</summary>
+        <p id="s2-raw-display" class="text-[11px] text-slate-400 mt-1 break-all font-mono leading-relaxed"></p>
+      </details>
 
       <!-- Buttons -->
       <div class="flex gap-3 mt-4">
@@ -807,6 +811,7 @@ function showScanStep2() {
 
 function renderScanConfirm(matchedProduct, parsed, rawText) {
   document.getElementById('s2-raw').value = rawText || '';
+  document.getElementById('s2-raw-display').textContent = rawText || '';
   document.getElementById('s2-lot').value = parsed.lotNumber || '';
   document.getElementById('s2-expiry').value = parsed.expiryDate || '';
   document.getElementById('s2-quality-wrap').classList.add('hidden');
@@ -1362,6 +1367,9 @@ function matchProductByGtin(gtin) {
 function parseBarcode(text) {
   const r = { lotNumber: null, expiryDate: null, gtin: null };
 
+  // 剝除 GS1 符號識別碼前綴 (]C1, ]d2, ]Q3 等，DataMatrix / QR 掃碼常見)
+  text = text.replace(/^\][A-Za-z]\d/, '');
+
   // GS1 with parentheses: (01)xxxx(10)LOT(17)YYMMDD
   const reParen = /\((\d{2,4})\)([^(]*)/g;
   let m; let foundGS1 = false;
@@ -1383,6 +1391,12 @@ function parseBarcode(text) {
     const m17 = rest.match(/17(\d{6})/);
     if (m17) r.expiryDate = gs1Date(m17[1]);
     if (r.gtin || r.lotNumber || r.expiryDate) return r;
+  }
+
+  // 純 GTIN-13 / GTIN-14（1D EAN 條碼，只有品項識別，無批號效期）
+  if (/^\d{13,14}$/.test(text)) {
+    r.gtin = text.padStart(14, '0');
+    return r;
   }
 
   // Fallback: treat as lot number
