@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>測試資料載入</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { colors: { primary: { DEFAULT:'#9590D0', dark:'#7A75BB', xlight:'#EDE9FF' } } } }
+  }
+</script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 max-w-sm w-full p-6">
+  <div class="flex items-center gap-3 mb-5">
+    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <h1 class="font-bold text-slate-800">測試資料載入</h1>
+      <p class="text-xs text-slate-400">培養液管理系統</p>
+    </div>
+  </div>
+
+  <div class="space-y-2 mb-5" id="item-list">
+    <p class="text-xs font-semibold text-slate-500 mb-1">將載入以下訂單（各 30 個）：</p>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">H5GT</span><span class="text-slate-400">弘優 × 30 瓶</span></div>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">GxTL</span><span class="text-slate-400">亞樸 × 30 瓶</span></div>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">101（磊柏）</span><span class="text-slate-400">磊柏 × 30 套</span></div>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">102（磊柏）</span><span class="text-slate-400">磊柏 × 30 盒</span></div>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">HEPES</span><span class="text-slate-400">億宸 × 30 瓶</span></div>
+    <div class="flex justify-between text-sm py-1.5"><span class="text-slate-700">Heavy Oil</span><span class="text-slate-400">億宸 × 30 瓶</span></div>
+  </div>
+
+  <div id="status" class="hidden mb-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-medium">
+    ✓ 測試訂單已載入！
+  </div>
+  <div id="clear-status" class="hidden mb-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700 font-medium">
+    已清除全部測試資料
+  </div>
+
+  <button onclick="loadData()" class="w-full py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors mb-2">
+    載入測試訂單
+  </button>
+  <a href="jinhuo.html" class="block w-full py-3 border border-primary text-primary font-semibold rounded-xl text-sm text-center hover:bg-primary-xlight transition-colors mb-4">
+    前往進貨記錄 →
+  </a>
+  <button onclick="clearData()" class="w-full py-2 text-xs text-slate-400 hover:text-red-400 transition-colors underline">
+    清除全部測試資料
+  </button>
+</div>
+
+<script>
+function loadData() {
+  const orderData = {
+    status: 'pending',
+    orderedBy: '測試員',
+    date: '2026-05-05',
+    orders: [
+      { orderId: 'TEST-001', name: 'H5GT',         orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-002', name: 'GxTL',          orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-003', name: '101（磊柏）',   orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-004', name: '102（磊柏）',   orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-005', name: 'HEPES',         orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-006', name: 'Heavy Oil',     orderQty: 30, receivedQty: 0 },
+    ]
+  };
+  localStorage.setItem('order-result', JSON.stringify(orderData));
+  document.getElementById('status').classList.remove('hidden');
+  document.getElementById('clear-status').classList.add('hidden');
+}
+
+function clearData() {
+  localStorage.removeItem('order-result');
+  localStorage.removeItem('jinhuo-records');
+  document.getElementById('clear-status').classList.remove('hidden');
+  document.getElementById('status').classList.add('hidden');
+}
+</script>
+</body>
+</html>
