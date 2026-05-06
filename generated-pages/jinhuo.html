@@ -89,6 +89,37 @@
   #tray-drawer { position:fixed; bottom:0; left:0; right:0; max-height:82vh; overflow-y:auto; background:white; border-radius:20px 20px 0 0; z-index:37; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); }
   #tray-drawer.open { transform:translateY(0); }
 
+  /* Void sheet */
+  #void-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:48; }
+  #void-overlay.open { display:block; }
+  #void-modal { position:fixed; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; z-index:49; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); }
+  #void-modal.open { transform:translateY(0); }
+
+  /* Edit sheet */
+  #edit-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:48; }
+  #edit-overlay.open { display:block; }
+  #edit-modal { position:fixed; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; z-index:49; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); overflow-y:auto; max-height:90vh; }
+  #edit-modal.open { transform:translateY(0); }
+
+  @media(min-width:768px){
+    #void-modal, #edit-modal { bottom:auto; top:50%; left:50%; right:auto; transform:translateX(-50%) translateY(-40%); width:min(92vw,480px); border-radius:18px; opacity:0; transition:opacity .2s,transform .2s; pointer-events:none; }
+    #void-modal.open, #edit-modal.open { transform:translateX(-50%) translateY(-50%); opacity:1; pointer-events:all; }
+  }
+
+  /* 作廢記錄樣式 */
+  .record-voided { opacity:0.55; }
+  .record-voided .record-name { text-decoration:line-through; color:#94a3b8; }
+  .record-voided .record-meta { color:#94a3b8; }
+
+  /* Link order sheet */
+  #link-order-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:46; }
+  #link-order-overlay.open { display:block; }
+  #link-order-modal { position:fixed; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; z-index:47; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); }
+  #link-order-modal.open { transform:translateY(0); }
+  @media(min-width:768px){
+    #link-order-modal { bottom:auto; top:50%; left:50%; right:auto; transform:translateX(-50%) translateY(-40%); width:min(92vw,480px); border-radius:18px; opacity:0; transition:opacity .2s,transform .2s; pointer-events:none; }
+    #link-order-modal.open { transform:translateX(-50%) translateY(-50%); opacity:1; pointer-events:all; }
+  }
   /* Review modal */
   #review-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:44; }
   #review-overlay.open { display:block; }
@@ -194,7 +225,7 @@
 
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
-      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.4</span></h1>
+      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.9</span></h1>
       <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
       </button>
@@ -388,6 +419,96 @@
 <!-- ══════════════════════════════════════════
      REVIEW MODAL  (batch confirm)
 ══════════════════════════════════════════ -->
+<!-- VOID SHEET -->
+<div id="void-overlay" onclick="closeVoidSheet()"></div>
+<div id="void-modal">
+  <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+    <div>
+      <h2 class="font-semibold text-slate-800 text-base">作廢此筆紀錄</h2>
+      <p id="void-product-name" class="text-sm text-slate-500 mt-0.5"></p>
+    </div>
+    <button onclick="closeVoidSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">✕</button>
+  </div>
+  <div id="void-order-warning" class="hidden mx-5 mt-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700">
+    ⚠ 此筆已串接訂單，作廢後將自動扣回已收數量。
+  </div>
+  <div class="px-5 py-4 space-y-3">
+    <div>
+      <label class="text-xs font-medium text-slate-600 mb-1 block">作廢者姓名 *</label>
+      <input id="void-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="請輸入姓名">
+    </div>
+    <div>
+      <label class="text-xs font-medium text-slate-600 mb-1 block">作廢原因 *</label>
+      <input id="void-reason" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="例如：誤按、品項錯誤">
+    </div>
+  </div>
+  <div class="px-5 pb-6 flex gap-3">
+    <button onclick="closeVoidSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">取消</button>
+    <button onclick="confirmVoid()" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded-xl text-sm hover:bg-red-600 transition-colors">確認作廢</button>
+  </div>
+</div>
+
+<!-- EDIT SHEET -->
+<div id="edit-overlay" onclick="closeEditSheet()"></div>
+<div id="edit-modal">
+  <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+    <div>
+      <h2 class="font-semibold text-slate-800 text-base">修改進貨記錄</h2>
+      <p id="edit-product-name" class="text-sm text-slate-500 mt-0.5"></p>
+    </div>
+    <button onclick="closeEditSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">✕</button>
+  </div>
+  <div class="px-5 py-4 space-y-3">
+    <div>
+      <label class="text-xs font-medium text-slate-500 mb-1 block">批號</label>
+      <input id="edit-lot" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="—">
+    </div>
+    <div>
+      <label class="text-xs font-medium text-slate-500 mb-1 block">效期</label>
+      <input id="edit-expiry" type="date" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+    </div>
+    <div>
+      <label class="text-xs font-medium text-slate-500 mb-1 block">備註</label>
+      <input id="edit-note" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="—">
+    </div>
+    <div id="edit-old-expiry-warning" class="hidden bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+      <label class="text-xs font-medium text-orange-700 mb-1 block">效期早於現有庫存 — 說明原因 *（必填）</label>
+      <input id="edit-old-expiry-reason" type="text" class="w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="例如：FIFO 確認、舊批次補充">
+    </div>
+    <hr class="border-slate-100">
+    <div>
+      <label class="text-xs font-medium text-slate-600 mb-1 block">修改者姓名 *</label>
+      <input id="edit-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="請輸入姓名">
+    </div>
+    <div id="edit-history-section" class="hidden">
+      <button onclick="toggleEditHistory()" class="text-xs text-slate-400 underline">查看修改歷程</button>
+      <div id="edit-history-list" class="hidden mt-2 space-y-1.5"></div>
+    </div>
+  </div>
+  <div class="px-5 pb-6 flex gap-3">
+    <button onclick="closeEditSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">取消</button>
+    <button onclick="confirmEdit()" class="flex-1 py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">儲存修改</button>
+  </div>
+</div>
+
+<div id="link-order-overlay" onclick="closeLinkOrderSheet()"></div>
+<div id="link-order-modal">
+  <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+    <div>
+      <h2 class="heading font-semibold text-slate-800 text-base">串接訂單</h2>
+      <p id="link-order-product-name" class="text-sm text-slate-500 mt-0.5"></p>
+    </div>
+    <button onclick="closeLinkOrderSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">✕</button>
+  </div>
+  <div id="link-order-list" class="px-5 py-4 space-y-2 overflow-y-auto max-h-60"></div>
+  <div class="px-5 pb-6 pt-2 flex flex-col gap-2">
+    <button onclick="confirmLink()" class="w-full py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">確認串接</button>
+    <button id="link-mark-gift-btn" onclick="markAsGift()" class="w-full py-2.5 bg-slate-100 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-200 transition-colors">標記為試用品</button>
+    <button id="link-cancel-gift-btn" onclick="cancelGift()" class="hidden w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 font-medium rounded-xl text-sm hover:bg-orange-100 transition-colors">取消試用品標記</button>
+    <button onclick="goToOrderPage()" class="w-full py-2.5 bg-sky-50 text-sky-700 border border-sky-200 font-medium rounded-xl text-sm hover:bg-sky-100 transition-colors">補訂單資訊 →</button>
+  </div>
+</div>
+
 <div id="review-overlay" onclick="closeReview()"></div>
 <div id="review-modal">
   <div class="flex justify-center pt-3 pb-1 md:hidden">
@@ -536,6 +657,17 @@ function saveRecords() {
   localStorage.setItem('jinhuo-records', JSON.stringify(records));
 }
 
+function appendKucunLog(entries) {
+  try {
+    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    const now = new Date().toISOString();
+    entries.forEach(e => {
+      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
+    });
+    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
+  } catch(err) { console.warn('kucun-changelog write failed', err); }
+}
+
 // ───────────────────────────────────────
 // ORDER HELPERS
 // ───────────────────────────────────────
@@ -679,37 +811,189 @@ function recordRowHtml(r) {
   const product = PRODUCTS.find(p => p.id === r.productId);
   const unit = product?.unit || '';
   const isRejected = r.status === '拒收';
+  const isVoided = !!r.isVoided;
   return `
-  <div class="record-row">
+  <div class="record-row${isVoided ? ' record-voided' : ''}">
     <div class="flex items-start justify-between gap-2">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="font-medium text-slate-800 text-sm">${escHtml(r.productName)}</span>
+          <span class="font-medium text-slate-800 text-sm record-name">${escHtml(r.productName)}</span>
+          ${isVoided ? '<span class="text-xs bg-slate-100 text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded font-medium">已作廢</span>' : ''}
           ${isRejected ? '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">拒收</span>' : ''}
-
-          ${!r.orderId && !isRejected ? '<span class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium">⚠ 未串接訂單</span>' : ''}
+          ${!r.orderId && !isRejected && !r.isGift && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium hover:bg-orange-200 transition-colors cursor-pointer">⚠ 未串接訂單</button>` : ''}
+          ${r.isGift && !isRejected && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded font-medium hover:bg-slate-200 transition-colors cursor-pointer">試用品</button>` : ''}
         </div>
-        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 tabular">
+        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 tabular record-meta">
           <span>${isRejected ? '<span class="text-red-500">拒收 0</span>' : '收 <b class="text-slate-700">' + r.receivedQty + '</b> ' + unit}</span>
           <span>批號：${r.lotNumber || '<span class="text-slate-300">—</span>'}</span>
           <span>效期：${r.expiryDate ? fmt(r.expiryDate) : '<span class="text-slate-300">—</span>'}</span>
           <span>${escHtml(r.receivedBy)} · ${fmt(r.receivedAt)}</span>
         </div>
         ${r.note ? `<p class="mt-1 text-xs text-slate-400">${escHtml(r.note)}</p>` : ''}
+        ${isVoided && r.voidReason ? `<p class="mt-1 text-xs text-slate-400">作廢：${escHtml(r.voidedBy || '')} — ${escHtml(r.voidReason)}</p>` : ''}
       </div>
-      <button onclick="deleteRecord('${r.id}')" class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-      </button>
+      ${!isVoided ? `
+      <div class="flex gap-0.5">
+        <button onclick="openEditSheet('${r.id}')" class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button onclick="openVoidSheet('${r.id}')" class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+        </button>
+      </div>` : ''}
     </div>
   </div>`;
 }
 
-function deleteRecord(id) {
-  if (!confirm('確定要刪除這筆紀錄嗎？')) return;
-  records = records.filter(r => r.id !== id);
+// ─── VOID SHEET ───────────────────────────────────────────
+let _voidingRecordId = null;
+
+function openVoidSheet(recordId) {
+  _voidingRecordId = recordId;
+  const record = records.find(r => r.id === recordId);
+  if (!record) return;
+  document.getElementById('void-product-name').textContent =
+    record.productName + '　收 ' + record.receivedQty + ' ' + (record.unit || '');
+  document.getElementById('void-order-warning').classList.toggle('hidden', !record.orderId);
+  document.getElementById('void-by').value = '';
+  document.getElementById('void-reason').value = '';
+  document.getElementById('void-overlay').classList.add('open');
+  document.getElementById('void-modal').classList.add('open');
+}
+
+function closeVoidSheet() {
+  document.getElementById('void-overlay').classList.remove('open');
+  document.getElementById('void-modal').classList.remove('open');
+  _voidingRecordId = null;
+}
+
+function confirmVoid() {
+  const voidBy = document.getElementById('void-by').value.trim();
+  const voidReason = document.getElementById('void-reason').value.trim();
+  if (!voidBy) { showToast('請填寫作廢者姓名'); return; }
+  if (!voidReason) { showToast('請填寫作廢原因'); return; }
+  const record = records.find(r => r.id === _voidingRecordId);
+  if (!record) return;
+  if (record.orderId) rollbackOrderQty(record.orderId, record.receivedQty);
+  record.isVoided = true;
+  record.voidedBy = voidBy;
+  record.voidedAt = new Date().toISOString();
+  record.voidReason = voidReason;
   saveRecords();
+  appendKucunLog([{
+    source:'jinhuo', action:'void',
+    productId: record.productId, productName: record.productName,
+    lotNumber: record.lotNumber || null,
+    qty: -(record.receivedQty || 0),
+    note: `作廢原因：${voidReason}（${voidBy}）`,
+  }]);
   renderRecords();
-  showToast('已刪除');
+  closeVoidSheet();
+  showToast('已作廢此筆紀錄');
+}
+
+function rollbackOrderQty(orderId, qty) {
+  try {
+    const orderData = JSON.parse(localStorage.getItem('order-result') || '{}');
+    if (!orderData.orders) return;
+    const order = orderData.orders.find(o => o.orderId === orderId);
+    if (!order) return;
+    order.receivedQty = Math.max(0, (order.receivedQty || 0) - qty);
+    if (order.receivedQty === 0) order.status = 'pending';
+    else if (order.receivedQty < order.orderQty) order.status = 'partial';
+    localStorage.setItem('order-result', JSON.stringify(orderData));
+  } catch(e) { console.error('rollbackOrderQty', e); }
+}
+
+// ─── EDIT SHEET ───────────────────────────────────────────
+let _editingRecordId = null;
+
+function openEditSheet(recordId) {
+  _editingRecordId = recordId;
+  const record = records.find(r => r.id === recordId);
+  if (!record) return;
+  document.getElementById('edit-product-name').textContent =
+    record.productName + '　收 ' + record.receivedQty + '（數量鎖定）';
+  document.getElementById('edit-lot').value = record.lotNumber || '';
+  const expVal = record.expiryDate
+    ? (record.expiryDate.length === 7 ? record.expiryDate + '-01' : record.expiryDate)
+    : '';
+  document.getElementById('edit-expiry').value = expVal;
+  document.getElementById('edit-note').value = record.note || '';
+  document.getElementById('edit-by').value = '';
+  document.getElementById('edit-old-expiry-warning').classList.add('hidden');
+  document.getElementById('edit-old-expiry-reason').value = '';
+  document.getElementById('edit-expiry').onchange = function() {
+    const newExp = this.value;
+    const maxExp = getMaxExpiry(record.productId);
+    document.getElementById('edit-old-expiry-warning').classList.toggle('hidden', !(newExp && maxExp && newExp < maxExp));
+  };
+  const history = record.history || [];
+  const histSection = document.getElementById('edit-history-section');
+  const histList = document.getElementById('edit-history-list');
+  if (history.length > 0) {
+    histSection.classList.remove('hidden');
+    histList.classList.add('hidden');
+    histList.innerHTML = history.slice().reverse().map(h => `
+      <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
+        <div class="font-medium text-slate-700">${escHtml(h.changedBy)}　<span class="font-normal text-slate-400">${h.changedAt.slice(0,10)}</span></div>
+        ${h.changes.map(c => `<div>${fieldLabel(c.field)}：${escHtml(c.from||'（空）')} → ${escHtml(c.to||'（空）')}</div>`).join('')}
+        ${h.reason ? `<div class="text-orange-600">說明：${escHtml(h.reason)}</div>` : ''}
+      </div>`).join('');
+  } else {
+    histSection.classList.add('hidden');
+  }
+  document.getElementById('edit-overlay').classList.add('open');
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function toggleEditHistory() {
+  document.getElementById('edit-history-list').classList.toggle('hidden');
+}
+
+function fieldLabel(field) {
+  return { lotNumber: '批號', expiryDate: '效期', note: '備註' }[field] || field;
+}
+
+function closeEditSheet() {
+  document.getElementById('edit-overlay').classList.remove('open');
+  document.getElementById('edit-modal').classList.remove('open');
+  _editingRecordId = null;
+}
+
+function confirmEdit() {
+  const editBy = document.getElementById('edit-by').value.trim();
+  if (!editBy) { showToast('請填寫修改者姓名'); return; }
+  const record = records.find(r => r.id === _editingRecordId);
+  if (!record) return;
+  const newLot = document.getElementById('edit-lot').value.trim();
+  const newExpiry = document.getElementById('edit-expiry').value;
+  const newNote = document.getElementById('edit-note').value.trim();
+  const maxExp = getMaxExpiry(record.productId);
+  const isOldExpiry = newExpiry && maxExp && newExpiry < maxExp;
+  const oldExpiryReason = document.getElementById('edit-old-expiry-reason').value.trim();
+  if (isOldExpiry && !oldExpiryReason) { showToast('請填寫效期早於現有庫存的說明原因'); return; }
+  const changes = [];
+  if (newLot !== (record.lotNumber || '')) changes.push({ field:'lotNumber', from: record.lotNumber||'', to: newLot });
+  if (newExpiry !== (record.expiryDate || '')) changes.push({ field:'expiryDate', from: record.expiryDate||'', to: newExpiry });
+  if (newNote !== (record.note || '')) changes.push({ field:'note', from: record.note||'', to: newNote });
+  if (changes.length === 0) { showToast('沒有任何變動'); closeEditSheet(); return; }
+  if (!record.history) record.history = [];
+  record.history.push({ changedAt: new Date().toISOString(), changedBy: editBy, changes, reason: oldExpiryReason || null });
+  record.lotNumber = newLot || null;
+  record.expiryDate = newExpiry || null;
+  record.note = newNote || null;
+  saveRecords();
+  appendKucunLog([{
+    source:'jinhuo', action:'edit',
+    productId: record.productId, productName: record.productName,
+    lotNumber: record.lotNumber || null,
+    qty: 0,
+    note: `修改：${changes.map(c=>`${c.field}: ${c.from}→${c.to}`).join('；')}（${editBy}）`,
+  }]);
+  renderRecords();
+  closeEditSheet();
+  showToast('✓ 已儲存修改');
 }
 
 // ───────────────────────────────────────
@@ -1159,16 +1443,18 @@ function _renderReviewContent(savedBy, savedAt) {
       <p class="text-xs text-red-600">${expiryIssues.map(i => escHtml(i.productName) + '（' + fmt(i.expiryDate) + '）').join('、')}</p>
     </div>`;
   }
-  if (expiryOld.length > 0 && expiryIssues.length === 0) {
+  if (expiryOld.length > 0) {
     warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
-      <p class="text-sm font-semibold text-orange-700 mb-0.5">⚠ 效期早於現有庫存（${expiryOld.length} 筆）</p>
+      <p class="text-sm font-semibold text-orange-700 mb-0.5">⚠ 效期早於現有庫存（${expiryOld.length} 筆）— 需填寫說明原因</p>
       <p class="text-xs text-orange-600">${expiryOld.map(i => escHtml(i.productName)).join('、')}</p>
     </div>`;
   }
   if (noOrderItems.length > 0) {
     warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
       <p class="text-sm font-semibold text-orange-700 mb-0.5">⚠ 未串接訂單（${noOrderItems.length} 筆）</p>
-      <p class="text-xs text-orange-600">${noOrderItems.map(i => escHtml(i.productName)).join('、')}</p>
+      <p class="text-xs text-orange-600 mb-2">${noOrderItems.map(i => escHtml(i.productName)).join('、')}</p>
+      <p class="text-xs text-orange-600 mb-2">可先完成入庫，再通知訂貨人確認處理方式（補登訂單 / 調整數量 / 試用品確認）</p>
+      <button onclick="copyUnlinkedNotice()" class="text-xs bg-white hover:bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1.5 rounded-lg font-medium transition-colors">📋 複製通知給訂貨人</button>
     </div>`;
   }
 
@@ -1180,6 +1466,7 @@ function _renderReviewContent(savedBy, savedAt) {
     else statusTag = '';
 
     const isExpired = !item.isRejected && item.expiryDate && item.expiryDate < today;
+    const isOldExpiry = !isExpired && !item.isRejected && item.expiryDate && getMaxExpiry(item.productId) && item.expiryDate < getMaxExpiry(item.productId);
     const overQtyField = !item.isRejected && item.orderedQty && item.qty > item.orderedQty
       ? `<div class="mt-2">
            <label class="text-xs font-medium text-red-700 mb-1 block">超量原因 *（必填）</label>
@@ -1189,6 +1476,11 @@ function _renderReviewContent(savedBy, savedAt) {
       ? `<div class="mt-2">
            <label class="text-xs font-medium text-red-700 mb-1 block">效期過期 — 仍收貨原因 *（必填）</label>
            <input type="text" class="review-expiry-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="例如：廠商補換確認、備用庫存" value="${escHtml(item.expiryReason || '')}">
+         </div>` : '';
+    const oldExpiryField = isOldExpiry
+      ? `<div class="mt-2">
+           <label class="text-xs font-medium text-orange-700 mb-1 block">效期早於現有庫存 — 說明原因 *（必填）</label>
+           <input type="text" class="review-old-expiry-reason w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" data-idx="${idx}" placeholder="例如：FIFO 確認、舊批次補充" value="${escHtml(item.oldExpiryReason || '')}">
          </div>` : '';
 
     return `<div class="py-3 border-b border-slate-100 last:border-b-0">
@@ -1208,6 +1500,7 @@ function _renderReviewContent(savedBy, savedAt) {
           ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">拒收：${escHtml(item.rejectReason)}</p>` : ''}
           ${overQtyField}
           ${expiryConfirmField}
+          ${oldExpiryField}
         </div>
         <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
           <button onclick="reviewEditItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors" title="編輯">
@@ -1314,6 +1607,23 @@ function batchSaveAll() {
     return;
   }
 
+  // Collect old-expiry reasons
+  document.querySelectorAll('.review-old-expiry-reason').forEach(el => {
+    const idx = parseInt(el.dataset.idx, 10);
+    if (!isNaN(idx) && sessionTray[idx]) sessionTray[idx].oldExpiryReason = el.value.trim();
+  });
+
+  // Validate old-expiry reasons
+  const missingOldExpiryReason = sessionTray.find(i => {
+    if (i.isRejected || !i.expiryDate) return false;
+    const maxExp = getMaxExpiry(i.productId);
+    return maxExp && i.expiryDate < maxExp && i.expiryDate >= todayStr && !i.oldExpiryReason;
+  });
+  if (missingOldExpiryReason) {
+    showToast(`請填寫「${missingOldExpiryReason.productName}」效期早於現有庫存的說明原因`);
+    return;
+  }
+
   let has102 = false;
   const count = sessionTray.length;
 
@@ -1322,6 +1632,7 @@ function batchSaveAll() {
       item.isRejected && item.rejectReason ? `拒收：${item.rejectReason}` : null,
       item.overQtyReason ? `超量原因：${item.overQtyReason}` : null,
       item.expiryReason ? `效期過期原因：${item.expiryReason}` : null,
+      item.oldExpiryReason ? `效期早於庫存原因：${item.oldExpiryReason}` : null,
       item.anomalyNote ? `品質異常：${item.anomalyNote}` : null,
     ].filter(Boolean);
 
@@ -1342,6 +1653,8 @@ function batchSaveAll() {
       note: noteParts.length > 0 ? noteParts.join('；') : null,
       rawScanText: item.rawScanText || null,
       status: item.isRejected ? '拒收' : null,
+      isVoided: false,
+      history: [],
     };
 
     records.unshift(record);
@@ -1350,6 +1663,14 @@ function batchSaveAll() {
   });
 
   saveRecords();
+  const logEntries = sessionTray.filter(i => !i.isRejected).map(i => ({
+    source:'jinhuo', action:'receive',
+    productId: i.productId, productName: i.productName,
+    lotNumber: i.lotNumber || null,
+    qty: i.qty,
+    note: `簽收：${receivedBy}（${receivedAt}）`,
+  }));
+  if (logEntries.length) appendKucunLog(logEntries);
   renderRecords();
   sessionTray = [];
   saveTray();
@@ -1453,6 +1774,113 @@ function openNav() {
 function closeNav() {
   document.getElementById('nav-overlay').classList.remove('open');
   document.getElementById('nav-drawer').classList.remove('open');
+}
+
+// ───────────────────────────────────────
+// UNLINKED NOTICE
+// ───────────────────────────────────────
+
+function copyUnlinkedNotice() {
+  const items = sessionTray.filter(i => !i.isRejected && !i.orderId);
+  if (!items.length) return;
+  const dateEl = document.getElementById('review-received-at');
+  const dateStr = dateEl && dateEl.value
+    ? new Date(dateEl.value).toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'})
+    : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
+  const lines = items.map(i => {
+    let s = `• ${i.productName}（${i.qty} ${i.unit || ''}）`;
+    if (i.lotNumber) s += ` 批號：${i.lotNumber}`;
+    return s;
+  });
+  const msg = `【進貨未串接通知】${dateStr}\n以下品項無對應訂單，請確認處理方式：\n\n${lines.join('\n')}\n\n請回覆：\n(A) 已有訂單 → 請補登串接\n(B) 廠商多送/超量 → 請調整訂單數量\n(C) 試用品 → 回覆確認即可`;
+  navigator.clipboard.writeText(msg).then(() => showToast('通知訊息已複製，可貼至 LINE'));
+}
+
+// ───────────────────────────────────────
+// LINK ORDER SHEET
+// ───────────────────────────────────────
+
+let _linkingRecordId = null;
+let _selectedOrderId = null;
+
+function openLinkOrderSheet(recordId) {
+  _linkingRecordId = recordId;
+  _selectedOrderId = null;
+  const record = records.find(r => r.id === recordId);
+  if (!record) return;
+  const pending = loadPendingOrdersForProduct(record.productId);
+  document.getElementById('link-order-product-name').textContent =
+    record.productName + '　收 ' + record.receivedQty + ' ' + (record.unit || '');
+  document.getElementById('link-order-list').innerHTML = pending.length > 0
+    ? pending.map(o => `
+        <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-primary hover:bg-primary-xlight cursor-pointer transition-colors">
+          <input type="radio" name="link-order-radio" value="${o.orderId}"
+            onchange="_selectedOrderId='${escHtml(o.orderId)}'"
+            class="mt-0.5 accent-primary flex-shrink-0">
+          <div class="text-sm">
+            <div class="font-medium text-slate-800">${escHtml(o.orderedAt)} 訂購</div>
+            <div class="text-slate-500 text-xs mt-0.5">
+              訂 ${o.orderedQty} · 已收 ${o.receivedQty} · <span class="text-primary font-medium">剩 ${o.pendingQty}</span>
+            </div>
+          </div>
+        </label>`).join('')
+    : '<p class="text-sm text-slate-400 text-center py-6">找不到待到貨訂單<br><span class="text-xs">可標記為試用品，或請訂貨人補建訂單後再串接</span></p>';
+  const isGift = !!record.isGift;
+  document.getElementById('link-mark-gift-btn').classList.toggle('hidden', isGift);
+  document.getElementById('link-cancel-gift-btn').classList.toggle('hidden', !isGift);
+  document.getElementById('link-order-overlay').classList.add('open');
+  document.getElementById('link-order-modal').classList.add('open');
+}
+
+function closeLinkOrderSheet() {
+  document.getElementById('link-order-overlay').classList.remove('open');
+  document.getElementById('link-order-modal').classList.remove('open');
+  _linkingRecordId = null;
+  _selectedOrderId = null;
+}
+
+function confirmLink() {
+  if (!_selectedOrderId) { showToast('請先選擇一筆訂單'); return; }
+  const record = records.find(r => r.id === _linkingRecordId);
+  if (!record) return;
+  const pending = loadPendingOrdersForProduct(record.productId);
+  const order = pending.find(o => o.orderId === _selectedOrderId);
+  if (!order) return;
+  record.orderId = order.orderId;
+  record.orderedQty = order.orderedQty;
+  record.orderedAt = order.orderedAt;
+  record.orderedBy = order.orderedBy;
+  record.isGift = false;
+  saveRecords();
+  updateOrderStatus(order.orderId, record.receivedQty);
+  renderRecords();
+  closeLinkOrderSheet();
+  showToast('✓ 已串接訂單');
+}
+
+function markAsGift() {
+  const record = records.find(r => r.id === _linkingRecordId);
+  if (!record) return;
+  record.isGift = true;
+  saveRecords();
+  renderRecords();
+  closeLinkOrderSheet();
+  showToast('已標記為試用品');
+}
+
+function cancelGift() {
+  const record = records.find(r => r.id === _linkingRecordId);
+  if (!record) return;
+  record.isGift = false;
+  saveRecords();
+  renderRecords();
+  closeLinkOrderSheet();
+  showToast('已取消試用品標記');
+}
+
+function goToOrderPage() {
+  closeLinkOrderSheet();
+  window.location.href = 'order.html';
 }
 
 // ───────────────────────────────────────

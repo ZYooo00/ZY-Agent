@@ -149,7 +149,7 @@
 
       <!-- Title row -->
       <div class="flex items-center justify-between">
-        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤</h1>
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></h1>
         <div class="flex items-center gap-1.5 text-xs text-slate-400">
           <svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
           草稿已自動儲存 14:22
@@ -319,7 +319,7 @@
     <!-- ════ STATE C ════ -->
     <div id="state-c" class="hidden p-8">
       <div class="flex items-center justify-between mb-6">
-        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤</h1>
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></h1>
       </div>
       <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
         <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -1066,6 +1066,18 @@ function recalcAllNeeded() {
   setNeeded('h5gt', h5gtNeeded);
   setNeeded('gxtl', gxTLNeeded);
   setNeeded('embryoglue', glueNeeded);
+}
+
+// 寫入庫存總覽更新紀錄（Phase 2 預留，待備盤完成儲存功能後接線）
+function appendKucunLog(entries) {
+  try {
+    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    const now = new Date().toISOString();
+    entries.forEach(e => {
+      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
+    });
+    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
+  } catch(err) { console.warn('kucun-changelog write failed', err); }
 }
 
 // ── Glue 計畫值（可由 gupan 覆蓋）──

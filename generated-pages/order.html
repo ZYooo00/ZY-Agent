@@ -115,7 +115,7 @@
         <button onclick="switchModule('admin')"         id="nav-admin"          class="nav-item">⚙️ 後台設定</button>
       </nav>
       <div class="p-3 border-t border-slate-100">
-        <div class="text-xs text-slate-300 text-center">v0.6 · Session 6</div>
+        <div class="text-xs text-slate-300 text-center">v0.7 · Phase 2</div>
       </div>
     </aside>
 
@@ -697,6 +697,17 @@
   // ═══════════════════════════════════════════════════════════════
   // Complete order
   // ═══════════════════════════════════════════════════════════════
+  function appendKucunLog(entries) {
+    try {
+      const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+      const now = new Date().toISOString();
+      entries.forEach(e => {
+        cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
+      });
+      localStorage.setItem('kucun-changelog', JSON.stringify(cl));
+    } catch(err) { console.warn('kucun-changelog write failed', err); }
+  }
+
   function completeOrder() {
     const orders = [];
     // Medium items
@@ -742,7 +753,17 @@
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     const result = { date: dateStr, completedAt: timeStr, pandianDate: pandianMeta?.date || null, status: 'pending', orders };
 
-    try { localStorage.setItem('order-result', JSON.stringify(result)); } catch(e) {}
+    try {
+      localStorage.setItem('order-result', JSON.stringify(result));
+      appendKucunLog(orders.map(o => ({
+        source: 'order', action: 'order',
+        productId: (o.itemId || '').replace(/^m-/, ''),
+        productName: o.name,
+        lotNumber: null,
+        qty: o.orderQty,
+        note: `訂貨 ${o.orderQty} ${o.unit}，廠商：${o.vendor}（${dateStr}）`,
+      })));
+    } catch(e) {}
     showOrderResult(result);
   }
 

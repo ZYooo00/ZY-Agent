@@ -192,7 +192,7 @@
       </svg>
     </div>
     <div>
-      <div class="font-heading font-semibold text-slate-800 text-sm leading-tight" id="header-title">今日估盤</div>
+      <div class="font-heading font-semibold text-slate-800 text-sm leading-tight" id="header-title">今日估盤 <span style="font-size:10px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></div>
       <div class="text-xs text-slate-400 tabular leading-tight" id="header-date">2026/04/30</div>
     </div>
   </div>
@@ -759,23 +759,37 @@ function completePandian() {
   }
 
   // 儲存結果（allValues 供電腦版訂貨頁讀取全品項現有量）
-  try {
-    localStorage.setItem('pandian-result', JSON.stringify({
-      date: dateStr, completedAt: timeStr, staff: staffName,
-      summary: needReorder.map(it => ({
-        id: it.id, name: it.name, unit: it.unit,
-        actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
-        target: it.target,
-      })),
-      allValues: allItems
-        .filter(it => { const el = document.getElementById(`pd-${it.id}`); return el && el.value !== ''; })
-        .map(it => ({
-          id: it.id, name: it.name, unit: it.unit,
-          actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
-          target: it.target,
-          note: document.getElementById(`pd-note-${it.id}`)?.value || '',
-        }))
+  const pandianAllValues = allItems
+    .filter(it => { const el = document.getElementById(`pd-${it.id}`); return el && el.value !== ''; })
+    .map(it => ({
+      id: it.id, name: it.name, unit: it.unit,
+      actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
+      target: it.target,
+      note: document.getElementById(`pd-note-${it.id}`)?.value || '',
     }));
+  const pandianPayload = {
+    date: dateStr, completedAt: timeStr, staff: staffName,
+    summary: needReorder.map(it => ({
+      id: it.id, name: it.name, unit: it.unit,
+      actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
+      target: it.target,
+    })),
+    allValues: pandianAllValues,
+  };
+  try {
+    localStorage.setItem('pandian-result', JSON.stringify(pandianPayload));
+    // 追加至 pandian-history（供庫存總覽計算使用量）
+    const hist = JSON.parse(localStorage.getItem('pandian-history') || '[]');
+    hist.push(pandianPayload);
+    localStorage.setItem('pandian-history', JSON.stringify(hist));
+    // 寫入 kucun-changelog
+    appendKucunLog(pandianAllValues.map(it => ({
+      source: 'pandian', action: 'pandian',
+      productId: it.id.replace(/^m-/, ''), productName: it.name,
+      lotNumber: null,
+      qty: it.actual,
+      note: `盤點：${staffName}（${dateStr}）`,
+    })));
   } catch(e) {}
 
   document.getElementById('pd-submit-area').classList.add('hidden');
@@ -826,6 +840,17 @@ function restartPandian() { newPandian(); }
 
 function showTransferSuccess() {
   document.getElementById('pd-transfer-msg').classList.remove('hidden');
+}
+
+function appendKucunLog(entries) {
+  try {
+    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    const now = new Date().toISOString();
+    entries.forEach(e => {
+      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
+    });
+    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
+  } catch(err) { console.warn('kucun-changelog write failed', err); }
 }
 
 // ══════════════════════════════════════════
