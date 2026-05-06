@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>培養液管理系統 — 庫存總覽</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: { DEFAULT:'#9590D0', light:'#BDB8E8', dark:'#7A75BB', xlight:'#EDE9FF' },
+          secondary: '#E2E4F4',
+        },
+        fontFamily: {
+          sans: ['Noto Sans TC','sans-serif'],
+          heading: ['Figtree','Noto Sans TC','sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family:'Noto Sans TC',sans-serif; background:#F8FAFC; }
+  h1,h2,h3,.heading { font-family:'Figtree','Noto Sans TC',sans-serif; }
+  .tabular { font-variant-numeric:tabular-nums; }
+
+  /* ── Sidebar & Nav ── */
+  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
+  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
+  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
+  #nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
+  #nav-overlay.open { display:block; }
+  #nav-drawer { position:fixed; top:0; left:0; bottom:0; width:220px; background:white; z-index:41; transform:translateX(-105%); transition:transform .25s cubic-bezier(.4,0,.2,1); padding:16px 12px; }
+  #nav-drawer.open { transform:translateX(0); }
+
+  /* ── Sort tabs ── */
+  .sort-tab { padding:6px 14px; border-radius:8px; font-size:13px; font-weight:500; color:#64748B; cursor:pointer; transition:all .15s; border:1.5px solid transparent; }
+  .sort-tab:hover { background:#F1F5F9; }
+  .sort-tab.active { background:#EDE9FF; color:#7A75BB; border-color:#C4BFEA; font-weight:600; }
+
+  /* ── Inventory table (sticky cols + horizontal scroll) ── */
+  .inv-wrap { overflow-x:auto; border-radius:0 0 16px 16px; }
+  .inv-table { width:100%; border-collapse:separate; border-spacing:0; min-width:780px; }
+  .inv-table th { font-size:11.5px; font-weight:700; color:#64748B; letter-spacing:.05em; padding:10px 14px; background:#F8F7FD; border-bottom:2px solid #E2E4F4; white-space:nowrap; }
+  .inv-table td { padding:11px 14px; border-bottom:1px solid #F1F5F9; vertical-align:top; font-size:13.5px; background:white; }
+  .inv-table tbody tr:last-child td { border-bottom:none; }
+  .inv-table tbody tr:hover td { background:#FAFAFA; }
+  /* Sticky columns */
+  .inv-table th.s0,.inv-table td.s0 { position:sticky; left:0; z-index:3; }
+  .inv-table th.s1,.inv-table td.s1 { position:sticky; left:160px; z-index:3; }
+  .inv-table th.s2,.inv-table td.s2 { position:sticky; left:310px; z-index:3; border-right:1.5px solid #E2E4F4; }
+  .inv-table th { background:#F8F7FD; z-index:4; }
+  .inv-table td.s0,.inv-table td.s1,.inv-table td.s2 { background:white; }
+  .inv-table tbody tr:hover td.s0,.inv-table tbody tr:hover td.s1,.inv-table tbody tr:hover td.s2 { background:#FAFAFA; }
+  /* Sticky shadow indicator */
+  .inv-table td.s2,.inv-table th.s2 { box-shadow:2px 0 6px -2px rgba(0,0,0,.08); }
+
+  /* Group header row */
+  .group-row td { background:#F1F5F9 !important; padding:7px 14px; font-size:11.5px; font-weight:700; color:#475569; letter-spacing:.07em; text-transform:uppercase; }
+  .group-row td.s0,.group-row td.s1,.group-row td.s2 { background:#F1F5F9 !important; }
+
+  /* ── Badges ── */
+  .badge { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .b-ok   { background:#DCFCE7; color:#15803D; }
+  .b-warn { background:#FFF7ED; color:#C2410C; }
+  .b-crit { background:#FEE2E2; color:#B91C1C; }
+  .b-none { background:#F1F5F9; color:#64748B; }
+
+  /* Source badges */
+  .src-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:600; }
+  .src-jinhuo  { background:#DBEAFE; color:#1D4ED8; }
+  .src-beipan  { background:#EDE9FF; color:#7A75BB; }
+  .src-pandian { background:#D1FAE5; color:#065F46; }
+  .src-order   { background:#FEF3C7; color:#92400E; }
+  .src-manual  { background:#F3F4F6; color:#374151; }
+
+  /* ── Lot rows ── */
+  .lot-item { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:3px 0; line-height:1.4; }
+  .lot-num  { font-size:12px; font-weight:600; color:#1E293B; font-family:'Courier New',monospace; background:#F1F5F9; padding:1px 6px; border-radius:4px; }
+  .lot-exp  { font-size:12px; color:#64748B; }
+  .lot-exp.r { color:#DC2626; font-weight:700; }
+  .lot-exp.o { color:#EA580C; font-weight:600; }
+  .lot-qty  { font-size:11.5px; color:#94A3B8; }
+  .lot-divider { border-top:1px dashed #E2E8F0; margin:3px 0; }
+
+  /* ── Changelog table ── */
+  .cl-table { width:100%; border-collapse:collapse; min-width:640px; }
+  .cl-table th { font-size:11.5px; font-weight:700; color:#64748B; letter-spacing:.04em; padding:9px 12px; background:#F8F7FD; border-bottom:2px solid #E2E4F4; white-space:nowrap; }
+  .cl-table td { padding:9px 12px; border-bottom:1px solid #F1F5F9; font-size:13px; vertical-align:middle; }
+  .cl-table tbody tr:last-child td { border-bottom:none; }
+  .cl-table tbody tr:hover td { background:#FAFAFA; }
+
+  /* ── Manual log modal ── */
+  #log-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; }
+  #log-overlay.open { display:block; }
+  #log-modal { position:fixed; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; z-index:51; transform:translateY(102%); transition:transform .3s cubic-bezier(.4,0,.2,1); max-height:92vh; overflow-y:auto; }
+  #log-modal.open { transform:translateY(0); }
+  @media(min-width:768px){
+    #log-modal { bottom:auto; top:50%; left:50%; right:auto; transform:translateX(-50%) translateY(-45%); width:min(96vw,460px); border-radius:18px; opacity:0; transition:opacity .2s,transform .2s; pointer-events:none; max-height:88vh; }
+    #log-modal.open { transform:translateX(-50%) translateY(-50%); opacity:1; pointer-events:all; }
+  }
+  .sc-label { font-size:13px; font-weight:500; color:#475569; margin-bottom:5px; display:block; }
+  .sc-input { width:100%; padding:10px 13px; border:1.5px solid #E2E8F0; border-radius:10px; font-size:15px; font-family:'Noto Sans TC',sans-serif; background:white; transition:border-color .15s; outline:none; color:#0F172A; }
+  .sc-input:focus { border-color:#9590D0; box-shadow:0 0 0 3px rgba(149,144,208,.12); }
+  select.sc-input { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:16px; padding-right:36px; }
+
+  /* Toast */
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(12px); background:#1E293B; color:white; padding:10px 20px; border-radius:12px; font-size:13.5px; font-weight:500; opacity:0; transition:opacity .2s,transform .2s; z-index:99; pointer-events:none; white-space:nowrap; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:4px; }
+  html, body { overscroll-behavior:none; }
+</style>
+</head>
+<body>
+
+<!-- MOBILE NAV -->
+<div id="nav-overlay" onclick="closeNav()"></div>
+<div id="nav-drawer">
+  <div class="flex items-center gap-2 px-2 mb-4 pb-4 border-b border-slate-100">
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    </div>
+    <span class="heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
+  </div>
+  <div class="space-y-0.5">
+    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤</div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+    <div class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
+    <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+  <div class="flex items-center gap-3">
+    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" onclick="openNav()">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    </div>
+    <span class="heading font-semibold text-slate-800 text-base">培養液管理系統</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="flex pt-14">
+
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4">
+    <div class="px-3 space-y-0.5">
+      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤</div>
+      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+      <div class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
+      <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+    </div>
+    <div class="mt-auto px-3 pt-4 border-t border-slate-100">
+      <div class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-10">
+
+    <!-- Title + controls -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div class="flex items-center gap-3">
+        <h1 class="heading text-2xl font-bold text-slate-800">庫存總覽</h1>
+        <span class="text-xs text-slate-400 font-mono">v1.1.0</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Lot toggle -->
+        <button id="lot-toggle-btn" onclick="toggleLots()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h8"/></svg>
+          <span id="lot-toggle-label">最近 3 批</span>
+        </button>
+        <!-- Refresh -->
+        <button onclick="refresh()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>重新整理
+        </button>
+      </div>
+    </div>
+
+    <!-- Meta chips -->
+    <div class="flex flex-wrap gap-2 mb-4" id="meta-row"></div>
+
+    <!-- Sort tabs -->
+    <div class="flex items-center gap-1.5 mb-4 bg-white border border-slate-200 rounded-xl px-3 py-2 w-fit">
+      <span class="text-xs text-slate-400 mr-1">排序：</span>
+      <button class="sort-tab active" data-sort="group" onclick="setSort('group')">種類</button>
+      <button class="sort-tab" data-sort="vendor" onclick="setSort('vendor')">廠商</button>
+      <button class="sort-tab" data-sort="status" onclick="setSort('status')">狀態</button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden bg-white border border-slate-200 rounded-2xl p-10 text-center mb-6">
+      <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+      </div>
+      <p class="text-slate-600 font-medium mb-1">尚無盤點或備盤紀錄</p>
+      <p class="text-sm text-slate-400">請先完成一次盤點（gupan.html）或備盤（beipan.html），資料即可顯示於此。</p>
+    </div>
+
+    <!-- ══ INVENTORY TABLE ══ -->
+    <div id="inv-wrap-outer" class="hidden">
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+        <!-- Column legend (mobile hint) -->
+        <div class="md:hidden px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+          左右滑動可查看批號效期等詳細資訊
+        </div>
+        <div class="inv-wrap">
+          <table class="inv-table" id="inv-table">
+            <thead>
+              <tr>
+                <th class="s0" style="width:160px;min-width:160px">品項</th>
+                <th class="s1" style="width:150px;min-width:150px">庫存數量</th>
+                <th class="s2" style="width:90px;min-width:90px">狀態</th>
+                <th style="min-width:100px">本月進貨</th>
+                <th style="min-width:90px">待收貨</th>
+                <th style="min-width:240px">批號 / 效期</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHANGELOG / USAGE SECTION ══ -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+      <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          <h2 class="heading font-semibold text-slate-700 text-sm">更新紀錄</h2>
+          <span id="cl-count" class="text-xs text-slate-400"></span>
+        </div>
+        <button onclick="openLogModal()" class="flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary-dark transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>登記使用
+        </button>
+      </div>
+      <!-- Changelog filter bar -->
+      <div class="px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-500 font-medium">篩選：</span>
+        <button class="cl-filter-btn active text-xs px-2.5 py-1 rounded-md font-medium" data-f="" onclick="setCLFilter('')">全部</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="jinhuo" onclick="setCLFilter('jinhuo')">進貨</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="beipan" onclick="setCLFilter('beipan')">備盤</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="pandian" onclick="setCLFilter('pandian')">盤點</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="manual" onclick="setCLFilter('manual')">手動</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="cl-table" id="cl-table">
+          <thead>
+            <tr>
+              <th style="min-width:130px">時間</th>
+              <th style="min-width:110px">品項</th>
+              <th style="min-width:80px">來源</th>
+              <th style="min-width:90px">動作</th>
+              <th style="min-width:80px">批號</th>
+              <th style="min-width:70px">數量</th>
+              <th style="min-width:160px">備註</th>
+            </tr>
+          </thead>
+          <tbody id="cl-tbody"></tbody>
+        </table>
+      </div>
+      <div id="cl-empty" class="hidden py-10 text-center text-slate-400 text-sm">
+        <p>尚無紀錄。各頁面儲存後會自動寫入，或點「登記使用」手動新增。</p>
+      </div>
+    </div>
+
+    <p class="mt-2 text-xs text-slate-400 text-center">
+      ⚠️ 當月使用量目前需從「歷次盤點差分 + 進貨量」推算，Phase 3 完成後將自動計算。
+    </p>
+  </main>
+</div>
+
+<!-- ══ MANUAL LOG MODAL ══ -->
+<div id="log-overlay" onclick="closeLogModal()"></div>
+<div id="log-modal">
+  <div class="flex justify-center pt-3 pb-1 md:hidden">
+    <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
+  </div>
+  <div class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-slate-100">
+    <h2 class="heading font-semibold text-slate-800">登記使用 / 手動紀錄</h2>
+    <button onclick="closeLogModal()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="px-5 py-4 space-y-4">
+    <div>
+      <label class="sc-label">品項 <span class="text-red-400">*</span></label>
+      <select id="log-product" class="sc-input"><option value="">請選擇品項…</option></select>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="sc-label">批號</label>
+        <input id="log-lot" type="text" class="sc-input" placeholder="如 53651">
+      </div>
+      <div>
+        <label class="sc-label">使用數量 <span class="text-red-400">*</span></label>
+        <input id="log-qty" type="number" min="0.1" step="0.1" class="sc-input" placeholder="如 5">
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="sc-label">使用日期 <span class="text-red-400">*</span></label>
+        <input id="log-date" type="date" class="sc-input">
+      </div>
+      <div>
+        <label class="sc-label">動作類型</label>
+        <select id="log-action" class="sc-input">
+          <option value="use">使用</option>
+          <option value="discard">報廢 / 丟棄</option>
+          <option value="adjust">庫存調整</option>
+          <option value="note">備註紀錄</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label class="sc-label">備註 <span class="text-xs text-slate-400 font-normal">（選填）</span></label>
+      <input id="log-note" type="text" class="sc-input" placeholder="如：批號開始使用，OPU 日使用">
+    </div>
+  </div>
+  <div class="px-5 pb-8 pt-2 flex gap-3">
+    <button onclick="closeLogModal()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50">取消</button>
+    <button onclick="submitLog()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">確認記錄</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════
+// PRODUCTS
+// ════════════════════════════════
+const PRODUCTS = [
+  {id:'givf',    name:'G-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液'},
+  {id:'gxtl',    name:'GxTL',                vendor:'亞樸', unit:'瓶', group:'培養液'},
+  {id:'glue',    name:'EmbryoGlue',           vendor:'亞樸', unit:'瓶', group:'培養液'},
+  {id:'h5gt',    name:'H5GT',                vendor:'弘優', unit:'瓶', group:'培養液'},
+  {id:'aoa-ci',  name:'AOA 弘優 CI',         vendor:'弘優', unit:'瓶', group:'培養液'},
+  {id:'aoa-508', name:'AOA 明美 GM508',      vendor:'明美', unit:'罐', group:'培養液'},
+  {id:'hepes',   name:'HEPES',               vendor:'億宸', unit:'瓶', group:'培養液'},
+  {id:'oil',     name:'Heavy Oil',            vendor:'億宸', unit:'瓶', group:'培養液'},
+  {id:'pvp',     name:'PVP',                vendor:'億宸', unit:'管', group:'試劑'},
+  {id:'cumulase',name:'Cumulase',            vendor:'億宸', unit:'管', group:'試劑'},
+  {id:'fertipro',name:'Fertipro',            vendor:'億宸', unit:'瓶', group:'試劑'},
+  {id:'spermfr', name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶', group:'試劑'},
+  {id:'601',     name:'601',                vendor:'弘優', unit:'套', group:'試劑'},
+  {id:'602',     name:'602',                vendor:'弘優', unit:'套', group:'試劑'},
+  {id:'spas',    name:'S-PAS',              vendor:'弘優', unit:'盒', group:'試劑'},
+  {id:'101',     name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑'},
+  {id:'102',     name:'102（磊柏）',          vendor:'磊柏', unit:'盒', group:'試劑'},
+  {id:'tyb',     name:'TYB',               vendor:'磊柏', unit:'盒', group:'試劑'},
+  {id:'brightv', name:'BrightVit',           vendor:'磊柏', unit:'個', group:'試劑'},
+  {id:'mountgl', name:'Mounting Glue',       vendor:'磊柏', unit:'瓶', group:'試劑'},
+  {id:'gm501',   name:'GM501 (SpermMobil)',  vendor:'明美', unit:'瓶', group:'試劑'},
+  {id:'pure100', name:'Pure 100',            vendor:'明美', unit:'個', group:'試劑'},
+  {id:'110',     name:'110',               vendor:'明美', unit:'套', group:'試劑'},
+  {id:'toptip-y',name:'Top tips（黃）',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'toptip-g',name:'Top tips（綠）',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'toptip-r',name:'Top tips（紅）',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'toptip-b',name:'Top tips（藍）',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'toptip-w',name:'Top tips（白）',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'riez135', name:'RI-EZ tip 135',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'riez145', name:'RI-EZ tip 145',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'riez200', name:'RI-EZ tip 200',      vendor:'弘優', unit:'盒', group:'耗材'},
+  {id:'6well',   name:'6 Well dish',         vendor:'弘優', unit:'包', group:'耗材'},
+  {id:'mouth',   name:'Mouth piece',         vendor:'弘優', unit:'包', group:'耗材'},
+  {id:'oosafe-c',name:'Oosafe（培養箱用）',  vendor:'弘優', unit:'罐', group:'耗材'},
+  {id:'oosafe-f',name:'Oosafe（地板用）',    vendor:'弘優', unit:'罐', group:'耗材'},
+  {id:'3well',   name:'3 well dish',         vendor:'磊柏', unit:'包', group:'耗材'},
+  {id:'phsensor',name:'pH sensor dish',      vendor:'磊柏', unit:'包', group:'耗材'},
+  {id:'geridish',name:'Geri dish',           vendor:'磊柏', unit:'盒', group:'耗材'},
+  {id:'geriwat', name:'Geri water bottle',   vendor:'磊柏', unit:'盒', group:'耗材'},
+  {id:'gerifl',  name:'Geri filter',         vendor:'磊柏', unit:'盒', group:'耗材'},
+  {id:'coda',    name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材'},
+  {id:'oritip135',name:'Origio tip 135',     vendor:'億宸', unit:'管', group:'耗材'},
+  {id:'oritip150',name:'Origio tip 150',     vendor:'億宸', unit:'管', group:'耗材'},
+  {id:'orifl',   name:'Origio Filter',       vendor:'億宸', unit:'個', group:'耗材'},
+  {id:'glasspip',name:'玻璃 pipette',        vendor:'億宸', unit:'箱', group:'耗材'},
+  {id:'cellvis', name:'Cellvis spindle dish',vendor:'岑祥', unit:'箱', group:'耗材'},
+];
+
+const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+const GROUP_ORDER = ['培養液','試劑','耗材'];
+const STATUS_ORDER = { crit:0, warn:1, ok:2, none:3 };
+
+// ════════════════════════════════
+// STATE
+// ════════════════════════════════
+let sortMode    = 'group';
+let showAllLots = false;
+let clFilter    = '';
+let cachedData  = null;
+let productInfoCache = {};
+
+// ════════════════════════════════
+// HELPERS
+// ════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function thisMonth() { return todayStr().slice(0,7); }
+
+function daysBetween(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((d - now) / 86400000);
+}
+
+function fmtNum(n) {
+  if (n === null || n === undefined) return '--';
+  return Number.isInteger(n) ? String(n) : parseFloat(n.toFixed(2)).toString();
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function fmtTs(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  const MM = String(d.getMonth()+1).padStart(2,'0');
+  const DD = String(d.getDate()).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${d.getFullYear()}-${MM}-${DD} ${hh}:${mm}`;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════
+function loadData() {
+  return {
+    jinhuo:   JSON.parse(localStorage.getItem('jinhuo-records')  || '[]'),
+    pandian:  JSON.parse(localStorage.getItem('pandian-result')   || 'null'),
+    beipan:   JSON.parse(localStorage.getItem('beipan-result')    || 'null'),
+    order:    JSON.parse(localStorage.getItem('order-result')     || 'null'),
+    changelog:JSON.parse(localStorage.getItem('kucun-changelog')  || '[]'),
+  };
+}
+
+function saveChangelog(cl) { localStorage.setItem('kucun-changelog', JSON.stringify(cl)); }
+
+// ════════════════════════════════
+// PRODUCT INFO CALCULATION
+// ════════════════════════════════
+function calcProductInfo(product, data) {
+  const { jinhuo, pandian, beipan, order } = data;
+  const th = beipan?.threshold || {};
+  const orangeDays = th.orange_days ?? 3;
+  const redDays    = th.red_days    ?? 1;
+
+  // ── Stock ──
+  let stockDisplay = null;
+  let stockNum     = null;
+  let stockSource  = null;
+  const beipanBatch  = beipan?.batches?.find(b => b.reagentId === product.id);
+  const pandianItem  = pandian?.allValues?.find(v => v.id === `m-${product.id}`);
+  const beipanDate   = beipan?.date  || '';
+  const pandianDate  = pandian?.date || '';
+
+  if (beipanBatch) {
+    const remaining = beipanBatch.remaining ?? 0;
+    const unopened  = beipanBatch.unopened  ?? 0;
+    if (pandianItem && pandianDate > beipanDate) {
+      stockNum     = pandianItem.actual;
+      stockDisplay = `${fmtNum(pandianItem.actual)} ${pandianItem.unit || product.unit}`;
+      stockSource  = 'pandian';
+    } else {
+      const newIncoming = jinhuo
+        .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > beipanDate)
+        .reduce((s, r) => s + (r.receivedQty||0), 0);
+      stockNum = remaining;
+      const parts = [];
+      if (remaining > 0 || unopened === 0) parts.push(`${fmtNum(remaining)} mL 剩餘`);
+      if (unopened > 0) parts.push(`${unopened} 瓶未開`);
+      if (newIncoming > 0) parts.push(`+${newIncoming} ${product.unit} 新進`);
+      stockDisplay = parts.join(' / ') || '0';
+      stockSource  = 'beipan';
+    }
+  } else if (pandianItem) {
+    stockNum     = pandianItem.actual;
+    stockDisplay = `${fmtNum(pandianItem.actual)} ${pandianItem.unit || product.unit}`;
+    stockSource  = 'pandian';
+  }
+
+  // ── Target ──
+  const target = pandianItem?.target ?? null;
+
+  // ── Monthly incoming ──
+  const monthIncoming = jinhuo
+    .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'').startsWith(thisMonth()))
+    .reduce((s, r) => s + (r.receivedQty||0), 0);
+
+  // ── Pending delivery ──
+  const orderItem = order?.orders?.find(o => o.itemId === `m-${product.id}`);
+  const pending   = orderItem ? Math.max(0, (orderItem.orderQty||0) - (orderItem.receivedQty||0)) : 0;
+
+  // ── Active lots (from jinhuo, group by lot#) ──
+  const lotMap = {};
+  jinhuo
+    .filter(r => r.productId === product.id && !r.isVoided && r.lotNumber)
+    .sort((a,b) => (a.receivedAt||'').localeCompare(b.receivedAt||''))
+    .forEach(r => {
+      const k = r.lotNumber;
+      if (!lotMap[k]) lotMap[k] = { lot:k, expiry:r.expiryDate||'', qty:0, receivedAt:r.receivedAt||'' };
+      lotMap[k].qty += r.receivedQty||0;
+    });
+  const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
+
+  // ── Status ──
+  let status = (stockSource || lots.length>0) ? 'ok' : 'none';
+  if (status !== 'none') {
+    lots.forEach(lot => {
+      const d = daysBetween(lot.expiry);
+      if (d !== null) {
+        if (d <= redDays) status = 'crit';
+        else if (d <= orangeDays && status !== 'crit') status = 'warn';
+      }
+    });
+    if (target !== null && stockNum !== null) {
+      if (stockNum < target * 0.5 && status !== 'crit') status = 'crit';
+      else if (stockNum < target && status === 'ok')    status = 'warn';
+    }
+  }
+
+  return { stockDisplay, stockSource, stockNum, monthIncoming, pending, lots, status, target, orangeDays, redDays };
+}
+
+// ════════════════════════════════
+// RENDER: INVENTORY TABLE
+// ════════════════════════════════
+function badgeHtml(status) {
+  const map = { ok:['b-ok','✅ 充足'], warn:['b-warn','🟠 注意'], crit:['b-crit','🔴 危急'], none:['b-none','⚪ 無資料'] };
+  const [cls, label] = map[status] || map.none;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function lotsHtml(lots, orangeDays, redDays) {
+  if (!lots.length) return '<span class="text-slate-300 text-xs">—</span>';
+  const display = showAllLots ? lots : lots.slice(0, 3);
+  const html = display.map((lot, i) => {
+    const d = daysBetween(lot.expiry);
+    let expCls = 'lot-exp';
+    let expExtra = '';
+    if (d !== null) {
+      if (d <= 0)           { expCls += ' r'; expExtra = ' (已過期)'; }
+      else if (d <= redDays)    { expCls += ' r'; expExtra = ` (${d}天後)`; }
+      else if (d <= orangeDays) { expCls += ' o'; expExtra = ` (${d}天後)`; }
+    }
+    const expLabel = lot.expiry || '—';
+    const sep = i > 0 ? '<div class="lot-divider"></div>' : '';
+    return `${sep}<div class="lot-item">
+      <span class="lot-num">${lot.lot}</span>
+      <span class="${expCls}">${expLabel}${expExtra}</span>
+      <span class="lot-qty">×${lot.qty}</span>
+    </div>`;
+  }).join('');
+  const more = !showAllLots && lots.length > 3
+    ? `<div class="text-xs text-slate-400 mt-1 cursor-pointer hover:text-primary" onclick="toggleLots()">…還有 ${lots.length-3} 批</div>`
+    : '';
+  return html + more;
+}
+
+function getSortedProducts(data) {
+  const products = [...PRODUCTS];
+  if (sortMode === 'vendor') {
+    return products.sort((a,b) => a.vendor.localeCompare(b.vendor,'zh-TW') || a.name.localeCompare(b.name,'zh-TW'));
+  }
+  if (sortMode === 'status') {
+    return products.sort((a,b) => {
+      const ia = productInfoCache[a.id] || calcProductInfo(a, data);
+      const ib = productInfoCache[b.id] || calcProductInfo(b, data);
+      return (STATUS_ORDER[ia.status]??3) - (STATUS_ORDER[ib.status]??3);
+    });
+  }
+  return products; // group order (original)
+}
+
+function renderInventoryTable(data) {
+  productInfoCache = {};
+  const products = getSortedProducts(data);
+
+  let lastGroupKey = null;
+  const rows = [];
+
+  products.forEach(p => {
+    const info = calcProductInfo(p, data);
+    productInfoCache[p.id] = info;
+
+    // Group header row
+    const groupKey = sortMode === 'group' ? p.group : sortMode === 'vendor' ? p.vendor : null;
+    if (groupKey && groupKey !== lastGroupKey) {
+      lastGroupKey = groupKey;
+      rows.push(`<tr class="group-row">
+        <td class="s0" colspan="1">${groupKey}</td>
+        <td class="s1"></td>
+        <td class="s2"></td>
+        <td colspan="3"></td>
+      </tr>`);
+    }
+
+    const stockCell = info.stockDisplay
+      ? `<span class="tabular font-medium text-slate-700 text-sm">${info.stockDisplay}</span>`
+      : `<span class="text-slate-300 text-sm">—</span>`;
+    const monthCell = info.monthIncoming > 0
+      ? `<span class="tabular text-emerald-600 font-semibold text-sm">+${info.monthIncoming} ${p.unit}</span>`
+      : `<span class="text-slate-300 text-sm">—</span>`;
+    const pendingCell = info.pending > 0
+      ? `<span class="inline-block bg-sky-50 text-sky-700 border border-sky-200 text-xs font-semibold px-2 py-0.5 rounded-full">${info.pending} ${p.unit} 在途</span>`
+      : `<span class="text-slate-300 text-sm">—</span>`;
+
+    rows.push(`<tr>
+      <td class="s0">
+        <div class="font-semibold text-slate-800 text-sm">${p.name}</div>
+        <div class="text-xs text-slate-400 mt-0.5">${p.vendor}</div>
+      </td>
+      <td class="s1">${stockCell}</td>
+      <td class="s2">${badgeHtml(info.status)}</td>
+      <td>${monthCell}</td>
+      <td>${pendingCell}</td>
+      <td>${lotsHtml(info.lots, info.orangeDays, info.redDays)}</td>
+    </tr>`);
+  });
+
+  document.getElementById('inv-tbody').innerHTML = rows.join('');
+}
+
+// ════════════════════════════════
+// RENDER: CHANGELOG
+// ════════════════════════════════
+const SRC_LABEL = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
+
+function renderChangelog(data) {
+  const cl = data.changelog || [];
+  const filtered = clFilter ? cl.filter(e => e.source === clFilter) : cl;
+  const sorted   = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+
+  document.getElementById('cl-count').textContent = cl.length > 0 ? `共 ${cl.length} 筆` : '';
+
+  const empty = document.getElementById('cl-empty');
+  const table = document.getElementById('cl-table');
+
+  if (!sorted.length) {
+    empty.classList.remove('hidden');
+    table.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  const rows = sorted.map(e => {
+    const p = PRODUCT_MAP[e.productId];
+    const srcClass = `src-${e.source || 'manual'}`;
+    const srcLabel = SRC_LABEL[e.source] || e.source || '—';
+    const actLabel = ACTION_LABEL[e.action] || e.action || '—';
+    const qtyHtml = e.qty > 0
+      ? `<span class="text-emerald-600 font-semibold">+${fmtNum(e.qty)}</span>`
+      : e.qty < 0
+        ? `<span class="text-red-500 font-semibold">${fmtNum(e.qty)}</span>`
+        : '—';
+    return `<tr>
+      <td class="text-slate-500 text-xs tabular">${fmtTs(e.ts)}</td>
+      <td>
+        <div class="font-medium text-slate-700 text-sm">${p?.name || e.productName || e.productId || '—'}</div>
+        ${p ? `<div class="text-xs text-slate-400">${p.vendor}</div>` : ''}
+      </td>
+      <td><span class="src-badge ${srcClass}">${srcLabel}</span></td>
+      <td class="text-slate-600 text-sm">${actLabel}</td>
+      <td class="font-mono text-xs text-slate-500">${e.lotNumber || '—'}</td>
+      <td>${qtyHtml}</td>
+      <td class="text-slate-400 text-xs">${e.note || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('cl-tbody').innerHTML = rows;
+}
+
+// ════════════════════════════════
+// RENDER: META ROW
+// ════════════════════════════════
+function renderMeta(data) {
+  const { pandian, beipan, jinhuo } = data;
+  const chips = [];
+  if (pandian?.date) chips.push({ label:`最後盤點：${pandian.date}`, cls:'bg-emerald-50 text-emerald-700' });
+  if (beipan?.date)  chips.push({ label:`最後備盤：${beipan.date}`,  cls:'bg-purple-50 text-primary-dark' });
+  const active = jinhuo.filter(r => !r.isVoided);
+  if (active.length) {
+    const latest = active.sort((a,b) => (b.receivedAt||'').localeCompare(a.receivedAt||''))[0];
+    if (latest) chips.push({ label:`最新進貨：${latest.receivedAt} ${latest.productName}`, cls:'bg-blue-50 text-blue-700' });
+  }
+  document.getElementById('meta-row').innerHTML = chips
+    .map(c => `<span class="text-xs font-medium px-2.5 py-1 rounded-lg ${c.cls}">${c.label}</span>`)
+    .join('');
+}
+
+// ════════════════════════════════
+// MAIN RENDER
+// ════════════════════════════════
+function render() {
+  cachedData = loadData();
+  const { pandian, beipan, jinhuo } = cachedData;
+  const hasAny = pandian || beipan || jinhuo.length > 0;
+
+  document.getElementById('empty-state').classList.toggle('hidden', hasAny);
+  document.getElementById('inv-wrap-outer').classList.toggle('hidden', !hasAny);
+
+  renderMeta(cachedData);
+
+  if (hasAny) renderInventoryTable(cachedData);
+  renderChangelog(cachedData);
+}
+
+function refresh() {
+  render();
+  showToast('資料已更新');
+}
+
+// ════════════════════════════════
+// SORT & TOGGLE
+// ════════════════════════════════
+function setSort(mode) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-tab').forEach(b => b.classList.toggle('active', b.dataset.sort === mode));
+  if (cachedData) renderInventoryTable(cachedData);
+}
+
+function toggleLots() {
+  showAllLots = !showAllLots;
+  document.getElementById('lot-toggle-label').textContent = showAllLots ? '顯示全部批號' : '最近 3 批';
+  if (cachedData) renderInventoryTable(cachedData);
+}
+
+// ════════════════════════════════
+// CHANGELOG FILTER
+// ════════════════════════════════
+function setCLFilter(f) {
+  clFilter = f;
+  document.querySelectorAll('.cl-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.f === f);
+  });
+  if (cachedData) renderChangelog(cachedData);
+}
+
+// ════════════════════════════════
+// MANUAL LOG MODAL
+// ════════════════════════════════
+function openLogModal() {
+  // Populate product dropdown
+  const sel = document.getElementById('log-product');
+  if (sel.options.length <= 1) {
+    PRODUCTS.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name}（${p.vendor}）`;
+      sel.appendChild(opt);
+    });
+  }
+  // Default date = today
+  document.getElementById('log-date').value = todayStr();
+  document.getElementById('log-overlay').classList.add('open');
+  document.getElementById('log-modal').classList.add('open');
+}
+
+function closeLogModal() {
+  document.getElementById('log-overlay').classList.remove('open');
+  document.getElementById('log-modal').classList.remove('open');
+}
+
+function submitLog() {
+  const productId = document.getElementById('log-product').value;
+  const lot       = document.getElementById('log-lot').value.trim();
+  const qty       = parseFloat(document.getElementById('log-qty').value);
+  const date      = document.getElementById('log-date').value;
+  const action    = document.getElementById('log-action').value;
+  const note      = document.getElementById('log-note').value.trim();
+
+  if (!productId) { showToast('請選擇品項'); return; }
+  if (!date)       { showToast('請填入日期'); return; }
+  if (action !== 'note' && (isNaN(qty) || qty <= 0)) { showToast('請填入有效數量'); return; }
+
+  const p = PRODUCT_MAP[productId];
+  const entry = {
+    id: uid(),
+    ts: new Date(date + 'T00:00:00').toISOString(),
+    source: 'manual',
+    action,
+    productId,
+    productName: p?.name || productId,
+    lotNumber: lot || null,
+    qty: (action === 'use' || action === 'discard') ? -(qty || 0) : (qty || 0),
+    note: note || null,
+  };
+
+  const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+  cl.push(entry);
+  saveChangelog(cl);
+
+  closeLogModal();
+  cachedData = loadData();
+  renderChangelog(cachedData);
+  showToast(`已記錄：${p?.name} ${ACTION_LABEL[action]}`);
+
+  // Reset form
+  document.getElementById('log-product').value = '';
+  document.getElementById('log-lot').value = '';
+  document.getElementById('log-qty').value = '';
+  document.getElementById('log-note').value = '';
+}
+
+// ════════════════════════════════
+// NAV
+// ════════════════════════════════
+function openNav()  { document.getElementById('nav-overlay').classList.add('open'); document.getElementById('nav-drawer').classList.add('open'); }
+function closeNav() { document.getElementById('nav-overlay').classList.remove('open'); document.getElementById('nav-drawer').classList.remove('open'); }
+
+// ════════════════════════════════
+// CHANGELOG FILTER BUTTON STYLES
+// ════════════════════════════════
+document.querySelectorAll('.cl-filter-btn').forEach(b => {
+  b.style.cssText = 'background:#F1F5F9;color:#64748B;border:1.5px solid transparent;transition:all .15s;';
+  b.addEventListener('mouseenter', () => { if (!b.classList.contains('active')) b.style.background='#E2E8F0'; });
+  b.addEventListener('mouseleave', () => { if (!b.classList.contains('active')) b.style.background='#F1F5F9'; });
+  b.classList.add('observer');
+});
+const clObserver = new MutationObserver(() => {
+  document.querySelectorAll('.cl-filter-btn').forEach(b => {
+    if (b.classList.contains('active')) { b.style.cssText='background:#EDE9FF;color:#7A75BB;border:1.5px solid #C4BFEA;font-weight:600;transition:all .15s;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;'; }
+    else { b.style.cssText='background:#F1F5F9;color:#64748B;border:1.5px solid transparent;font-weight:500;transition:all .15s;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;'; }
+  });
+});
+document.querySelectorAll('.cl-filter-btn').forEach(b => clObserver.observe(b, { attributes:true, attributeFilter:['class'] }));
+
+// ════════════════════════════════
+// INIT
+// ════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const d = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('today-display').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${days[d.getDay()]}）`;
+  // Apply initial filter button styles
+  document.querySelectorAll('.cl-filter-btn').forEach(b => {
+    const isActive = b.dataset.f === clFilter;
+    b.style.cssText = isActive
+      ? 'background:#EDE9FF;color:#7A75BB;border:1.5px solid #C4BFEA;font-weight:600;transition:all .15s;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;'
+      : 'background:#F1F5F9;color:#64748B;border:1.5px solid transparent;font-weight:500;transition:all .15s;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;';
+  });
+  render();
+});
+</script>
+</body>
+</html>
