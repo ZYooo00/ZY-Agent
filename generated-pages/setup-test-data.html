@@ -31,7 +31,8 @@
     <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">101（磊柏）</span><span class="text-slate-400">磊柏 × 30 套</span></div>
     <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">102（磊柏）</span><span class="text-slate-400">磊柏 × 30 盒</span></div>
     <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">HEPES</span><span class="text-slate-400">億宸 × 30 瓶</span></div>
-    <div class="flex justify-between text-sm py-1.5"><span class="text-slate-700">Heavy Oil</span><span class="text-slate-400">億宸 × 30 瓶</span></div>
+    <div class="flex justify-between text-sm py-1.5 border-b border-slate-100"><span class="text-slate-700">Heavy Oil</span><span class="text-slate-400">億宸 × 30 瓶</span></div>
+    <div class="flex justify-between text-sm py-1.5"><span class="text-slate-700">EmbryoGlue</span><span class="text-slate-400">亞樸 × 50 瓶</span></div>
   </div>
 
   <div id="status" class="hidden mb-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-medium">
@@ -65,6 +66,7 @@ function loadData() {
       { orderId: 'TEST-004', name: '102（磊柏）',   orderQty: 30, receivedQty: 0 },
       { orderId: 'TEST-005', name: 'HEPES',         orderQty: 30, receivedQty: 0 },
       { orderId: 'TEST-006', name: 'Heavy Oil',     orderQty: 30, receivedQty: 0 },
+      { orderId: 'TEST-007', name: 'EmbryoGlue',    orderQty: 50, receivedQty: 0 },
     ]
   };
   localStorage.setItem('order-result', JSON.stringify(orderData));

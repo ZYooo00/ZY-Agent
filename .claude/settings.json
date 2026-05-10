@@ -5,7 +5,9 @@
       "Bash(npx --version)",
       "Bash(claude --version)",
       "Read(//usr/**)",
-      "Read(//c/Users/User/.local/bin/**)"
+      "Read(//c/Users/User/.local/bin/**)",
+      "Read(//d/備份資料勿刪/Downloads/**)",
+      "Read(//d/備份資料勿刪/Desktop/品項資訊/**)"
     ]
   },
   "hooks": {

@@ -149,7 +149,7 @@
 
       <!-- Title row -->
       <div class="flex items-center justify-between">
-        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></h1>
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.2</span></h1>
         <div class="flex items-center gap-1.5 text-xs text-slate-400">
           <svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
           草稿已自動儲存 14:22
@@ -169,10 +169,10 @@
       <!-- 備盤人員 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-3.5 flex items-center gap-4 flex-wrap">
         <span class="text-sm font-medium text-slate-700">今日備盤人員</span>
-        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+        <select id="beipan-staff-1" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
           <option>高任佑</option><option>林OO</option><option>曾OO</option>
         </select>
-        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+        <select id="beipan-staff-2" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
           <option>林OO</option><option>高任佑</option><option>曾OO</option>
         </select>
         <span class="text-xs text-slate-400">兩人皆可操作，任一人可送出</span>
@@ -319,7 +319,7 @@
     <!-- ════ STATE C ════ -->
     <div id="state-c" class="hidden p-8">
       <div class="flex items-center justify-between mb-6">
-        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></h1>
+        <h1 class="font-heading text-2xl font-bold text-slate-800">今日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.2</span></h1>
       </div>
       <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
         <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -340,7 +340,7 @@
       </div>
       <div class="flex justify-end gap-3 pb-8">
         <button onclick="switchState('b')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
-        <button class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
+        <button onclick="submitBeipan()" class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           確認無誤，送出備盤
         </button>
@@ -390,6 +390,7 @@
   </div>
 </div>
 
+<script src="shared.js"></script>
 <script>
 // ── State switching ──
 function switchState(s) {
@@ -491,7 +492,7 @@ const reagentConfig = [
     ]
   },
   {
-    id: 'embryoglue', name: 'EmbryoGlue', label: '植入培養液',
+    id: 'glue', name: 'EmbryoGlue', label: '植入培養液',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 1.6,
     batches: [
@@ -534,7 +535,7 @@ function buildBatchRow(b, needed, cardId, checked) {
   const unopText = `+${b.unopened || 0} 瓶未開封`;
 
   return `<tr class="row-ok hover:bg-slate-50 transition-colors">
-    <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
+    <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
     <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
     <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
     <td class="px-3 py-3 tabular">
@@ -1068,16 +1069,104 @@ function recalcAllNeeded() {
   setNeeded('embryoglue', glueNeeded);
 }
 
-// 寫入庫存總覽更新紀錄（Phase 2 預留，待備盤完成儲存功能後接線）
-function appendKucunLog(entries) {
-  try {
-    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
-    const now = new Date().toISOString();
-    entries.forEach(e => {
-      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
-    });
-    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
-  } catch(err) { console.warn('kucun-changelog write failed', err); }
+// ── submitBeipan：儲存備盤結果到 localStorage ──
+function submitBeipan() {
+  const staff1 = document.getElementById('beipan-staff-1')?.value || '';
+  const staff2 = document.getElementById('beipan-staff-2')?.value || '';
+  const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
+  const now = new Date().toISOString();
+  const dateStr = now.slice(0, 10);
+
+  const logEntries = [];
+  const updatedBatches = [];
+
+  reagentConfig.forEach(cfg => {
+    let needed = parseFloat(cfg.needed) || 0;
+    if (needed <= 0) return;
+
+    // 找出使用者選取的主要批號（via radio value）
+    const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+
+    // 排序：選取批號優先，其次依原始順序（非 blocked）
+    const orderedBatches = [];
+    if (selectedLot) {
+      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked);
+      if (sel) orderedBatches.push(sel);
+    }
+    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot).forEach(b => orderedBatches.push(b));
+
+    for (const batch of orderedBatches) {
+      if (needed <= 0) break;
+
+      let rem = batch.remaining;
+      let unop = batch.unopened;
+      let opened = 0;
+
+      // 開封新瓶直到夠用或沒得開
+      while (needed > rem && unop > 0) {
+        rem += batch.bottleVol || 0;
+        unop--;
+        opened++;
+      }
+
+      const deduct = parseFloat(Math.min(needed, rem).toFixed(1));
+      const newRem  = parseFloat((rem - deduct).toFixed(1));
+      needed = parseFloat((needed - deduct).toFixed(1));
+
+      logEntries.push({
+        source: 'beipan', action: 'beipan',
+        productId: cfg.id, productName: cfg.name,
+        lotNumber: batch.lot,
+        expiryDate: batch.expiry || null,
+        openExpiryDate: batch.openExpiry || null,
+        qtyDelta: -deduct, unit: 'mL',
+        bottlesOpened: opened,
+        operator,
+        note: opened > 0
+          ? `扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
+          : `扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`,
+      });
+
+      updatedBatches.push({
+        reagentId: cfg.id, reagentName: cfg.name,
+        selectedLot: batch.lot,
+        remaining: newRem, unopened: unop,
+        bottlesOpened: opened, usedQty: deduct,
+        bottleVol: batch.bottleVol || 0,
+        expiryDate: batch.expiry || null,
+        openExpiryDate: batch.openExpiry || null,
+      });
+
+      // 更新記憶體中的 batch（供後續欄位顯示）
+      batch.remaining = newRem;
+      batch.unopened  = unop;
+    }
+  });
+
+  const payload = {
+    date: dateStr, operator, batches: updatedBatches,
+    threshold: { orange_days: 3, red_days: 1 },
+  };
+  localStorage.setItem('beipan-result', JSON.stringify(payload));
+  appendKucunLog(logEntries);
+  showToast('備盤結果已儲存 ✓');
+  switchState('a');
+}
+
+function showToast(msg) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  Object.assign(el.style, {
+    position: 'fixed', bottom: '28px', right: '28px',
+    background: '#22c55e', color: '#fff',
+    padding: '10px 20px', borderRadius: '10px',
+    fontWeight: '600', fontSize: '14px',
+    boxShadow: '0 4px 16px rgba(0,0,0,.15)',
+    zIndex: '9999', opacity: '1',
+    transition: 'opacity 0.4s',
+  });
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2000);
 }
 
 // ── Glue 計畫值（可由 gupan 覆蓋）──
@@ -1130,6 +1219,24 @@ function loadGupanData() {
     if (staffEl) staffEl.textContent = `估盤人：${a} / 核對：${b}`;
     if (timeEl)  timeEl.textContent  = `今日 ${t}`;
     banner.classList.remove('hidden');
+  }
+
+  // 若有備盤備註，置頂顯示警示區塊
+  if (data.note) {
+    let noteBlock = document.getElementById('beipan-top-note');
+    if (!noteBlock) {
+      noteBlock = document.createElement('div');
+      noteBlock.id = 'beipan-top-note';
+      const banner = document.getElementById('gupan-import-banner');
+      banner?.parentNode?.insertBefore(noteBlock, banner);
+    }
+    noteBlock.className = 'mb-3 px-5 py-3.5 rounded-xl border-2 border-violet-400 bg-violet-50 flex items-start gap-3';
+    noteBlock.innerHTML = `
+      <span style="font-size:20px;line-height:1.3;flex-shrink:0">📌</span>
+      <div>
+        <div class="text-xs font-bold text-violet-500 uppercase tracking-wider mb-1">備盤備註</div>
+        <div class="text-base font-bold text-violet-900" style="white-space:pre-wrap">${data.note.replace(/</g,'&lt;')}</div>
+      </div>`;
   }
 }
 

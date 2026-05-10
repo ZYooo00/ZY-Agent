@@ -223,6 +223,16 @@
   <!-- MAIN -->
   <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
+    <!-- 待到貨履約中心（有欠貨時才顯示） -->
+    <div id="expected-deliveries" style="display:none;margin:-20px -16px 20px;background:#F8F7FD;border-bottom:1px solid #E2E4F4">
+      <div style="padding:10px 14px 2px;font-size:11px;font-weight:700;color:#7C6FAF;letter-spacing:.07em;text-transform:uppercase">
+        📦 待到貨
+      </div>
+      <div id="ed-scroll"
+           style="overflow-x:auto;display:flex;gap:10px;padding:4px 14px 12px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      </div>
+    </div>
+
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
       <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.9</span></h1>
@@ -546,64 +556,8 @@
 <!-- TOAST -->
 <div id="toast"></div>
 
+<script src="shared.js"></script>
 <script>
-// ───────────────────────────────────────
-// DATA
-// ───────────────────────────────────────
-
-const VENDORS = ['亞樸','弘優','億宸','磊柏','明美','岑祥'];
-
-const PRODUCTS = [
-  // 培養液
-  {id:'givf',    name:'G-IVF',              vendor:'亞樸', unit:'瓶', gtin:'07350025910550'},
-  {id:'gxtl',    name:'GxTL',               vendor:'亞樸', unit:'瓶', gtin:'07350025910611'},
-  {id:'glue',    name:'EmbryoGlue',          vendor:'亞樸', unit:'瓶', gtin:'07350025910048'},
-  {id:'h5gt',    name:'H5GT',               vendor:'弘優', unit:'瓶', gtin:'00815965020426'},
-  {id:'aoa-ci',  name:'AOA 弘優 CI',        vendor:'弘優', unit:'瓶', gtin:'04582231465118'},
-  {id:'aoa-508', name:'AOA 明美 GM508',     vendor:'明美', unit:'罐', gtin:'04260173194943'},
-  {id:'hepes',   name:'HEPES',              vendor:'億宸', unit:'瓶', gtin:'00888937818314'},
-  {id:'oil',     name:'Heavy Oil',          vendor:'億宸', unit:'瓶', gtin:'05411967001224'},
-  // 試劑
-  {id:'pvp',     name:'PVP',               vendor:'億宸', unit:'管', gtin:'20888937818813'},
-  {id:'cumulase',name:'Cumulase',           vendor:'億宸', unit:'管', gtin:'20888937817977'},
-  {id:'fertipro',name:'Fertipro',           vendor:'億宸', unit:'瓶', gtin:'05411987000722'},
-  {id:'spermfr', name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶',gtin:'00888937800661'},
-  {id:'601',     name:'601',               vendor:'弘優', unit:'套', gtin:null},
-  {id:'602',     name:'602',               vendor:'弘優', unit:'套', gtin:'14582231460691'},
-  {id:'spas',    name:'S-PAS',             vendor:'弘優', unit:'盒', gtin:'14582231468048'},
-  {id:'101',     name:'101（磊柏）',        vendor:'磊柏', unit:'套', gtin:'04589700012170'},
-  {id:'102',     name:'102（磊柏）',        vendor:'磊柏', unit:'盒', gtin:'04589700012200'},
-  {id:'tyb',     name:'TYB',              vendor:'磊柏', unit:'盒', gtin:'00893727002217'},
-  {id:'brightv', name:'BrightVit',         vendor:'磊柏', unit:'個', gtin:null},
-  {id:'mountgl', name:'Mounting Glue',     vendor:'磊柏', unit:'瓶', gtin:null},
-  {id:'gm501',   name:'GM501 (SpermMobil)',vendor:'明美', unit:'瓶', gtin:'04260173193978'},
-  {id:'pure100', name:'Pure 100',          vendor:'明美', unit:'個', gtin:'07350025610030'},
-  {id:'110',     name:'110',              vendor:'明美', unit:'套', gtin:'04589700012217'},
-  // 耗材
-  {id:'toptip-y',name:'Top tips（黃）',     vendor:'弘優', unit:'盒', gtin:'14582231460929'},
-  {id:'toptip-g',name:'Top tips（綠）',     vendor:'弘優', unit:'盒', gtin:'14582231460882'},
-  {id:'toptip-r',name:'Top tips（紅）',     vendor:'弘優', unit:'盒', gtin:'14582231460899'},
-  {id:'toptip-b',name:'Top tips（藍）',     vendor:'弘優', unit:'盒', gtin:'14582231460912'},
-  {id:'toptip-w',name:'Top tips（白）',     vendor:'弘優', unit:'盒', gtin:'14582231460905'},
-  {id:'riez135', name:'RI-EZ tip 135',    vendor:'弘優', unit:'盒', gtin:'05060488047060'},
-  {id:'riez145', name:'RI-EZ tip 145',    vendor:'弘優', unit:'盒', gtin:'05060170181478'},
-  {id:'riez200', name:'RI-EZ tip 200',    vendor:'弘優', unit:'盒', gtin:null},
-  {id:'6well',   name:'6 Well dish',      vendor:'弘優', unit:'包', gtin:'04582231462414'},
-  {id:'mouth',   name:'Mouth piece',      vendor:'弘優', unit:'包', gtin:'04582231461103'},
-  {id:'oosafe-c',name:'Oosafe（培養箱用）',vendor:'弘優', unit:'罐', gtin:null},
-  {id:'oosafe-f',name:'Oosafe（地板用）', vendor:'弘優', unit:'罐', gtin:null},
-  {id:'3well',   name:'3 well dish',      vendor:'磊柏', unit:'包', gtin:'04589700012125'},
-  {id:'phsensor',name:'pH sensor dish',   vendor:'磊柏', unit:'包', gtin:null},
-  {id:'geridish',name:'Geri dish',        vendor:'磊柏', unit:'盒', gtin:null},
-  {id:'geriwat', name:'Geri water bottle',vendor:'磊柏', unit:'盒', gtin:'19348265003045'},
-  {id:'gerifl',  name:'Geri filter',      vendor:'磊柏', unit:'盒', gtin:null},
-  {id:'coda',    name:'Coda Filter K-730',vendor:'磊柏', unit:'個', gtin:null},
-  {id:'oritip135',name:'Origio tip 135',  vendor:'億宸', unit:'管', gtin:null},
-  {id:'oritip150',name:'Origio tip 150',  vendor:'億宸', unit:'管', gtin:null},
-  {id:'orifl',   name:'Origio Filter',    vendor:'億宸', unit:'個', gtin:'0888937014693'},
-  {id:'glasspip',name:'玻璃 pipette',     vendor:'億宸', unit:'箱', gtin:null},
-  {id:'cellvis', name:'Cellvis spindle dish',vendor:'岑祥',unit:'箱',gtin:null},
-];
 
 // ───────────────────────────────────────
 // STATE
@@ -627,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildVendorFilter();
   renderRecords();
   renderTray();
+  renderExpectedDeliveries();
 });
 
 function initDate() {
@@ -657,55 +612,56 @@ function saveRecords() {
   localStorage.setItem('jinhuo-records', JSON.stringify(records));
 }
 
-function appendKucunLog(entries) {
-  try {
-    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
-    const now = new Date().toISOString();
-    entries.forEach(e => {
-      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
-    });
-    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
-  } catch(err) { console.warn('kucun-changelog write failed', err); }
-}
-
 // ───────────────────────────────────────
 // ORDER HELPERS
 // ───────────────────────────────────────
 
 function loadPendingOrdersForProduct(productId) {
   try {
-    const order = JSON.parse(localStorage.getItem('order-result') || 'null');
-    if (!order || !['pending','partial'].includes(order.status)) return [];
+    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
     const product = PRODUCTS.find(p => p.id === productId);
     if (!product) return [];
-    return order.orders.filter(item => {
-      const remaining = item.orderQty - (item.receivedQty || 0);
-      if (remaining <= 0) return false;
-      const n1 = item.name || '', n2 = product.name;
-      return n1 === n2 || n1.includes(n2) || n2.includes(n1);
-    }).map(item => ({
-      orderId: item.orderId,
-      name: item.name,
-      orderedQty: item.orderQty,
-      receivedQty: item.receivedQty || 0,
-      pendingQty: item.orderQty - (item.receivedQty || 0),
-      orderedBy: order.orderedBy || '',
-      orderedAt: order.date || '',
-    }));
+    const results = [];
+    history.forEach(order => {
+      if (!['pending', 'partial'].includes(order.status)) return;
+      (order.orders || []).forEach(item => {
+        const remaining = item.orderQty - (item.receivedQty || 0);
+        if (remaining <= 0) return;
+        const n1 = item.name || '', n2 = product.name;
+        if (!(n1 === n2 || n1.includes(n2) || n2.includes(n1))) return;
+        results.push({
+          orderId: item.orderId,
+          name: item.name,
+          orderedQty: item.orderQty,
+          receivedQty: item.receivedQty || 0,
+          pendingQty: remaining,
+          orderedBy: order.orderedBy || '',
+          orderedAt: order.date || '',
+        });
+      });
+    });
+    return results;
   } catch { return []; }
 }
 
 function updateOrderStatus(orderId, qty) {
   try {
-    const order = JSON.parse(localStorage.getItem('order-result') || 'null');
-    if (!order) return;
-    const item = order.orders.find(o => o.orderId === orderId);
-    if (!item) return;
-    item.receivedQty = (item.receivedQty || 0) + qty;
-    const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
-    const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
-    order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
-    localStorage.setItem('order-result', JSON.stringify(order));
+    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    // FIFO：從最舊的訂單（陣列末端）往前找，更新第一筆有欠貨的
+    for (let i = history.length - 1; i >= 0; i--) {
+      const order = history[i];
+      if (!['pending', 'partial'].includes(order.status)) continue;
+      const item = order.orders.find(o => o.orderId === orderId);
+      if (!item) continue;
+      const remaining = item.orderQty - (item.receivedQty || 0);
+      if (remaining <= 0) continue;
+      item.receivedQty = (item.receivedQty || 0) + Math.min(qty, remaining);
+      const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
+      const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
+      order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
+      break;
+    }
+    localStorage.setItem('order-history', JSON.stringify(history));
   } catch {}
 }
 
@@ -894,14 +850,20 @@ function confirmVoid() {
 
 function rollbackOrderQty(orderId, qty) {
   try {
-    const orderData = JSON.parse(localStorage.getItem('order-result') || '{}');
-    if (!orderData.orders) return;
-    const order = orderData.orders.find(o => o.orderId === orderId);
-    if (!order) return;
-    order.receivedQty = Math.max(0, (order.receivedQty || 0) - qty);
-    if (order.receivedQty === 0) order.status = 'pending';
-    else if (order.receivedQty < order.orderQty) order.status = 'partial';
-    localStorage.setItem('order-result', JSON.stringify(orderData));
+    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    // LIFO：作廢時從最新的訂單（陣列前端）往後找，回滾第一筆有收貨的
+    for (let i = 0; i < history.length; i++) {
+      const order = history[i];
+      if (!['pending', 'partial', 'closed'].includes(order.status)) continue;
+      const item = order.orders.find(o => o.orderId === orderId);
+      if (!item || !(item.receivedQty > 0)) continue;
+      item.receivedQty = Math.max(0, item.receivedQty - qty);
+      const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
+      const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
+      order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
+      break;
+    }
+    localStorage.setItem('order-history', JSON.stringify(history));
   } catch(e) { console.error('rollbackOrderQty', e); }
 }
 
@@ -1166,6 +1128,88 @@ function _fillStep2Empty() {
   document.getElementById('s2-ordered-qty').value = '';
   document.getElementById('s2-ordered-at').value = '';
   document.getElementById('s2-ordered-by').value = '';
+}
+
+// ─── 待到貨履約中心 ────────────────────────────────────────────
+function renderExpectedDeliveries() {
+  const section = document.getElementById('expected-deliveries');
+  const scroll  = document.getElementById('ed-scroll');
+  if (!section || !scroll) return;
+
+  const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+  const active  = history.filter(o => ['pending','partial'].includes(o.status));
+
+  if (active.length === 0) { section.style.display = 'none'; return; }
+
+  // 按廠商聚合欠貨 → { vendor: { productId: { name, unit, pending } } }
+  const vendorMap = {};
+  active.forEach(order => {
+    (order.orders || []).forEach(item => {
+      const remaining = item.orderQty - (item.receivedQty || 0);
+      if (remaining <= 0) return;
+      const prod = GUPAN_MAP[item.orderId];        // gupanId → product
+      const pId  = prod?.id || null;
+      const vendor = item.vendor || '未知廠商';
+      if (!vendorMap[vendor]) vendorMap[vendor] = {};
+      const key = pId || item.name;
+      if (!vendorMap[vendor][key]) {
+        vendorMap[vendor][key] = { productId: pId, name: item.name, unit: item.unit, pending: 0 };
+      }
+      vendorMap[vendor][key].pending += remaining;
+    });
+  });
+
+  // 廠商是否有部分到貨訂單
+  const partialVendors = new Set();
+  active.filter(o => o.status === 'partial').forEach(o =>
+    (o.orders || []).forEach(item => item.vendor && partialVendors.add(item.vendor))
+  );
+
+  scroll.innerHTML = Object.entries(vendorMap).map(([vendor, items]) => {
+    const isPartial = partialVendors.has(vendor);
+    const badge = isPartial
+      ? `<span style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">部分到貨</span>`
+      : `<span style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">待到貨</span>`;
+    const rows = Object.values(items).map(it => {
+      const btn = it.productId
+        ? `<button onclick="openQuickReceive('${it.productId}')"
+                   style="flex-shrink:0;background:#EEF2FF;color:#4338CA;border:none;border-radius:6px;
+                          padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;
+                          -webkit-tap-highlight-color:transparent">📥 快收</button>`
+        : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <span style="font-size:12px;color:#334155;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${escHtml(it.name)} <b style="color:#DC2626">欠 ${it.pending}</b> ${escHtml(it.unit)}
+        </span>${btn}</div>`;
+    }).join('');
+    return `<div style="min-width:200px;max-width:250px;flex-shrink:0;border:1px solid #E2E4F4;
+                        border-radius:12px;padding:10px 12px;background:white;
+                        box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-weight:700;font-size:12px;color:#1E293B">${escHtml(vendor)}</span>
+        ${badge}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+    </div>`;
+  }).join('');
+
+  section.style.display = 'block';
+}
+
+function openQuickReceive(productId) {
+  const product = PRODUCTS.find(p => p.id === productId);
+  if (!product) { showToast('找不到品項資料'); return; }
+  // 準備 scanResult，讓 addToTray() 能識別品項（不走相機路徑）
+  scanResult = {
+    raw: '',
+    parsed: { gtin: '', lotNumber: '', expiryDate: '' },
+    matchedProduct: product,
+  };
+  // 開啟 Modal，直接顯示 Step 2（跳過相機 Step 1）
+  document.getElementById('scan-modal').classList.add('open');
+  document.getElementById('scan-step1').style.display = 'none';
+  // renderScanConfirm 負責：①品項卡 ②訂單配對 ③預設數量 = pendingQty
+  renderScanConfirm(product, { gtin: '', lotNumber: '', expiryDate: '' }, '');
 }
 
 function renderOrderMatch(productId) {
@@ -1654,22 +1698,33 @@ function batchSaveAll() {
       rawScanText: item.rawScanText || null,
       status: item.isRejected ? '拒收' : null,
       isVoided: false,
+      qcStatus: REQUIRE_QC_ITEMS.includes(item.productId) ? 'pending' : null,
       history: [],
     };
 
     records.unshift(record);
     if (item.orderId && !item.isRejected) updateOrderStatus(item.orderId, item.qty);
-    if (['102','101'].includes(item.productId) || (item.productName || '').includes('102')) has102 = true;
+    if (REQUIRE_QC_ITEMS.includes(item.productId)) has102 = true;
   });
 
   saveRecords();
-  const logEntries = sessionTray.filter(i => !i.isRejected).map(i => ({
-    source:'jinhuo', action:'receive',
-    productId: i.productId, productName: i.productName,
-    lotNumber: i.lotNumber || null,
-    qty: i.qty,
-    note: `簽收：${receivedBy}（${receivedAt}）`,
-  }));
+  const logEntries = sessionTray.filter(i => !i.isRejected).map(i => {
+    const isPartial = i.orderedQty && i.qty < i.orderedQty;
+    const deliveryStatus = i.orderedQty
+      ? (isPartial ? `部分到貨（${i.qty}/${i.orderedQty}）` : '全數到貨')
+      : null;
+    return {
+      source: 'jinhuo', action: 'receive',
+      productId: i.productId, productName: i.productName,
+      lotNumber: i.lotNumber || null,
+      expiryDate: i.expiryDate || null,
+      qtyDelta: i.qty,
+      qty: i.qty,
+      unit: '瓶',
+      operator: receivedBy,
+      note: [deliveryStatus, `簽收：${receivedBy}（${receivedAt}）`].filter(Boolean).join('；'),
+    };
+  });
   if (logEntries.length) appendKucunLog(logEntries);
   renderRecords();
   sessionTray = [];
@@ -1677,6 +1732,7 @@ function batchSaveAll() {
   renderTray();
   closeReview();
   showToast(`✓ 已新增 ${count} 筆進貨記錄`);
+  renderExpectedDeliveries();
 
   if (has102) setTimeout(show102Alert, 500);
 }

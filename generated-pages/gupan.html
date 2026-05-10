@@ -495,107 +495,35 @@
 </nav>
 
 <!-- ════════════════ SCRIPT ════════════════ ─────────────────────────────── -->
+<script src="shared.js"></script>
 <script>
 
 // ══════════════════════════════════════════
-// 庫存盤點：品項主檔（JS Config）
-// 更新規則：修改下方陣列即可，未來可直接替換成 API 呼叫
+// 庫存盤點：品項主檔由 shared.js PRODUCTS 動態生成
 // ══════════════════════════════════════════
-const STOCK_GROUPS = [
-  // ── 0：培養液 — 弘優（預設收合）──
-  {
-    id:'med-hongyou', label:'培養液 — 弘優', icon:'🧪', collapsed:true,
-    items:[
-      { id:'m-h5gt',  name:'H5GT',        unit:'瓶', target:2 },
-      { id:'m-aoa-ci',name:'AOA 弘優 CI', unit:'瓶', target:1 },
-    ]
-  },
-  // ── 1：培養液 — 亞樸（預設收合）──
-  {
-    id:'med-yapu', label:'培養液 — 亞樸', icon:'🧪', collapsed:true,
-    items:[
-      { id:'m-givf', name:'G-IVF',      unit:'瓶', target:2 },
-      { id:'m-gxtl', name:'GxTL',       unit:'瓶', target:2 },
-      { id:'m-glue', name:'EmbryoGlue', unit:'瓶', target:2 },
-    ]
-  },
-  // ── 2：冰箱 ──
-  {
-    id:'fridge', label:'冰箱', icon:'🧊', collapsed:false,
-    items:[
-      { id:'f-102',   name:'102',       unit:'盒', target:2 },
-      { id:'f-101',   name:'101',       unit:'盒', target:2 },
-      { id:'f-110',   name:'110',       unit:'盒', target:2 },
-      { id:'f-hepes', name:'HEPES',     unit:'瓶', target:4 },
-      { id:'f-oil',   name:'Heavy Oil', unit:'瓶', target:3 },
-      { id:'f-pvp',   name:'PVP',       unit:'瓶', target:1 },
-      { id:'f-cum',   name:'Cumulase',  unit:'瓶', target:1 },
-      { id:'f-508',   name:'AOA GM508', unit:'罐', target:2 },
-      { id:'f-gm501', name:'GM501 (SpermMobil)', unit:'瓶', target:1 },
-      { id:'f-602',   name:'602',       unit:'盒', target:2 },
-    ]
-  },
-  // ── 3：櫃1 ──
-  {
-    id:'cab1', label:'櫃1', icon:'🗄️', collapsed:false,
-    items:[
-      { id:'c1-3w',  name:'3 well dish',   unit:'包', target:3 },
-      { id:'c1-6w',  name:'6 well dish',   unit:'包', target:4 },
-      { id:'c1-ty',  name:'Top（黃）', unit:'盒', target:2 },
-      { id:'c1-tg',  name:'Top（綠）', unit:'盒', target:2 },
-      { id:'c1-tr',  name:'Top（紅）', unit:'盒', target:2 },
-      { id:'c1-tb',  name:'Top（藍）', unit:'盒', target:2 },
-      { id:'c1-tw',  name:'Top（白）', unit:'盒', target:2 },
-    ]
-  },
-  // ── 4：櫃2 ──
-  {
-    id:'cab2', label:'櫃2', icon:'🗄️', collapsed:false,
-    items:[
-      { id:'c2-200', name:'RI-EZ tip 200', unit:'盒', target:2 },
-      { id:'c2-145', name:'RI-EZ tip 145', unit:'盒', target:2 },
-      { id:'c2-135', name:'RI-EZ tip 135', unit:'盒', target:2 },
-    ]
-  },
-  // ── 5：櫃3 ──
-  {
-    id:'cab3', label:'櫃3', icon:'🗄️', collapsed:false,
-    items:[
-      { id:'c3-gd',  name:'Geri dish',         unit:'盒', target:2 },
-      { id:'c3-gw',  name:'Geri water bottle', unit:'盒', target:2 },
-      { id:'c3-gf',  name:'Geri filter',       unit:'盒', target:2 },
-    ]
-  },
-  // ── 6：精蟲室 ──
-  {
-    id:'sperm', label:'精蟲室', icon:'🔬', collapsed:false,
-    items:[
-      { id:'s-fert', name:'Fertipro',              unit:'瓶', target:1 },
-      { id:'s-pure', name:'Pure 100',              unit:'瓶', target:2 },
-      { id:'s-sf',   name:'Sperm Freeze (Origio)', unit:'瓶', target:1 },
-      { id:'s-tyb',  name:'TYB (20)',              unit:'盒', target:2 },
-      { id:'s-spas', name:'S-PAS',                 unit:'瓶', target:1 },
-      { id:'s-mg',   name:'Mounting Glue',         unit:'瓶', target:1 },
-    ]
-  },
-  // ── 7：半年一次（預設收合）──
-  {
-    id:'biannual', label:'半年一次', icon:'📅', collapsed:true,
-    items:[
-      { id:'b-of',  name:'Origio Filter',     unit:'個', target:2 },
-      { id:'b-cf',  name:'Coda Filter K-730', unit:'個', target:2 },
-      { id:'b-mp',  name:'Mouth piece',       unit:'包', target:1, note:'依人數，半年一次' },
-    ]
-  },
-  // ── 8：需要再叫（預設收合）──
-  {
-    id:'reorder', label:'需要再叫', icon:'🔔', collapsed:true,
-    items:[
-      { id:'r-os1', name:'Oosafe（培養箱用）', unit:'罐', target:1 },
-      { id:'r-os2', name:'Oosafe（地板用）',   unit:'罐', target:1 },
-    ]
-  },
-];
+
+const LOCATION_ORDER = ['培養箱','冰箱','櫃1','櫃2','櫃3','精蟲室','半年一次','需要再叫'];
+const LOCATION_ICONS = {
+  '培養箱':'🧪', '冰箱':'🧊', '櫃1':'🗄️', '櫃2':'🗄️', '櫃3':'🗄️',
+  '精蟲室':'🔬', '半年一次':'📅', '需要再叫':'🔔',
+};
+const LOCATION_COLLAPSED_SET = new Set(['培養箱','半年一次','需要再叫']);
+
+const STOCK_GROUPS = (() => {
+  const grouped = {};
+  PRODUCTS.forEach(p => {
+    if (!p.gupanId || !p.location) return;
+    if (!grouped[p.location]) grouped[p.location] = [];
+    grouped[p.location].push({ id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0 });
+  });
+  return LOCATION_ORDER.filter(loc => grouped[loc]).map(loc => ({
+    id: loc.replace(/[^a-z0-9一-鿿]/gi, '-').toLowerCase(),
+    label: loc,
+    icon: LOCATION_ICONS[loc] || '📦',
+    collapsed: LOCATION_COLLAPSED_SET.has(loc),
+    items: grouped[loc],
+  }));
+})();
 
 // ── 盤點：折疊狀態（動態維護，初始從 config 讀取）──
 const pdCollapsed = {};
@@ -840,17 +768,6 @@ function restartPandian() { newPandian(); }
 
 function showTransferSuccess() {
   document.getElementById('pd-transfer-msg').classList.remove('hidden');
-}
-
-function appendKucunLog(entries) {
-  try {
-    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
-    const now = new Date().toISOString();
-    entries.forEach(e => {
-      cl.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), ts: now, ...e });
-    });
-    localStorage.setItem('kucun-changelog', JSON.stringify(cl));
-  } catch(err) { console.warn('kucun-changelog write failed', err); }
 }
 
 // ══════════════════════════════════════════
@@ -1268,6 +1185,7 @@ function saveConfirmedData(now, t, staffA, staffB) {
     confirmedAt: t,
     staffA,
     staffB,
+    note: document.getElementById('gupan-note')?.value?.trim() || '',
     taiVals: { ...taiVals },
     givf,
     matrix,

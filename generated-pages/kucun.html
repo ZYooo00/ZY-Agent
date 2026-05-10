@@ -41,64 +41,124 @@
   .sort-tab:hover { background:#F1F5F9; }
   .sort-tab.active { background:#EDE9FF; color:#7A75BB; border-color:#C4BFEA; font-weight:600; }
 
-  /* ── Inventory table (sticky cols + horizontal scroll) ── */
-  .inv-wrap { overflow-x:auto; border-radius:0 0 16px 16px; }
-  .inv-table { width:100%; border-collapse:separate; border-spacing:0; min-width:900px; }
-  .inv-table th { font-size:11.5px; font-weight:700; color:#64748B; letter-spacing:.05em; padding:10px 14px; background:#F8F7FD; border-bottom:2px solid #E2E4F4; white-space:nowrap; }
-  .inv-table td { padding:11px 14px; border-bottom:1px solid #F1F5F9; vertical-align:top; font-size:13.5px; background:white; }
-  .inv-table tbody tr:last-child td { border-bottom:none; }
-  .inv-table tbody tr:hover td { background:#FAFAFA; }
-  /* Sticky columns: 品項(0) | 庫存(140) | 批號效期(270) | 狀態(470) */
-  .inv-table th.s0,.inv-table td.s0 { position:sticky; left:0;     z-index:3; }
-  .inv-table th.s1,.inv-table td.s1 { position:sticky; left:140px; z-index:3; }
-  .inv-table th.s2,.inv-table td.s2 { position:sticky; left:270px; z-index:3; }
-  .inv-table th.s3,.inv-table td.s3 { position:sticky; left:470px; z-index:3; border-right:1.5px solid #E2E4F4; box-shadow:2px 0 6px -2px rgba(0,0,0,.08); }
-  .inv-table th { background:#F8F7FD; z-index:4; }
-  .inv-table td.s0,.inv-table td.s1,.inv-table td.s2,.inv-table td.s3 { background:white; }
-  .inv-table tbody tr:hover td.s0,.inv-table tbody tr:hover td.s1,.inv-table tbody tr:hover td.s2,.inv-table tbody tr:hover td.s3 { background:#FAFAFA; }
-
+  /* ── Inventory table layout ── */
+  .inv-mirror { overflow-x:auto; overflow-y:hidden; height:14px; background:#F8F7FD; border-bottom:1px solid #E2E4F4; }
+  .inv-mirror { margin-left:390px; margin-right:210px; }
+  .inv-mirror::-webkit-scrollbar { height:8px; }
+  #inv-spacer { height:1px; }
+  .inv-wrap { overflow-x:auto; overflow-y:auto; max-height:500px; }
+  #inv-wrap::-webkit-scrollbar:horizontal { display:none; }
+  #inv-table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; table-layout:fixed; }
+  #inv-table th { position:sticky; top:0; background-color:#F8F7FD; z-index:15; font-size:11.5px; font-weight:700; color:#64748B; letter-spacing:.05em; padding:10px 12px; border-bottom:2px solid #E2E4F4; white-space:nowrap; }
+  #inv-table td { padding:10px 12px; border-bottom:1px solid #F1F5F9; vertical-align:top; font-size:13.5px; background-color:white; }
+  #inv-table tbody tr:last-child td { border-bottom:none; }
+  #inv-table tbody tr:hover td { background-color:#FAFAFA; }
+  #inv-table tbody tr { cursor:pointer; }
+  /* Sticky left columns */
+  .sl { position:sticky; z-index:20; }
+  .sl-0 { left:0;    width:140px; min-width:140px; max-width:140px; }
+  .sl-1 { left:140px; width:80px;  min-width:80px;  max-width:80px;  text-align:center; }
+  .sl-2 { left:220px; width:80px;  min-width:80px;  max-width:80px;  text-align:center; }
+  .sl-3 { left:300px; width:90px;  min-width:90px;  max-width:90px;  text-align:center; box-shadow:6px 0 10px -2px rgba(0,0,0,.12); }
+  /* Sticky right columns */
+  .sr-1 { position:sticky; right:100px; z-index:20; width:110px; min-width:110px; max-width:110px; text-align:center; box-shadow:-6px 0 10px -2px rgba(0,0,0,.12); }
+  .sr   { position:sticky; right:0;     z-index:20; width:100px; min-width:100px; max-width:100px; text-align:center; box-shadow:none; }
+  /* Bulletproof backgrounds & z-index */
+  #inv-table th, #inv-table td { box-sizing:border-box; }
+  #inv-table th.sl, #inv-table th.sr-1, #inv-table th.sr { background-color:#F8F7FD !important; z-index:30 !important; }
+  #inv-table td.sl, #inv-table td.sr-1, #inv-table td.sr { background-color:white !important; z-index:20 !important; }
+  #inv-table tbody tr:hover td.sl, #inv-table tbody tr:hover td.sr-1, #inv-table tbody tr:hover td.sr { background-color:#FAFAFA !important; }
+  #inv-table tr.group-row td.sl, #inv-table tr.group-row td.sr-1, #inv-table tr.group-row td.sr { background-color:#F1F5F9 !important; z-index:25 !important; }
   /* Group header row */
-  .group-row td { background:#F1F5F9 !important; padding:7px 14px; font-size:11.5px; font-weight:700; color:#475569; letter-spacing:.07em; text-transform:uppercase; }
-  .group-row td.s0,.group-row td.s1,.group-row td.s2,.group-row td.s3 { background:#F1F5F9 !important; }
-
-  /* History entries in right scroll */
-  .hist-entry { display:flex; gap:6px; align-items:flex-start; padding:3px 0; font-size:12px; line-height:1.5; }
-  .hist-entry + .hist-entry { border-top:1px dashed #F1F5F9; margin-top:2px; padding-top:5px; }
-  .hist-date { color:#94A3B8; white-space:nowrap; font-variant-numeric:tabular-nums; flex-shrink:0; }
-  .hist-action { color:#475569; }
-  .hist-qty-pos { color:#16A34A; font-weight:600; }
-  .hist-qty-neg { color:#DC2626; font-weight:600; }
+  .group-row td { background-color:#F1F5F9 !important; padding:6px 12px; font-size:11px; font-weight:700; color:#475569; letter-spacing:.07em; text-transform:uppercase; }
+  /* Year separator column */
+  th.year-sep, td.year-sep { min-width:20px; width:20px; max-width:20px; padding:0 !important; background:#EDE9FF !important; border-left:1px dashed #C4BFEA; border-right:1px dashed #C4BFEA; }
+  .year-sep-inner { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; font-weight:700; color:#7A75BB; letter-spacing:.08em; padding:6px 0; display:block; text-align:center; }
+  /* Event columns */
+  .ev-col { min-width:80px; width:80px; text-align:center; }
 
   /* ── Badges ── */
   .badge { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap; }
-  .b-ok   { background:#DCFCE7; color:#15803D; }
-  .b-warn { background:#FFF7ED; color:#C2410C; }
-  .b-crit { background:#FEE2E2; color:#B91C1C; }
-  .b-none { background:#F1F5F9; color:#64748B; }
+  .b-ok      { background:#DCFCE7; color:#15803D; }
+  .b-warn    { background:#FFF7ED; color:#C2410C; }
+  .b-crit    { background:#FEE2E2; color:#B91C1C; }
+  .b-none    { background:#F1F5F9; color:#64748B; }
+  .b-transit { background:#DBEAFE; color:#1D4ED8; }
+
+  /* ── KPI Cards ── */
+  .kpi-card { background:white; border:1.5px solid #E2E4F4; border-radius:16px; padding:16px 20px; cursor:pointer; transition:all .15s; flex:1; min-width:150px; user-select:none; }
+  .kpi-card:hover { border-color:#9590D0; background:#FDFCFF; }
+  .kpi-card.active { box-shadow:0 0 0 3px rgba(149,144,208,.15); }
+  .kpi-card.kpi-danger { border-color:#FCA5A5; }
+  .kpi-card.kpi-danger:hover { border-color:#EF4444; }
+  .kpi-card.kpi-danger.active { border-color:#EF4444; background:#FEF2F2; box-shadow:0 0 0 3px rgba(239,68,68,.1); }
+  .kpi-card.kpi-warn { border-color:#FDBA74; }
+  .kpi-card.kpi-warn:hover { border-color:#F97316; }
+  .kpi-card.kpi-warn.active { border-color:#F97316; background:#FFF7ED; box-shadow:0 0 0 3px rgba(249,115,22,.1); }
+  .kpi-card.kpi-blue { border-color:#93C5FD; }
+  .kpi-card.kpi-blue:hover { border-color:#3B82F6; }
+  .kpi-card.kpi-blue.active { border-color:#3B82F6; background:#EFF6FF; box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+  .kpi-card.kpi-disabled { border-color:#E2E8F0; background:#F8FAFC; cursor:not-allowed; opacity:.65; }
+  .kpi-card.kpi-disabled:hover { border-color:#E2E8F0; background:#F8FAFC; }
+  .kpi-card.kpi-qc { border-color:#C4B5FD; }
+  .kpi-card.kpi-qc:hover { border-color:#7C3AED; }
+  .kpi-card.kpi-qc.active { border-color:#7C3AED; background:#F5F3FF; box-shadow:0 0 0 3px rgba(124,58,237,.1); }
 
   /* Source badges */
-  .src-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:5px; font-size:11px; font-weight:600; }
+  .src-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border-radius:5px; font-size:11px; font-weight:600; white-space:nowrap; }
   .src-jinhuo  { background:#DBEAFE; color:#1D4ED8; }
   .src-beipan  { background:#EDE9FF; color:#7A75BB; }
   .src-pandian { background:#D1FAE5; color:#065F46; }
   .src-order   { background:#FEF3C7; color:#92400E; }
   .src-manual  { background:#F3F4F6; color:#374151; }
 
-  /* ── Lot rows ── */
-  .lot-item { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:3px 0; line-height:1.4; }
-  .lot-num  { font-size:12px; font-weight:600; color:#1E293B; font-family:'Courier New',monospace; background:#F1F5F9; padding:1px 6px; border-radius:4px; }
-  .lot-exp  { font-size:12px; color:#64748B; }
-  .lot-exp.r { color:#DC2626; font-weight:700; }
-  .lot-exp.o { color:#EA580C; font-weight:600; }
-  .lot-qty  { font-size:11.5px; color:#94A3B8; }
-  .lot-divider { border-top:1px dashed #E2E8F0; margin:3px 0; }
+  /* ── Lot inner table ── */
+  .lot-mini-tbl { border-collapse:separate; border-spacing:0; }
+  .lot-mini-tbl td { padding:1px 6px 1px 0; vertical-align:baseline; font-size:12px; white-space:nowrap; }
+  .lot-mini-tbl tr + tr td { padding-top:5px; border-top:1px dashed #F1F5F9; }
+  .lot-mini-tbl tr + tr td:first-child { padding-top:5px; }
+  .lm-qty  { color:#94A3B8; font-size:11.5px; min-width:26px; }
+  .lm-exp  { color:#64748B; }
+  /* 使用中（index 0 非過期）= 綠 */
+  .lm-exp.lm-active  { color:#15803D; font-weight:600; }
+  /* 備用（index 1+ 非過期）= 藍 */
+  .lm-exp.lm-reserve { color:#1D4ED8; }
+  /* 過期 = 灰 */
+  .lm-exp.lm-expired { color:#94A3B8; }
+  .lm-qty.lm-expired { color:#CBD5E1; }
+  .lm-lot  { font-family:'Courier New',monospace; background:#F1F5F9; padding:1px 5px; border-radius:3px; font-size:11.5px; color:#1E293B; font-weight:600; }
+  .lm-lot.lm-active-lot  { background:#DCFCE7; color:#15803D; }
+  .lm-lot.lm-reserve-lot { background:#DBEAFE; color:#1D4ED8; }
+  .lm-lot.lm-expired-lot { background:#F1F5F9; color:#CBD5E1; font-weight:400; }
 
-  /* ── Changelog table ── */
-  .cl-table { width:100%; border-collapse:collapse; min-width:640px; }
+  /* Lot toggle btn inside th */
+  .lot-toggle-th-btn { margin-left:5px; padding:1px 6px; border-radius:4px; border:1px solid #C4BFEA; background:#EDE9FF; color:#7A75BB; font-size:10px; font-weight:600; cursor:pointer; white-space:nowrap; vertical-align:middle; }
+  .lot-toggle-th-btn:hover { background:#D8D3F5; }
+
+  /* ── Changelog section ── */
+  .cl-table { width:100%; border-collapse:collapse; min-width:500px; }
   .cl-table th { font-size:11.5px; font-weight:700; color:#64748B; letter-spacing:.04em; padding:9px 12px; background:#F8F7FD; border-bottom:2px solid #E2E4F4; white-space:nowrap; }
   .cl-table td { padding:9px 12px; border-bottom:1px solid #F1F5F9; font-size:13px; vertical-align:middle; }
   .cl-table tbody tr:last-child td { border-bottom:none; }
-  .cl-table tbody tr:hover td { background:#FAFAFA; }
+  .cl-group-row { cursor:pointer; }
+  .cl-group-row:hover td { background:#F5F0FB !important; }
+  .cl-group-row td { background:white; padding:10px 14px; }
+  .cl-expand-wrap td { padding:0; background:#FAFBFF; border-bottom:2px solid #E2E4F4; }
+  .cl-expand-inner { padding:8px 14px 10px 28px; }
+  .cl-expand-row { display:grid; grid-template-columns:140px 100px 160px 1fr; gap:0 8px; align-items:start; padding:5px 0; border-bottom:1px solid #F1F5F9; font-size:12.5px; }
+  .cl-expand-row:last-child { border-bottom:none; }
+  .cl-expand-row.order-row { background:#F8FAFF; border-radius:4px; }
+  /* col1-3：不換行，超長省略 */
+  .cl-expand-row > span:nth-child(1),.cl-expand-row > span:nth-child(2),.cl-expand-row > span:nth-child(3) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* col4（備註）：自動換行 */
+  .cl-expand-row > span:nth-child(4) { white-space:normal; word-break:break-word; line-height:1.6; }
+  .cl-chevron { font-size:11px; color:#94A3B8; margin-left:4px; transition:transform .15s; display:inline-block; }
+  .cl-chevron.open { transform:rotate(90deg); }
+  /* ── Date filter ── */
+  .cl-date-input { padding:5px 10px; border:1.5px solid #E2E8F0; border-radius:8px; font-size:12.5px; font-family:inherit; color:#475569; outline:none; }
+  .cl-date-input:focus { border-color:#9590D0; }
+  .cl-quick-btn { padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:500; border:1.5px solid #E2E8F0; color:#64748B; cursor:pointer; background:white; transition:all .15s; }
+  .cl-quick-btn:hover { border-color:#9590D0; color:#9590D0; }
 
   /* ── Manual log modal ── */
   #log-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; }
@@ -118,9 +178,51 @@
   #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(12px); background:#1E293B; color:white; padding:10px 20px; border-radius:12px; font-size:13.5px; font-weight:500; opacity:0; transition:opacity .2s,transform .2s; z-index:99; pointer-events:none; white-space:nowrap; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  ::-webkit-scrollbar { width:4px; height:4px; }
+  /* ── Info tooltip ── */
+  .info-tip { position:relative; display:inline-block; cursor:help; color:#9590D0; vertical-align:middle; }
+  .info-tip::before {
+    content: attr(data-tip);
+    position:absolute;
+    top:calc(100% + 7px);
+    bottom:auto;
+    right:-8px;
+    width:230px;
+    background:#1E293B;
+    color:white;
+    font-size:11px;
+    font-weight:400;
+    line-height:1.65;
+    padding:8px 11px;
+    border-radius:9px;
+    white-space:pre-wrap;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s;
+    z-index:30;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+    font-family:'Noto Sans TC',sans-serif;
+    letter-spacing:.01em;
+  }
+  .info-tip:hover::before { opacity:1; }
+
+  /* ── Item Drawer ── */
+  #drawer-overlay { display:none; position:fixed; inset:0; z-index:44; }
+  #drawer-overlay.open { display:block; }
+  #item-drawer { position:fixed; top:56px; right:0; bottom:0; width:360px; background:white; z-index:45; transform:translateX(105%); transition:transform .28s cubic-bezier(.4,0,.2,1); border-left:1px solid #E2E4F4; display:flex; flex-direction:column; overflow:hidden; box-shadow:-4px 0 24px rgba(0,0,0,.10); }
+  #item-drawer.open { transform:translateX(0); }
+  #drawer-header { padding:16px 16px 12px; border-bottom:1px solid #F1F5F9; flex-shrink:0; }
+  #drawer-body { overflow-y:auto; flex:1; padding:16px; }
+  .dw-section { font-size:11px; font-weight:700; color:#94A3B8; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }
+  .dw-lot-tbl { width:100%; border-collapse:collapse; }
+  .dw-lot-tbl td { padding:5px 8px; font-size:12.5px; vertical-align:middle; border-bottom:1px solid #F8FAFC; }
+  .dw-lot-tbl tr:last-child td { border-bottom:none; }
+
+  /* ── Sticky changelog header ── */
+  .cl-table th { position:sticky; top:0; z-index:5; }
+
+  ::-webkit-scrollbar { width:6px; height:8px; }
   ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:4px; }
+  ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:6px; }
   html, body { overscroll-behavior:none; }
 </style>
 </head>
@@ -177,19 +279,27 @@
   </aside>
 
   <!-- MAIN -->
-  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-10">
+  <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-10">
 
     <!-- Title + controls -->
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div class="flex items-center gap-3">
         <h1 class="heading text-2xl font-bold text-slate-800">庫存總覽</h1>
-        <span class="text-xs text-slate-400 font-mono">v1.1.0</span>
+        <span class="text-xs text-slate-400 font-mono">v2.3.0</span>
       </div>
       <div class="flex items-center gap-2">
-        <!-- Lot toggle -->
-        <button id="lot-toggle-btn" onclick="toggleLots()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h8"/></svg>
-          <span id="lot-toggle-label">最近 3 批</span>
+        <!-- Export CSV -->
+        <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          匯出庫存快照
+        </button>
+        <button onclick="exportChangelogCSV()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium hover:bg-violet-100 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          匯出異動日誌
+        </button>
+        <!-- Load demo -->
+        <button onclick="loadDemoData()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>載入測試資料
         </button>
         <!-- Refresh -->
         <button onclick="refresh()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
@@ -201,12 +311,64 @@
     <!-- Meta chips -->
     <div class="flex flex-wrap gap-2 mb-4" id="meta-row"></div>
 
-    <!-- Sort tabs -->
-    <div class="flex items-center gap-1.5 mb-4 bg-white border border-slate-200 rounded-xl px-3 py-2 w-fit">
-      <span class="text-xs text-slate-400 mr-1">排序：</span>
-      <button class="sort-tab active" data-sort="group" onclick="setSort('group')">種類</button>
-      <button class="sort-tab" data-sort="vendor" onclick="setSort('vendor')">廠商</button>
-      <button class="sort-tab" data-sort="status" onclick="setSort('status')">狀態</button>
+    <!-- ══ KPI CARDS ══ -->
+    <div id="kpi-section" class="hidden mb-5">
+      <div class="flex flex-wrap gap-3">
+        <div class="kpi-card kpi-danger" id="kpi-shortage" onclick="setKpiFilter('shortage')">
+          <div class="text-xs font-semibold text-red-400 mb-1 uppercase tracking-wider">⚠️ 缺貨警示</div>
+          <div class="flex items-end gap-2">
+            <span class="text-3xl font-bold text-red-600 tabular" id="kpi-shortage-num">0</span>
+            <span class="text-sm text-slate-500 mb-0.5">個品項</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">庫存低於安全量</div>
+        </div>
+        <div class="kpi-card kpi-warn" id="kpi-expiring" onclick="setKpiFilter('expiring')">
+          <div class="text-xs font-semibold text-orange-400 mb-1 uppercase tracking-wider">⏳ 效期危急</div>
+          <div class="flex items-end gap-2">
+            <span class="text-3xl font-bold text-orange-500 tabular" id="kpi-expiring-num">0</span>
+            <span class="text-sm text-slate-500 mb-0.5">個批號</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">7 天內即將過期</div>
+        </div>
+        <div class="kpi-card kpi-blue" id="kpi-pending" onclick="setKpiFilter('pending')">
+          <div class="text-xs font-semibold text-blue-400 mb-1 uppercase tracking-wider">📦 待收貨</div>
+          <div class="flex items-end gap-2">
+            <span class="text-3xl font-bold text-blue-600 tabular" id="kpi-pending-num">0</span>
+            <span class="text-sm text-slate-500 mb-0.5">個品項</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">已訂購未到貨</div>
+        </div>
+        <div class="kpi-card kpi-qc" id="kpi-qc" onclick="setKpiFilter('qc')">
+          <div class="text-xs font-semibold text-violet-500 mb-1 uppercase tracking-wider">🔬 待 QC</div>
+          <div class="flex items-end gap-2">
+            <span class="text-3xl font-bold text-violet-600 tabular" id="kpi-qc-num">0</span>
+            <span class="text-sm text-slate-500 mb-0.5">個批號</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">待確認 QC 通過</div>
+        </div>
+      </div>
+      <div id="kpi-filter-bar" class="hidden mt-3 flex items-center gap-2 text-xs text-slate-500">
+        <span>篩選中：</span>
+        <span id="kpi-filter-label" class="font-semibold text-primary-dark"></span>
+        <button onclick="setKpiFilter(null)" class="ml-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">✕ 清除</button>
+      </div>
+    </div>
+
+    <!-- Search + Sort row -->
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <!-- Search box -->
+      <div class="relative">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="search-input" placeholder="搜尋品項…" oninput="handleSearch(this.value)"
+          class="pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors bg-white w-44">
+      </div>
+      <!-- Sort tabs -->
+      <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2">
+        <span class="text-xs text-slate-400 mr-1">排序：</span>
+        <button class="sort-tab active" data-sort="group" onclick="setSort('group')">種類</button>
+        <button class="sort-tab" data-sort="vendor" onclick="setSort('vendor')">廠商</button>
+        <button class="sort-tab" data-sort="status" onclick="setSort('status')">狀態</button>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -221,24 +383,16 @@
     <!-- ══ INVENTORY TABLE ══ -->
     <div id="inv-wrap-outer" class="hidden">
       <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
-        <!-- Column legend (mobile hint) -->
         <div class="md:hidden px-4 py-2 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
-          左右滑動可查看批號效期等詳細資訊
+          左右滑動可查看使用紀錄
         </div>
-        <div class="inv-wrap">
-          <table class="inv-table" id="inv-table">
-            <thead>
-              <tr>
-                <th class="s0" style="width:140px;min-width:140px">品項</th>
-                <th class="s1" style="width:130px;min-width:130px">庫存數量</th>
-                <th class="s2" style="width:200px;min-width:200px">批號 / 效期</th>
-                <th class="s3" style="width:80px;min-width:80px">狀態</th>
-                <th style="min-width:90px">本月進貨</th>
-                <th style="min-width:90px">待收貨</th>
-                <th style="min-width:300px">使用紀錄（按日期）</th>
-              </tr>
-            </thead>
+        <!-- Top scrollbar mirror -->
+        <div class="hidden md:block inv-mirror" id="inv-mirror"><div id="inv-spacer"></div></div>
+        <!-- Single table -->
+        <div class="inv-wrap" id="inv-wrap">
+          <table id="inv-table">
+            <thead id="inv-thead"></thead>
             <tbody id="inv-tbody"></tbody>
           </table>
         </div>
@@ -257,26 +411,34 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>登記使用
         </button>
       </div>
-      <!-- Changelog filter bar -->
       <div class="px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center gap-2">
         <span class="text-xs text-slate-500 font-medium">篩選：</span>
         <button class="cl-filter-btn active text-xs px-2.5 py-1 rounded-md font-medium" data-f="" onclick="setCLFilter('')">全部</button>
-        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="jinhuo" onclick="setCLFilter('jinhuo')">進貨</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="jinhuo:receive" onclick="setCLFilter('jinhuo:receive')">進貨</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="beipan" onclick="setCLFilter('beipan')">備盤</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="pandian" onclick="setCLFilter('pandian')">盤點</button>
-        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="manual" onclick="setCLFilter('manual')">手動</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="order" onclick="setCLFilter('order')">訂貨</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="manual:use" onclick="setCLFilter('manual:use')">手動使用</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f=":void" onclick="setCLFilter(':void')">異常/作廢</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f=":edit" onclick="setCLFilter(':edit')">修改/調整</button>
       </div>
-      <div class="overflow-x-auto">
+      <div class="px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-500 font-medium">期間：</span>
+        <input type="date" id="cl-date-from" class="cl-date-input" onchange="renderChangelog(cachedData)">
+        <span class="text-slate-300 text-xs">—</span>
+        <input type="date" id="cl-date-to" class="cl-date-input" onchange="renderChangelog(cachedData)">
+        <button class="cl-quick-btn" onclick="setCLDateRange('thisMonth')">本月</button>
+        <button class="cl-quick-btn" onclick="setCLDateRange('lastMonth')">上個月</button>
+        <button class="cl-quick-btn" onclick="setCLDateRange('quarter')">近一季</button>
+        <button class="cl-quick-btn" onclick="setCLDateRange('')" style="color:#94A3B8">清除</button>
+        <button class="cl-quick-btn" onclick="exportChangelogCSV()" style="margin-left:8px;border-color:#9590D0;color:#7A75BB;font-weight:600">匯出區間日誌</button>
+      </div>
+      <div style="overflow:auto; max-height:480px;">
         <table class="cl-table" id="cl-table">
           <thead>
             <tr>
-              <th style="min-width:130px">時間</th>
-              <th style="min-width:110px">品項</th>
-              <th style="min-width:80px">來源</th>
-              <th style="min-width:90px">動作</th>
-              <th style="min-width:80px">批號</th>
-              <th style="min-width:70px">數量</th>
-              <th style="min-width:160px">備註</th>
+              <th style="min-width:380px">操作事件</th>
+              <th style="min-width:80px">操作人</th>
             </tr>
           </thead>
           <tbody id="cl-tbody"></tbody>
@@ -287,9 +449,6 @@
       </div>
     </div>
 
-    <p class="mt-2 text-xs text-slate-400 text-center">
-      ⚠️ 當月使用量目前需從「歷次盤點差分 + 進貨量」推算，Phase 3 完成後將自動計算。
-    </p>
   </main>
 </div>
 
@@ -335,6 +494,23 @@
         </select>
       </div>
     </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="sc-label">操作人 <span class="text-red-400">*</span></label>
+        <input id="log-operator" type="text" class="sc-input" placeholder="請輸入姓名">
+      </div>
+      <div>
+        <label class="sc-label">原因分類 <span class="text-xs text-slate-400 font-normal">（選填）</span></label>
+        <select id="log-reason-preset" class="sc-input" onchange="applyReasonPreset(this.value)">
+          <option value="">— 選擇原因 —</option>
+          <option>打破/損毀</option>
+          <option>效能不佳報廢</option>
+          <option>樣品試用</option>
+          <option>正常消耗</option>
+          <option>其他</option>
+        </select>
+      </div>
+    </div>
     <div>
       <label class="sc-label">備註 <span class="text-xs text-slate-400 font-normal">（選填）</span></label>
       <input id="log-note" type="text" class="sc-input" placeholder="如：批號開始使用，OPU 日使用">
@@ -346,62 +522,36 @@
   </div>
 </div>
 
+<!-- ITEM DETAIL DRAWER -->
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="item-drawer">
+  <div id="drawer-header">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <div class="font-semibold text-slate-800 text-base leading-tight" id="drawer-product-name">—</div>
+        <div class="text-xs text-slate-400 mt-0.5" id="drawer-product-vendor">—</div>
+      </div>
+      <button onclick="closeDrawer()" class="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="flex items-center flex-wrap gap-3 mt-3" id="drawer-stock-row"></div>
+  </div>
+  <div id="drawer-body">
+    <div id="drawer-sparkline"></div>
+    <div class="dw-section">批號 / 效期</div>
+    <div style="max-height:160px;overflow-y:auto;border-radius:8px;border:1px solid #F1F5F9">
+      <table class="dw-lot-tbl" style="border:none"><tbody id="drawer-lot-tbody"></tbody></table>
+    </div>
+    <div class="dw-section mt-5">最近 6 筆異動紀錄</div>
+    <div id="drawer-changelog"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
+<script src="shared.js"></script>
 <script>
-// ════════════════════════════════
-// PRODUCTS
-// ════════════════════════════════
-const PRODUCTS = [
-  {id:'givf',    name:'G-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液'},
-  {id:'gxtl',    name:'GxTL',                vendor:'亞樸', unit:'瓶', group:'培養液'},
-  {id:'glue',    name:'EmbryoGlue',           vendor:'亞樸', unit:'瓶', group:'培養液'},
-  {id:'h5gt',    name:'H5GT',                vendor:'弘優', unit:'瓶', group:'培養液'},
-  {id:'aoa-ci',  name:'AOA 弘優 CI',         vendor:'弘優', unit:'瓶', group:'培養液'},
-  {id:'aoa-508', name:'AOA 明美 GM508',      vendor:'明美', unit:'罐', group:'培養液'},
-  {id:'hepes',   name:'HEPES',               vendor:'億宸', unit:'瓶', group:'培養液'},
-  {id:'oil',     name:'Heavy Oil',            vendor:'億宸', unit:'瓶', group:'培養液'},
-  {id:'pvp',     name:'PVP',                vendor:'億宸', unit:'管', group:'試劑'},
-  {id:'cumulase',name:'Cumulase',            vendor:'億宸', unit:'管', group:'試劑'},
-  {id:'fertipro',name:'Fertipro',            vendor:'億宸', unit:'瓶', group:'試劑'},
-  {id:'spermfr', name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶', group:'試劑'},
-  {id:'601',     name:'601',                vendor:'弘優', unit:'套', group:'試劑'},
-  {id:'602',     name:'602',                vendor:'弘優', unit:'套', group:'試劑'},
-  {id:'spas',    name:'S-PAS',              vendor:'弘優', unit:'盒', group:'試劑'},
-  {id:'101',     name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑'},
-  {id:'102',     name:'102（磊柏）',          vendor:'磊柏', unit:'盒', group:'試劑'},
-  {id:'tyb',     name:'TYB',               vendor:'磊柏', unit:'盒', group:'試劑'},
-  {id:'brightv', name:'BrightVit',           vendor:'磊柏', unit:'個', group:'試劑'},
-  {id:'mountgl', name:'Mounting Glue',       vendor:'磊柏', unit:'瓶', group:'試劑'},
-  {id:'gm501',   name:'GM501 (SpermMobil)',  vendor:'明美', unit:'瓶', group:'試劑'},
-  {id:'pure100', name:'Pure 100',            vendor:'明美', unit:'個', group:'試劑'},
-  {id:'110',     name:'110',               vendor:'明美', unit:'套', group:'試劑'},
-  {id:'toptip-y',name:'Top tips（黃）',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'toptip-g',name:'Top tips（綠）',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'toptip-r',name:'Top tips（紅）',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'toptip-b',name:'Top tips（藍）',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'toptip-w',name:'Top tips（白）',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'riez135', name:'RI-EZ tip 135',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'riez145', name:'RI-EZ tip 145',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'riez200', name:'RI-EZ tip 200',      vendor:'弘優', unit:'盒', group:'耗材'},
-  {id:'6well',   name:'6 Well dish',         vendor:'弘優', unit:'包', group:'耗材'},
-  {id:'mouth',   name:'Mouth piece',         vendor:'弘優', unit:'包', group:'耗材'},
-  {id:'oosafe-c',name:'Oosafe（培養箱用）',  vendor:'弘優', unit:'罐', group:'耗材'},
-  {id:'oosafe-f',name:'Oosafe（地板用）',    vendor:'弘優', unit:'罐', group:'耗材'},
-  {id:'3well',   name:'3 well dish',         vendor:'磊柏', unit:'包', group:'耗材'},
-  {id:'phsensor',name:'pH sensor dish',      vendor:'磊柏', unit:'包', group:'耗材'},
-  {id:'geridish',name:'Geri dish',           vendor:'磊柏', unit:'盒', group:'耗材'},
-  {id:'geriwat', name:'Geri water bottle',   vendor:'磊柏', unit:'盒', group:'耗材'},
-  {id:'gerifl',  name:'Geri filter',         vendor:'磊柏', unit:'盒', group:'耗材'},
-  {id:'coda',    name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材'},
-  {id:'oritip135',name:'Origio tip 135',     vendor:'億宸', unit:'管', group:'耗材'},
-  {id:'oritip150',name:'Origio tip 150',     vendor:'億宸', unit:'管', group:'耗材'},
-  {id:'orifl',   name:'Origio Filter',       vendor:'億宸', unit:'個', group:'耗材'},
-  {id:'glasspip',name:'玻璃 pipette',        vendor:'億宸', unit:'箱', group:'耗材'},
-  {id:'cellvis', name:'Cellvis spindle dish',vendor:'岑祥', unit:'箱', group:'耗材'},
-];
-
-const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 const GROUP_ORDER = ['培養液','試劑','耗材'];
 const STATUS_ORDER = { crit:0, warn:1, ok:2, none:3 };
 
@@ -409,10 +559,11 @@ const STATUS_ORDER = { crit:0, warn:1, ok:2, none:3 };
 // STATE
 // ════════════════════════════════
 let sortMode    = 'group';
-let showAllLots = false;
 let clFilter    = '';
 let cachedData  = null;
 let productInfoCache = {};
+let kpiFilter   = null;
+let searchQuery  = '';
 
 // ════════════════════════════════
 // HELPERS
@@ -444,6 +595,18 @@ function fmtTs(isoStr) {
   return `${d.getFullYear()}-${MM}-${DD} ${hh}:${mm}`;
 }
 
+// 解析備盤 note「備盤剩餘 X mL，未開封 N 瓶」
+function parseBeipanNote(note) {
+  const m = (note||'').match(/備盤剩餘\s*([\d.]+)\s*mL[，,]未開封\s*(\d+)\s*瓶/);
+  if (!m) return null;
+  return { remaining: parseFloat(m[1]), unopened: parseInt(m[2]) };
+}
+function beipanToBottles(entry) {
+  const p = parseBeipanNote(entry.note);
+  if (!p) return null;
+  return (p.remaining > 0 ? 1 : 0) + p.unopened;
+}
+
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -456,11 +619,12 @@ function showToast(msg) {
 // ════════════════════════════════
 function loadData() {
   return {
-    jinhuo:   JSON.parse(localStorage.getItem('jinhuo-records')  || '[]'),
-    pandian:  JSON.parse(localStorage.getItem('pandian-result')   || 'null'),
-    beipan:   JSON.parse(localStorage.getItem('beipan-result')    || 'null'),
-    order:    JSON.parse(localStorage.getItem('order-result')     || 'null'),
-    changelog:JSON.parse(localStorage.getItem('kucun-changelog')  || '[]'),
+    jinhuo:        JSON.parse(localStorage.getItem('jinhuo-records')   || '[]'),
+    pandian:       JSON.parse(localStorage.getItem('pandian-result')   || 'null'),
+    pandianHistory:JSON.parse(localStorage.getItem('pandian-history')  || '[]'),
+    beipan:        JSON.parse(localStorage.getItem('beipan-result')    || 'null'),
+    order:         JSON.parse(localStorage.getItem('order-result')     || 'null'),
+    changelog:     JSON.parse(localStorage.getItem('kucun-changelog')  || '[]'),
   };
 }
 
@@ -480,7 +644,9 @@ function calcProductInfo(product, data) {
   let stockNum     = null;
   let stockSource  = null;
   const beipanBatch  = beipan?.batches?.find(b => b.reagentId === product.id);
-  const pandianItem  = pandian?.allValues?.find(v => v.id === `m-${product.id}`);
+  const pandianItem  = product.gupanId
+    ? pandian?.allValues?.find(v => v.id === product.gupanId)
+    : null;
   const beipanDate   = beipan?.date  || '';
   const pandianDate  = pandian?.date || '';
 
@@ -495,12 +661,9 @@ function calcProductInfo(product, data) {
       const newIncoming = jinhuo
         .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > beipanDate)
         .reduce((s, r) => s + (r.receivedQty||0), 0);
-      stockNum = remaining;
-      const parts = [];
-      if (remaining > 0 || unopened === 0) parts.push(`${fmtNum(remaining)} mL 剩餘`);
-      if (unopened > 0) parts.push(`${unopened} 瓶未開`);
-      if (newIncoming > 0) parts.push(`+${newIncoming} ${product.unit} 新進`);
-      stockDisplay = parts.join(' / ') || '0';
+      const baseBottles = (remaining > 0 ? 1 : 0) + unopened;
+      stockNum    = baseBottles + newIncoming;
+      stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
       stockSource  = 'beipan';
     }
   } else if (pandianItem) {
@@ -512,13 +675,10 @@ function calcProductInfo(product, data) {
   // ── Target ──
   const target = pandianItem?.target ?? null;
 
-  // ── Monthly incoming ──
-  const monthIncoming = jinhuo
-    .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'').startsWith(thisMonth()))
-    .reduce((s, r) => s + (r.receivedQty||0), 0);
-
   // ── Pending delivery ──
-  const orderItem = order?.orders?.find(o => o.itemId === `m-${product.id}`);
+  const orderItem = product.gupanId
+    ? order?.orders?.find(o => o.itemId === product.gupanId)
+    : null;
   const pending   = orderItem ? Math.max(0, (orderItem.orderQty||0) - (orderItem.receivedQty||0)) : 0;
 
   // ── Active lots (from jinhuo, group by lot#) ──
@@ -528,10 +688,20 @@ function calcProductInfo(product, data) {
     .sort((a,b) => (a.receivedAt||'').localeCompare(b.receivedAt||''))
     .forEach(r => {
       const k = r.lotNumber;
-      if (!lotMap[k]) lotMap[k] = { lot:k, expiry:r.expiryDate||'', qty:0, receivedAt:r.receivedAt||'' };
+      if (!lotMap[k]) lotMap[k] = { lot:k, expiry:r.expiryDate||'', qty:0 };
       lotMap[k].qty += r.receivedQty||0;
     });
   const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
+
+  // ── 修正當前備盤批號的庫存數（用備盤快照取代進貨量）──
+  if (beipanBatch && beipanBatch.selectedLot) {
+    const currLot = lots.find(l => l.lot === beipanBatch.selectedLot);
+    if (currLot) {
+      const rem = beipanBatch.remaining ?? 0;
+      const unop = beipanBatch.unopened ?? 0;
+      currLot.qty = (rem > 0 ? 1 : 0) + unop;
+    }
+  }
 
   // ── Status ──
   let status = (stockSource || lots.length>0) ? 'ok' : 'none';
@@ -549,67 +719,138 @@ function calcProductInfo(product, data) {
     }
   }
 
-  return { stockDisplay, stockSource, stockNum, monthIncoming, pending, lots, status, target, orangeDays, redDays };
+  return { stockDisplay, stockSource, stockNum, pending, lots, status, target, orangeDays, redDays };
+}
+
+// ── 期間估計用量（盤點推算 優先，備盤推算 次之）──
+function calcEstUsage(productId, pandianHistory, beipanResult, jinhuoRecs) {
+  const sortedPandian = [...(pandianHistory || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const beipanDate = beipanResult?.date || '';
+  const latestPandianDate = sortedPandian.length > 0 ? (sortedPandian[sortedPandian.length-1].date || '') : '';
+
+  // Case 1: 有 ≥2 筆盤點，且最新盤點 ≥ 最新備盤 → 盤點推算（精確）
+  if (sortedPandian.length >= 2 && latestPandianDate >= beipanDate) {
+    const prev = sortedPandian[sortedPandian.length - 2];
+    const curr = sortedPandian[sortedPandian.length - 1];
+    const prevItem = (prev.allValues||[]).find(v => v.id === `m-${productId}`);
+    const currItem = (curr.allValues||[]).find(v => v.id === `m-${productId}`);
+    if (!prevItem || !currItem) return { usage: null, label: '—' };
+    const purchases = (jinhuoRecs||[])
+      .filter(r => r.productId === productId && !r.isVoided
+                && (r.receivedAt||'') > (prev.date||'') && (r.receivedAt||'') <= (curr.date||''))
+      .reduce((s,r) => s + (r.receivedQty||0), 0);
+    const usage = prevItem.actual + purchases - currItem.actual;
+    return { usage: usage >= 0 ? usage : null, label: '盤點推算' };
+  }
+
+  // Case 2: 最新備盤 > 最新盤點，且有 ≥1 筆盤點 → 備盤推算（估）
+  if (beipanDate && sortedPandian.length >= 1 && beipanDate > latestPandianDate) {
+    const prevPandian = sortedPandian[sortedPandian.length - 1];
+    const prevItem = (prevPandian.allValues||[]).find(v => v.id === `m-${productId}`);
+    if (!prevItem) return { usage: null, label: '—' };
+    const beipanBatch = beipanResult?.batches?.find(b => b.reagentId === productId);
+    if (!beipanBatch) return { usage: null, label: '—' };
+    const currActual = ((beipanBatch.remaining || 0) > 0 ? 1 : 0) + (beipanBatch.unopened || 0);
+    const purchases = (jinhuoRecs||[])
+      .filter(r => r.productId === productId && !r.isVoided
+                && (r.receivedAt||'') > (prevPandian.date||'') && (r.receivedAt||'') <= beipanDate)
+      .reduce((s,r) => s + (r.receivedQty||0), 0);
+    const usage = prevItem.actual + purchases - currActual;
+    return { usage: usage >= 0 ? usage : null, label: '備盤推算（估）' };
+  }
+
+  return { usage: null, label: '—' };
+}
+
+// ════════════════════════════════
+// KPI
+// ════════════════════════════════
+function calcKPIs() {
+  let shortageCount = 0, expiringCount = 0, pendingCount = 0, pendingQCCount = 0;
+  PRODUCTS.forEach(p => {
+    const info = productInfoCache[p.id];
+    if (!info) return;
+    if (info.target !== null && info.stockNum !== null && info.stockNum < info.target) shortageCount++;
+    info.lots.forEach(lot => {
+      const d = daysBetween(lot.expiry);
+      if (d !== null && d >= 0 && d <= 7) expiringCount++;
+    });
+    if (info.pending > 0) pendingCount++;
+  });
+  (cachedData?.jinhuo || []).forEach(r => {
+    if (!r.isVoided && r.qcStatus === 'pending') pendingQCCount++;
+  });
+  return { shortageCount, expiringCount, pendingCount, pendingQCCount };
+}
+
+function renderKPIs() {
+  const kpis = calcKPIs();
+  document.getElementById('kpi-shortage-num').textContent = kpis.shortageCount;
+  document.getElementById('kpi-expiring-num').textContent = kpis.expiringCount;
+  document.getElementById('kpi-pending-num').textContent  = kpis.pendingCount;
+  document.getElementById('kpi-qc-num').textContent       = kpis.pendingQCCount;
+  const hasAlert = kpis.shortageCount > 0 || kpis.expiringCount > 0
+                || kpis.pendingCount > 0   || kpis.pendingQCCount > 0;
+  document.getElementById('kpi-section').classList.toggle('hidden', !hasAlert);
+}
+
+function setKpiFilter(f) {
+  kpiFilter = (kpiFilter === f) ? null : f;
+  ['shortage','expiring','pending','qc'].forEach(k => {
+    document.getElementById(`kpi-${k}`)?.classList.toggle('active', kpiFilter === k);
+  });
+  const bar = document.getElementById('kpi-filter-bar');
+  bar?.classList.toggle('hidden', !kpiFilter);
+  const LABELS = { shortage:'缺貨警示', expiring:'效期危急', pending:'待收貨', qc:'待 QC' };
+  if (kpiFilter) document.getElementById('kpi-filter-label').textContent = LABELS[kpiFilter] || kpiFilter;
+  if (cachedData) renderInventoryTable(cachedData);
+}
+
+function handleSearch(val) {
+  searchQuery = val.trim();
+  if (cachedData) renderInventoryTable(cachedData);
+}
+
+// ════════════════════════════════
+// BUILD CHANGELOG COLUMNS
+// ════════════════════════════════
+function buildChangelogCols(changelog) {
+  // 以「日期（YYYY-MM-DD）+ 來源」為 key 合併，同一天備盤 = 一欄
+  const entries = [...(changelog||[])].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
+  const groupMap = {};
+  const groupOrder = [];
+  entries.forEach(e => {
+    const dateStr = (e.ts||'').slice(0,10); // YYYY-MM-DD
+    const key = `${dateStr}|${e.source||'manual'}`;
+    if (!groupMap[key]) {
+      groupMap[key] = { key, date:dateStr, source:e.source||'manual', ts:e.ts, entries:[] };
+      groupOrder.push(key);
+    }
+    groupMap[key].entries.push(e);
+  });
+  const groups = groupOrder.map(k => groupMap[k]);
+
+  const cols = [];
+  let prevYear = null;
+  groups.forEach(g => {
+    const year = new Date(g.ts).getFullYear();
+    if (prevYear !== null && year !== prevYear) {
+      cols.push({ type:'year', year });
+    }
+    prevYear = year;
+    cols.push({ type:'group', group: g });
+  });
+  return cols;
 }
 
 // ════════════════════════════════
 // RENDER: INVENTORY TABLE
 // ════════════════════════════════
 function badgeHtml(status) {
-  const map = { ok:['b-ok','✅ 充足'], warn:['b-warn','🟠 注意'], crit:['b-crit','🔴 危急'], none:['b-none','⚪ 無資料'] };
-  const [cls, label] = map[status] || map.none;
-  return `<span class="badge ${cls}">${label}</span>`;
-}
-
-function productHistoryHtml(productId, changelog) {
-  const entries = (changelog || [])
-    .filter(e => e.productId === productId)
-    .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
-  if (!entries.length) return '<span class="text-slate-300 text-xs">尚無紀錄</span>';
-  return entries.map(e => {
-    const d = new Date(e.ts);
-    const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
-    const srcMap  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
-    const actMap  = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤', pandian:'盤點', use:'使用', discard:'報廢', adjust:'調整', note:'備註', order:'訂貨' };
-    const srcLabel = srcMap[e.source] || e.source || '';
-    const actLabel = actMap[e.action] || e.action || '';
-    let qtyHtml = '';
-    if (e.qty > 0) qtyHtml = `<span class="hist-qty-pos">+${fmtNum(e.qty)}</span>`;
-    else if (e.qty < 0) qtyHtml = `<span class="hist-qty-neg">${fmtNum(e.qty)}</span>`;
-    const lotStr = e.lotNumber ? `<span style="font-size:11px;color:#94A3B8;font-family:monospace">${e.lotNumber}</span>` : '';
-    const noteStr = e.note ? `<span style="font-size:11px;color:#94A3B8"> — ${e.note}</span>` : '';
-    return `<div class="hist-entry">
-      <span class="hist-date">${dateStr}</span>
-      <span class="hist-action">${srcLabel}/${actLabel}</span>
-      ${qtyHtml}${lotStr}${noteStr}
-    </div>`;
-  }).join('');
-}
-
-function lotsHtml(lots, orangeDays, redDays) {
-  if (!lots.length) return '<span class="text-slate-300 text-xs">—</span>';
-  const display = showAllLots ? lots : lots.slice(0, 3);
-  const html = display.map((lot, i) => {
-    const d = daysBetween(lot.expiry);
-    let expCls = 'lot-exp';
-    let expExtra = '';
-    if (d !== null) {
-      if (d <= 0)           { expCls += ' r'; expExtra = ' (已過期)'; }
-      else if (d <= redDays)    { expCls += ' r'; expExtra = ` (${d}天後)`; }
-      else if (d <= orangeDays) { expCls += ' o'; expExtra = ` (${d}天後)`; }
-    }
-    const expLabel = lot.expiry || '—';
-    const sep = i > 0 ? '<div class="lot-divider"></div>' : '';
-    return `${sep}<div class="lot-item">
-      <span class="lot-num">${lot.lot}</span>
-      <span class="${expCls}">${expLabel}${expExtra}</span>
-      <span class="lot-qty">×${lot.qty}</span>
-    </div>`;
-  }).join('');
-  const more = !showAllLots && lots.length > 3
-    ? `<div class="text-xs text-slate-400 mt-1 cursor-pointer hover:text-primary" onclick="toggleLots()">…還有 ${lots.length-3} 批</div>`
-    : '';
-  return html + more;
+  if (status === 'crit') return `<span class="badge b-crit">🔴 危急</span>`;
+  if (status === 'warn') return `<span class="badge b-warn">🟠 注意</span>`;
+  if (status === 'ok')   return `<span class="badge b-ok">🟢 充足</span>`;
+  return `<span class="badge b-none">⚪ 無資料</span>`;
 }
 
 function getSortedProducts(data) {
@@ -624,70 +865,288 @@ function getSortedProducts(data) {
       return (STATUS_ORDER[ia.status]??3) - (STATUS_ORDER[ib.status]??3);
     });
   }
-  return products; // group order (original)
+  return products;
 }
 
 function renderInventoryTable(data) {
   productInfoCache = {};
-  const products = getSortedProducts(data);
+  // Pre-calculate ALL product info (needed for KPI cards and filter)
+  const allProducts = getSortedProducts(data);
+  allProducts.forEach(p => { productInfoCache[p.id] = calcProductInfo(p, data); });
 
+  // Apply search + KPI filters
+  let products = allProducts;
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    products = products.filter(p => p.name.toLowerCase().includes(q) || p.vendor.toLowerCase().includes(q));
+  }
+  if (kpiFilter === 'shortage') {
+    products = products.filter(p => {
+      const i = productInfoCache[p.id];
+      return i.target !== null && i.stockNum !== null && i.stockNum < i.target;
+    });
+  } else if (kpiFilter === 'expiring') {
+    products = products.filter(p =>
+      productInfoCache[p.id].lots.some(l => { const d = daysBetween(l.expiry); return d !== null && d >= 0 && d <= 7; })
+    );
+  } else if (kpiFilter === 'pending') {
+    products = products.filter(p => productInfoCache[p.id].pending > 0);
+  } else if (kpiFilter === 'qc') {
+    products = products.filter(p =>
+      (cachedData?.jinhuo || []).some(r =>
+        r.productId === p.id && !r.isVoided && r.qcStatus === 'pending'
+      )
+    );
+  }
+  const cols = buildChangelogCols(data.changelog);
+  const totalCols = 4 + cols.length + 2;
+
+  // ── Header row ──
+  const tooltipText = '盤點推算 = 前次盤點 + 期間進貨 − 本次盤點\n備盤推算（估）= 以最新備盤換算瓶數，誤差略高';
+  let theadHtml = `
+    <th class="sl sl-0">品項</th>
+    <th class="sl sl-1">庫存</th>
+    <th class="sl sl-2">狀態</th>
+    <th class="sl sl-3">待收貨</th>
+  `;
+  cols.forEach(col => {
+    if (col.type === 'year') {
+      theadHtml += `<th class="year-sep"><span class="year-sep-inner">${col.year}年</span></th>`;
+    } else {
+      const g = col.group;
+      const d = new Date(g.ts);
+      const M = d.getMonth()+1, D = d.getDate();
+      const srcShort = { jinhuo:'進', beipan:'備', pandian:'盤', order:'訂', manual:'手' };
+      const srcCls = `src-${g.source}`;
+      const srcLbl = srcShort[g.source] || '?';
+      const colDate2 = g.ts.slice(0, 10);
+      const colF2    = {jinhuo:'jinhuo:receive',beipan:'beipan',pandian:'pandian',order:'order',manual:'manual:use'}[g.source] || '';
+      theadHtml += `<th class="ev-col" style="padding:7px 6px;cursor:pointer" title="${colDate2} — 點擊篩選日誌" onclick="drillDownChangelog('${colDate2}','${colF2}')">
+        <div class="font-bold text-slate-600">${M}/${D}</div>
+        <span class="src-badge ${srcCls}" style="margin-top:2px;font-size:10px">${srcLbl}</span>
+      </th>`;
+    }
+  });
+  if (cols.length === 0) theadHtml += '<th style="min-width:40px"></th>';
+  theadHtml += `<th class="sr-1" style="padding:10px 8px">期間估計用量 <span class="info-tip" data-tip="${tooltipText}" style="font-size:14px">ℹ️</span></th>`;
+  theadHtml += `<th class="sr" style="padding:10px 8px">預計可撐天數 <span class="info-tip" data-tip="公式：目前庫存 ÷ (期間估計用量 ÷ 期間天數)" style="font-size:14px">ℹ️</span></th>`;
+  document.getElementById('inv-thead').innerHTML = `<tr>${theadHtml}</tr>`;
+
+  // ── Body rows ──
+  const tbodyRows = [];
   let lastGroupKey = null;
-  const rows = [];
 
   products.forEach(p => {
-    const info = calcProductInfo(p, data);
-    productInfoCache[p.id] = info;
+    const info = productInfoCache[p.id];
 
-    // Group header row
     const groupKey = sortMode === 'group' ? p.group : sortMode === 'vendor' ? p.vendor : null;
     if (groupKey && groupKey !== lastGroupKey) {
       lastGroupKey = groupKey;
-      rows.push(`<tr class="group-row">
-        <td class="s0">${groupKey}</td>
-        <td class="s1"></td><td class="s2"></td><td class="s3"></td>
-        <td colspan="3"></td>
+      const midSpan = Math.max(cols.length, 1);
+      tbodyRows.push(`<tr class="group-row">
+        <td class="sl sl-0">${groupKey}</td>
+        <td class="sl sl-1"></td>
+        <td class="sl sl-2"></td>
+        <td class="sl sl-3"></td>
+        <td colspan="${midSpan}"></td>
+        <td class="sr-1"></td>
+        <td class="sr"></td>
       </tr>`);
     }
 
     const stockCell = info.stockDisplay
-      ? `<span class="tabular font-medium text-slate-700 text-sm">${info.stockDisplay}</span>`
-      : `<span class="text-slate-300 text-sm">—</span>`;
-    const monthCell = info.monthIncoming > 0
-      ? `<span class="tabular text-emerald-600 font-semibold text-sm">+${info.monthIncoming} ${p.unit}</span>`
+      ? `<div class="font-semibold text-slate-700 text-sm tabular">${info.stockDisplay}</div>`
       : `<span class="text-slate-300 text-sm">—</span>`;
     const pendingCell = info.pending > 0
-      ? `<span class="inline-block bg-sky-50 text-sky-700 border border-sky-200 text-xs font-semibold px-2 py-0.5 rounded-full">${info.pending} ${p.unit} 在途</span>`
+      ? `<span class="badge b-transit">🔵 ${info.pending} ${p.unit}</span>`
       : `<span class="text-slate-300 text-sm">—</span>`;
 
-    rows.push(`<tr>
-      <td class="s0">
-        <div class="font-semibold text-slate-800 text-sm">${p.name}</div>
-        <div class="text-xs text-slate-400 mt-0.5">${p.vendor}</div>
-      </td>
-      <td class="s1">${stockCell}</td>
-      <td class="s2">${lotsHtml(info.lots, info.orangeDays, info.redDays)}</td>
-      <td class="s3">${badgeHtml(info.status)}</td>
-      <td>${monthCell}</td>
-      <td>${pendingCell}</td>
-      <td>${productHistoryHtml(p.id, data.changelog)}</td>
+    let midCells = '';
+    cols.forEach(col => {
+      if (col.type === 'year') {
+        midCells += `<td class="year-sep"></td>`;
+      } else {
+        const g = col.group;
+        const matched = g.entries.filter(e => e.productId === p.id);
+        if (matched.length > 0) {
+          let qtyHtml = '';
+          const S = 'font-size:11px;font-weight:600;margin-top:2px';
+          if (g.source === 'pandian') {
+            const pandianQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
+            qtyHtml = `<div style="${S};color:#059669">= ${fmtNum(pandianQty)} 瓶</div>`;
+          } else if (g.source === 'beipan') {
+            const totalOpened = matched.reduce((s, e) => s + (e.bottlesOpened || 0), 0);
+            if (totalOpened > 0) {
+              qtyHtml = `<div style="${S};color:#DC2626">-${totalOpened} 瓶</div>`;
+            }
+            // bottlesOpened === 0 → 灰點（不顯示 mL）
+          } else if (g.source === 'order') {
+            const totalQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
+            if (totalQty !== 0) {
+              qtyHtml = `<div style="${S};color:#94A3B8">${fmtNum(Math.abs(totalQty))}</div>`;
+            }
+          } else if (g.source === 'jinhuo') {
+            const totalQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
+            if (totalQty !== 0) {
+              const sign = totalQty > 0 ? '+' : '-';
+              const clr  = totalQty > 0 ? '#2563EB' : '#DC2626';
+              qtyHtml = `<div style="${S};color:${clr}">${sign}${fmtNum(Math.abs(totalQty))}</div>`;
+            }
+          } else {
+            // manual / fallback
+            const totalQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
+            if (totalQty !== 0) {
+              const sign = totalQty > 0 ? '+' : '-';
+              const clr  = totalQty > 0 ? '#2563EB' : '#DC2626';
+              qtyHtml = `<div style="${S};color:${clr}">${sign}${fmtNum(Math.abs(totalQty))}</div>`;
+            }
+          }
+          midCells += `<td class="ev-col" style="vertical-align:middle;padding:8px 4px">${qtyHtml || '<span style="font-size:10px;color:#CBD5E1">·</span>'}</td>`;
+        } else {
+          midCells += `<td class="ev-col" style="vertical-align:middle;padding:8px 4px"></td>`;
+        }
+      }
+    });
+    if (cols.length === 0) midCells = '<td></td>';
+
+    const est = calcEstUsage(p.id, data.pandianHistory, data.beipan, data.jinhuo);
+    let estCell;
+    if (est.usage !== null) {
+      const labelCls = est.label === '盤點推算' ? 'text-violet-600' : 'text-violet-400';
+      estCell = `<div class="font-semibold ${labelCls} text-sm tabular">${fmtNum(est.usage)} ${p.unit}</div>
+        <div class="text-xs text-slate-400 mt-0.5">${est.label}</div>`;
+    } else {
+      estCell = `<span class="text-slate-300 text-sm">—</span>`;
+    }
+
+    const doi = calcDoI(p.id, data);
+    const doiCell = doi !== null
+      ? `<div class="font-semibold text-slate-700 text-sm tabular">≈ ${doi} 天</div>`
+      : `<span class="text-slate-300 text-sm">—</span>`;
+
+    tbodyRows.push(`<tr onmousedown="this._downX=event.pageX" onclick="if(Math.abs(event.pageX-this._downX)<5)openDrawer('${p.id}')">
+      <td class="sl sl-0"><div class="font-semibold text-slate-800 text-sm">${p.name}</div></td>
+      <td class="sl sl-1">${stockCell}</td>
+      <td class="sl sl-2">${badgeHtml(info.status)}</td>
+      <td class="sl sl-3">${pendingCell}</td>
+      ${midCells}
+      <td class="sr-1" style="padding:10px 8px">${estCell}</td>
+      <td class="sr" style="padding:10px 8px">${doiCell}</td>
     </tr>`);
   });
 
-  document.getElementById('inv-tbody').innerHTML = rows.join('');
+  document.getElementById('inv-tbody').innerHTML = tbodyRows.join('');
+  requestAnimationFrame(() => {
+    initScrollSync();
+    initDragScroll();
+    const wrap   = document.getElementById('inv-wrap');
+    const mirror = document.getElementById('inv-mirror');
+    if (wrap)   wrap.scrollLeft   = wrap.scrollWidth;
+    if (mirror) mirror.scrollLeft = mirror.scrollWidth;
+  });
 }
 
 // ════════════════════════════════
-// RENDER: CHANGELOG
+// EXPORT CSV — 庫存快照（上方總表當前狀態）
 // ════════════════════════════════
-const SRC_LABEL = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+function exportCSV() {
+  if (!cachedData) { showToast('尚無資料，請先載入'); return; }
+  const STATUS_ZH = { crit:'危急', warn:'注意', ok:'充足', none:'無資料' };
+  const CAT_MEDIA = new Set(['givf','gxtl','glue','h5gt','aoa-ci','aoa-508','hepes','oil']);
+  const header = ['品項分類','品項名稱','廠商','目前庫存','狀態','待收貨數量','預計可撐天數','期間估計用量'];
+  const rows = PRODUCTS.map(p => {
+    const info = productInfoCache[p.id] || calcProductInfo(p, cachedData);
+    const cat = CAT_MEDIA.has(p.id) ? '培養液' : '試劑';
+    const stock  = info.stockDisplay || '—';
+    const status = STATUS_ZH[info.status] || '—';
+    const pending = info.pending > 0 ? `${info.pending} ${p.unit}` : '—';
+    const doi = calcDoI(p.id, cachedData);
+    const daysStr = doi !== null ? `≈ ${doi} 天` : '—';
+    const est = calcEstUsage(p.id, cachedData.pandianHistory, cachedData.beipan, cachedData.jinhuo);
+    const estStr = est.usage !== null ? `${est.usage} ${p.unit}（${est.label}）` : '—';
+    return [cat, p.name, p.vendor, stock, status, pending, daysStr, estStr]
+      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  const hm  = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const rptTime = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const infoRow = `"報表產生時間：${rptTime}，報表產生人：高任佑"`;
+  const csvContent = '﻿' + [infoRow, '', header.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `台北胚胎室_庫存快照_${ymd}_${hm}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(`已匯出 ${PRODUCTS.length} 品項庫存快照`);
+}
+
+// EXPORT CSV — 異動日誌（下方 changelog，套用篩選條件）
+// ════════════════════════════════
+function exportChangelogCSV() {
+  const cl = cachedData?.changelog || JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+  if (!cl.length) { showToast('尚無資料可匯出'); return; }
+  const from = document.getElementById('cl-date-from')?.value || '';
+  const to   = document.getElementById('cl-date-to')?.value   || '';
+  let filtered = cl.filter(e => matchesCLFilter(e, clFilter));
+  if (from) filtered = filtered.filter(e => (e.ts||'').slice(0,10) >= from);
+  if (to)   filtered = filtered.filter(e => (e.ts||'').slice(0,10) <= to);
+  if (!filtered.length) { showToast('篩選範圍內無資料'); return; }
+  const sorted = [...filtered].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
+  const header = ['日期','時間','來源','操作','品項','批號','效期','數量','單位','操作人','備註'];
+  const SRC_ZH = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+  const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
+  const rows = sorted.map(e => {
+    const d = new Date(e.ts);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const p = PRODUCT_MAP[e.productId];
+    return [
+      dateStr, timeStr,
+      SRC_ZH[e.source] || e.source || '',
+      ACT_ZH[e.action] || e.action || '',
+      p?.name || e.productName || e.productId || '',
+      e.lotNumber || '', e.expiryDate || '',
+      e.qtyDelta ?? e.qty ?? '',
+      e.unit || '', e.operator || '', e.note || '',
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  const hm  = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const rptTime = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const infoRow = `"報表產生時間：${rptTime}，報表產生人：高任佑"`;
+  const csvContent = '﻿' + [infoRow, '', header.join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `台北胚胎室_異動日誌_${ymd}_${hm}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast(`已匯出 ${sorted.length} 筆異動日誌`);
+}
+
+// ════════════════════════════════
+// RENDER: CHANGELOG (Accordion)
+// ════════════════════════════════
+const SRC_LABEL  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
 const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
+const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄' };
 
 function renderChangelog(data) {
   const cl = data.changelog || [];
-  const filtered = clFilter ? cl.filter(e => e.source === clFilter) : cl;
-  const sorted   = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  const from = document.getElementById('cl-date-from')?.value || '';
+  const to   = document.getElementById('cl-date-to')?.value   || '';
 
-  document.getElementById('cl-count').textContent = cl.length > 0 ? `共 ${cl.length} 筆` : '';
+  let filtered = cl.filter(e => matchesCLFilter(e, clFilter));
+  if (from) filtered = filtered.filter(e => (e.ts||'').slice(0,10) >= from);
+  if (to)   filtered = filtered.filter(e => (e.ts||'').slice(0,10) <= to);
+
+  const sorted = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+
+  document.getElementById('cl-count').textContent =
+    cl.length > 0 ? `共 ${cl.length} 筆${filtered.length < cl.length ? `（篩選後 ${filtered.length} 筆）` : ''}` : '';
 
   const empty = document.getElementById('cl-empty');
   const table = document.getElementById('cl-table');
@@ -700,31 +1159,160 @@ function renderChangelog(data) {
   empty.classList.add('hidden');
   table.classList.remove('hidden');
 
-  const rows = sorted.map(e => {
-    const p = PRODUCT_MAP[e.productId];
-    const srcClass = `src-${e.source || 'manual'}`;
-    const srcLabel = SRC_LABEL[e.source] || e.source || '—';
-    const actLabel = ACTION_LABEL[e.action] || e.action || '—';
-    const qtyHtml = e.qty > 0
-      ? `<span class="text-emerald-600 font-semibold">+${fmtNum(e.qty)}</span>`
-      : e.qty < 0
-        ? `<span class="text-red-500 font-semibold">${fmtNum(e.qty)}</span>`
-        : '—';
-    return `<tr>
-      <td class="text-slate-500 text-xs tabular">${fmtTs(e.ts)}</td>
+  // ── Group by ts+source ──
+  const groups = [];
+  const groupMap = {};
+  sorted.forEach(e => {
+    const key = `${e.ts||''}|${e.source||'manual'}`;
+    if (!groupMap[key]) {
+      groupMap[key] = { key, ts: e.ts, source: e.source, entries: [], operator: e.operator || '' };
+      groups.push(groupMap[key]);
+    }
+    if (!groupMap[key].operator && e.operator) groupMap[key].operator = e.operator;
+    groupMap[key].entries.push(e);
+  });
+
+  const rows = groups.map((g, gi) => {
+    const gid = `cl-g-${gi}`;
+    const src = g.source || 'manual';
+    const srcCls = `src-${src}`;
+    const srcLbl = SRC_LABEL[src] || src;
+    const grpLbl = GRP_LABEL[src] || ACTION_LABEL[g.entries[0]?.action] || src;
+    const opHtml = g.operator ? `<span class="text-slate-400 text-xs ml-2">👤 ${g.operator}</span>` : '';
+    const cnt = g.entries.length;
+
+    const expandHtml = buildExpandRows(g.entries, src);
+
+    return `<tr class="cl-group-row" data-gid="${gid}" onclick="toggleCLGroup('${gid}')">
       <td>
-        <div class="font-medium text-slate-700 text-sm">${p?.name || e.productName || e.productId || '—'}</div>
-        ${p ? `<div class="text-xs text-slate-400">${p.vendor}</div>` : ''}
+        <span class="src-badge ${srcCls}">${srcLbl}</span>
+        <span class="text-slate-500 text-xs tabular ml-2">${fmtTs(g.ts)}</span>
+        <span class="text-slate-400 text-xs ml-2">— ${cnt} 項</span>
+        <span id="${gid}-chevron" class="cl-chevron">▸</span>
       </td>
-      <td><span class="src-badge ${srcClass}">${srcLabel}</span></td>
-      <td class="text-slate-600 text-sm">${actLabel}</td>
-      <td class="font-mono text-xs text-slate-500">${e.lotNumber || '—'}</td>
-      <td>${qtyHtml}</td>
-      <td class="text-slate-400 text-xs">${e.note || '—'}</td>
+      <td class="text-xs text-slate-400">${g.operator || '—'}</td>
+    </tr>
+    <tr id="${gid}" class="hidden cl-expand-wrap">
+      <td colspan="2"><div class="cl-expand-inner">${expandHtml}</div></td>
     </tr>`;
   }).join('');
 
   document.getElementById('cl-tbody').innerHTML = rows;
+}
+
+function cleanNote(note) {
+  if (!note) return '';
+  return note.replace(/[（(]\d{4}-\d{2}-\d{2}[）)]\s*$/, '').trim();
+}
+
+// 4-column grid helper: 品名(140px) | 批號(100px) | 消耗/數量(160px) | 備註(1fr)
+function expandRow4(c1, c2, c3, c4, extraClass) {
+  const cls = extraClass ? `cl-expand-row ${extraClass}` : 'cl-expand-row';
+  return `<div class="${cls}">
+    <span class="font-medium text-slate-700 text-xs">${c1}</span>
+    <span class="font-mono text-xs text-slate-400">${c2 || ''}</span>
+    <span class="text-xs">${c3 || ''}</span>
+    <span class="text-xs text-slate-400">${c4 || ''}</span>
+  </div>`;
+}
+
+function buildExpandRows(entries, src) {
+  return entries.map(e => {
+    const p    = PRODUCT_MAP[e.productId];
+    const name = p?.name || e.productName || e.productId || '—';
+    const qty  = e.qtyDelta ?? e.qty;
+    const unit = e.unit || '瓶';
+    const lot  = e.lotNumber || '';
+    const baseNote = cleanNote(e.note);
+
+    if (src === 'beipan') {
+      const consumed = qty != null ? Math.abs(parseFloat(qty)) : null;
+      const consumedStr = consumed != null ? `使用 ${consumed.toFixed(1)}mL` : '';
+      const openedStr = (e.bottlesOpened > 0) ? `（開 ${e.bottlesOpened} 瓶）` : '';
+      const col3 = consumedStr
+        ? `<span class="text-red-500 font-semibold">${consumedStr}${openedStr}</span>` : '';
+      const openExpStr = e.openExpiryDate ? `開封後到期 ${e.openExpiryDate}` : '';
+      let noteClean = baseNote.replace(/扣除[\d.]+mL[^；]*[；;]\s*/g, '').trim();
+      const col4 = [noteClean, openExpStr].filter(Boolean).join(' ｜ ') || '—';
+      return expandRow4(name, lot, col3, col4);
+    }
+
+    if (src === 'jinhuo' && e.action === 'receive') {
+      const col3 = qty > 0 ? `<span class="text-emerald-600 font-semibold">+${qty} ${unit}</span>` : '';
+      const expStr = e.expiryDate ? `效期 ${e.expiryDate}` : '';
+      const noteClean = baseNote.replace(/^進貨$/, '').replace(/簽收：[^；]+/g, '').replace(/^[;；\s]+|[;；\s]+$/g, '').trim();
+      const col4 = [expStr, noteClean].filter(Boolean).join('｜') || '—';
+      return expandRow4(name, lot, col3, col4);
+    }
+
+    if (src === 'jinhuo' && e.action === 'void') {
+      const col3 = qty != null ? `<span class="text-red-500 font-semibold">${qty} ${unit}</span>` : '';
+      return expandRow4(name, lot, col3, baseNote || '—');
+    }
+
+    if (src === 'jinhuo' && e.action === 'edit') {
+      return expandRow4(name, lot, '—', baseNote || '—');
+    }
+
+    if (src === 'pandian') {
+      const col3 = qty != null ? `<span class="text-slate-600 font-semibold">${qty} ${unit}</span>` : '';
+      const noteClean = baseNote
+        .replace(/盤點[：:]\s*[一-龥a-zA-Z\s]+/g, '')
+        .replace(/^[;；,，\s]+|[;；,，\s]+$/g, '').trim();
+      return expandRow4(name, '', col3, noteClean || '—');
+    }
+
+    if (src === 'order') {
+      const col3 = qty > 0 ? `訂購 ${qty} ${unit}` : '—';
+      const vendor = e.vendor || (baseNote.match(/廠商[：:]\s*([^；（\s]+)/)?.[1] || '');
+      return expandRow4(
+        `<span class="text-slate-400">${name}</span>`,
+        '',
+        `<span class="text-slate-400 font-medium">${col3}</span>`,
+        `<span class="text-slate-400">${vendor || '—'}</span>`,
+        'order-row'
+      );
+    }
+
+    // manual / fallback
+    const col3 = qty > 0 ? `<span class="text-emerald-600 font-semibold">+${qty} ${unit}</span>`
+               : qty < 0 ? `<span class="text-red-500 font-semibold">${qty} ${unit}</span>` : '';
+    const manualNote = baseNote
+      .replace(/手動記錄(?:使用)?\s*[\d.]+\s*[瓶mL]+/gi, '')
+      .replace(/^[;；,，\s]+|[;；,，\s]+$/g, '').trim();
+    return expandRow4(name, lot, col3, manualNote || '—');
+  }).join('');
+}
+
+function toggleCLGroup(gid) {
+  const row = document.getElementById(gid);
+  if (!row) return;
+  const isOpen = !row.classList.contains('hidden');
+  row.classList.toggle('hidden', isOpen);
+  const chevron = document.getElementById(gid + '-chevron');
+  if (chevron) { chevron.textContent = isOpen ? '▸' : '▾'; chevron.classList.toggle('open', !isOpen); }
+}
+
+function setCLDateRange(range) {
+  const from = document.getElementById('cl-date-from');
+  const to   = document.getElementById('cl-date-to');
+  if (!from || !to) return;
+  const now  = new Date();
+  const pad  = n => String(n).padStart(2,'0');
+  const ymd  = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if (!range) { from.value = ''; to.value = ''; }
+  else if (range === 'thisMonth') {
+    from.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+    to.value   = ymd(now);
+  } else if (range === 'lastMonth') {
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lme = new Date(now.getFullYear(), now.getMonth(), 0);
+    from.value = ymd(lm); to.value = ymd(lme);
+  } else if (range === 'quarter') {
+    const q = new Date(now); q.setDate(q.getDate() - 90);
+    from.value = ymd(q); to.value = ymd(now);
+  }
+  if (cachedData) renderChangelog(cachedData);
 }
 
 // ════════════════════════════════
@@ -746,6 +1334,194 @@ function renderMeta(data) {
 }
 
 // ════════════════════════════════
+// SPARKLINE
+// ════════════════════════════════
+function sparklineHtml(productId, changelog, w=160, h=40) {
+  const cutoff = Date.now() - 90 * 86400000;
+  const dayMap = {};
+  (changelog || []).forEach(e => {
+    if (e.productId !== productId || !e.qty) return;
+    if (new Date(e.ts).getTime() < cutoff) return;
+    const day = (e.ts || '').slice(0, 10);
+    dayMap[day] = (dayMap[day] || 0) + Math.abs(e.qty);
+  });
+  const points = Object.entries(dayMap).sort(([a],[b]) => a.localeCompare(b));
+  if (points.length < 3) return '';
+  const W = w, H = h;
+  const vals = points.map(([,v]) => v);
+  const maxV = Math.max(...vals), minV = Math.min(...vals);
+  const range = maxV - minV || 1;
+  const xs = points.map((_, i) => Math.round(i / (points.length - 1) * W));
+  const ys = vals.map(v => Math.round(H - ((v - minV) / range) * (H - 6) - 3));
+  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;opacity:.7"><path d="${d}" fill="none" stroke="#9590D0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// ════════════════════════════════
+// DAYS OF INVENTORY
+// ════════════════════════════════
+function calcDoI(productId, data) {
+  const info = productInfoCache[productId];
+  if (!info || info.stockNum === null) return null;
+  const est = calcEstUsage(productId, data.pandianHistory, data.beipan, data.jinhuo);
+  if (est.usage === null || est.usage <= 0) return null;
+  const sortedPandian = [...(data.pandianHistory || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const beipanDate = data.beipan?.date || '';
+  const latestPandianDate = sortedPandian.length > 0 ? sortedPandian[sortedPandian.length-1].date : '';
+  let prevDate, currDate;
+  if (sortedPandian.length >= 2 && latestPandianDate >= beipanDate) {
+    prevDate = sortedPandian[sortedPandian.length - 2].date;
+    currDate = sortedPandian[sortedPandian.length - 1].date;
+  } else if (beipanDate && sortedPandian.length >= 1 && beipanDate > latestPandianDate) {
+    prevDate = sortedPandian[sortedPandian.length - 1].date;
+    currDate = beipanDate;
+  } else {
+    return null;
+  }
+  const periodDays = Math.round((new Date(currDate) - new Date(prevDate)) / 86400000);
+  if (periodDays <= 0) return null;
+  const dailyUsage = est.usage / periodDays;
+  if (dailyUsage <= 0) return null;
+  return Math.round(info.stockNum / dailyUsage);
+}
+
+// ════════════════════════════════
+// ITEM DRAWER
+// ════════════════════════════════
+function openDrawer(productId) {
+  if (!cachedData) return;
+  const product = PRODUCT_MAP[productId];
+  if (!product) return;
+  const info = productInfoCache[productId] || calcProductInfo(product, cachedData);
+
+  document.getElementById('drawer-product-name').textContent = product.name;
+  document.getElementById('drawer-product-vendor').textContent = product.vendor;
+
+  const stockStr = info.stockDisplay || '—';
+  const targetStr = info.target !== null ? `<div class="text-xs text-slate-400 border-l border-slate-200 pl-3">安全量：${info.target} ${product.unit}</div>` : '';
+  document.getElementById('drawer-stock-row').innerHTML = `
+    <div class="text-sm text-slate-700"><span class="font-semibold tabular">${stockStr}</span> 庫存</div>
+    ${targetStr}
+    <div class="ml-auto">${badgeHtml(info.status)}</div>
+  `;
+
+  // Sparkline（近 90 天趨勢）
+  const sparkSvg = sparklineHtml(productId, cachedData.changelog);
+  document.getElementById('drawer-sparkline').innerHTML = sparkSvg
+    ? `<div class="mt-3 mb-1"><div class="text-xs text-slate-400 mb-1">近 90 天異動趨勢</div>${sparkSvg}</div>`
+    : '';
+
+  // Lots — 最新效期在上、過期在下（reverse 顯示，顏色用原始 index）
+  const lots = info.lots;
+  const displayLots = [...lots].reverse();
+  let lotRows = '';
+  if (!lots.length) {
+    lotRows = `<tr><td colspan="3" class="text-slate-300 text-xs py-2 text-center">無批號資料</td></tr>`;
+  } else {
+    displayLots.forEach(lot => {
+      const origIdx = lots.findIndex(l => l.lot === lot.lot);
+      const d = daysBetween(lot.expiry);
+      const isExpired = (d ?? 1) <= 0;
+      const expClr = isExpired ? '#94A3B8' : origIdx === 0 ? '#15803D' : '#1D4ED8';
+      const dLabel = !isExpired && d !== null
+        ? `<span style="font-size:10px;color:${d <= 3 ? '#DC2626' : d <= 7 ? '#D97706' : '#94A3B8'}">&nbsp;(${d}天後)</span>`
+        : (isExpired ? `<span style="font-size:10px;color:#CBD5E1">&nbsp;已過期</span>` : '');
+      const lotBg  = isExpired ? '#F8FAFC' : origIdx === 0 ? '#F0FDF4' : '#EFF6FF';
+      const lotClr = isExpired ? '#CBD5E1' : origIdx === 0 ? '#15803D' : '#1D4ED8';
+
+      const jinhuoRecs = cachedData?.jinhuo || [];
+      const hasQCPending = jinhuoRecs.some(r =>
+        r.productId === productId && r.lotNumber === lot.lot && !r.isVoided && r.qcStatus === 'pending'
+      );
+      const hasQCPassed = !hasQCPending && jinhuoRecs.some(r =>
+        r.productId === productId && r.lotNumber === lot.lot && !r.isVoided && r.qcStatus === 'passed'
+      );
+      const qcCell = hasQCPending
+        ? `<td style="padding-left:6px;white-space:nowrap">
+             <span style="background:#EDE9FE;color:#6D28D9;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600">⏳ 待QC</span>
+             <button onclick="event.stopPropagation();markQcPassed('${productId}','${lot.lot.replace(/'/g,"\\\'")}')"
+               style="margin-left:4px;background:#7C3AED;color:white;border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">✅ 通過</button>
+           </td>`
+        : hasQCPassed
+          ? `<td style="padding-left:6px"><span style="color:#059669;font-size:10px;font-weight:600">✓ QC通過</span></td>`
+          : `<td></td>`;
+
+      lotRows += `<tr>
+        <td style="color:${expClr};font-weight:600;width:36px">×${lot.qty || 0}</td>
+        <td style="color:${expClr}">${lot.expiry || '—'}${dLabel}</td>
+        <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code></td>
+        ${qcCell}
+      </tr>`;
+    });
+  }
+  document.getElementById('drawer-lot-tbody').innerHTML = lotRows;
+
+  // Recent changelog
+  const SRC_ZH2 = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+  const ACT_ZH2 = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'調整', note:'備註', order:'訂貨' };
+  const cl = (cachedData.changelog || [])
+    .filter(e => e.productId === productId)
+    .sort((a,b) => (b.ts||'').localeCompare(a.ts||''))
+    .slice(0, 6);
+  let clHtml = '';
+  if (!cl.length) {
+    clHtml = '<div class="text-slate-300 text-xs py-1 text-center">無異動紀錄</div>';
+  } else {
+    clHtml = cl.map(e => {
+      const srcCls = `src-${e.source || 'manual'}`;
+      const qtyStr = e.source === 'beipan' ? '' :
+        e.qty > 0 ? `<span class="text-emerald-600 font-semibold text-xs">+${fmtNum(e.qty)}</span>` :
+        e.qty < 0 ? `<span class="text-red-500 font-semibold text-xs">${fmtNum(e.qty)}</span>` :
+        (e.qty !== null && e.qty !== undefined) ? `<span class="text-slate-500 text-xs">${fmtNum(e.qty)}</span>` : '';
+      return `<div class="flex items-center gap-2 py-2 border-b border-slate-50 last:border-0 flex-wrap">
+        <span class="text-slate-400 text-xs tabular whitespace-nowrap">${fmtTs(e.ts)}</span>
+        <span class="src-badge ${srcCls}">${SRC_ZH2[e.source] || e.source || '—'}</span>
+        <span class="text-xs text-slate-600">${ACT_ZH2[e.action] || e.action || '—'}</span>
+        ${qtyStr ? `<span class="ml-auto">${qtyStr}</span>` : ''}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('drawer-changelog').innerHTML = clHtml;
+
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('item-drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('item-drawer').classList.remove('open');
+}
+
+function markQcPassed(productId, lotNumber) {
+  const operator = prompt(`請輸入您的姓名，確認批號 ${lotNumber} 已通過 QC：`);
+  if (!operator || !operator.trim()) return;
+
+  const records = JSON.parse(localStorage.getItem('jinhuo-records') || '[]');
+  let updated = false;
+  records.forEach(r => {
+    if (r.productId === productId && r.lotNumber === lotNumber && r.qcStatus === 'pending') {
+      r.qcStatus = 'passed';
+      updated = true;
+    }
+  });
+  if (!updated) { showToast('找不到對應的待 QC 批號'); return; }
+  localStorage.setItem('jinhuo-records', JSON.stringify(records));
+
+  const productName = PRODUCT_MAP[productId]?.name || productId;
+  appendKucunLog([{
+    source: 'manual', action: 'qc_pass',
+    productId, productName,
+    lotNumber,
+    operator: operator.trim(),
+    note: `批號 ${lotNumber} QC 確認通過`,
+  }]);
+
+  showToast(`✓ 批號 ${lotNumber} QC 已通過`);
+  render();
+  openDrawer(productId);
+}
+
+// ════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════
 function render() {
@@ -758,13 +1534,137 @@ function render() {
 
   renderMeta(cachedData);
 
-  if (hasAny) renderInventoryTable(cachedData);
+  if (hasAny) {
+    renderInventoryTable(cachedData);
+    renderKPIs();
+  }
   renderChangelog(cachedData);
+}
+
+function initScrollSync() {
+  const mirror = document.getElementById('inv-mirror');
+  const wrap   = document.getElementById('inv-wrap');
+  const table  = document.getElementById('inv-table');
+  if (!mirror || !wrap || !table) return;
+  const spacer = document.getElementById('inv-spacer');
+  if (spacer) spacer.style.width = table.scrollWidth + 'px';
+  mirror._lock = false; wrap._lock = false;
+  mirror.onscroll = null; wrap.onscroll = null;
+  mirror.addEventListener('scroll', () => {
+    if (mirror._lock) return;
+    const mMax = mirror.scrollWidth - mirror.clientWidth;
+    const wMax = wrap.scrollWidth - wrap.clientWidth;
+    if (mMax <= 0) return;
+    wrap._lock = true; wrap.scrollLeft = (mirror.scrollLeft / mMax) * wMax; wrap._lock = false;
+  });
+  wrap.addEventListener('scroll', () => {
+    if (wrap._lock) return;
+    const mMax = mirror.scrollWidth - mirror.clientWidth;
+    const wMax = wrap.scrollWidth - wrap.clientWidth;
+    if (wMax <= 0) return;
+    mirror._lock = true; mirror.scrollLeft = (wrap.scrollLeft / wMax) * mMax; mirror._lock = false;
+  });
+}
+
+function initDragScroll() {
+  const wrap = document.getElementById('inv-wrap');
+  if (!wrap || wrap._dragInited) return;
+  wrap._dragInited = true;
+  let isDown = false, startX, scrollLeft;
+  wrap.addEventListener('mousedown', e => {
+    if (e.target.closest('button,a,input,select,th,code')) return;
+    isDown = true; wrap._dragging = false;
+    startX = e.pageX; scrollLeft = wrap.scrollLeft;
+  });
+  document.addEventListener('mouseup', () => {
+    isDown = false; wrap.style.cursor = '';
+    setTimeout(() => { wrap._dragging = false; }, 0);
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    const dx = e.pageX - startX;
+    if (Math.abs(dx) > 4) { wrap._dragging = true; wrap.style.cursor = 'grabbing'; e.preventDefault(); }
+    wrap.scrollLeft = scrollLeft - dx;
+  });
 }
 
 function refresh() {
   render();
   showToast('資料已更新');
+}
+
+function loadDemoData() {
+  localStorage.setItem('jinhuo-records', JSON.stringify([
+    {id:'r1',productId:'givf',productName:'G-IVF',receivedQty:12,receivedAt:'2026-03-10',lotNumber:'53189',expiryDate:'2026-05-09',isVoided:false},
+    {id:'r2',productId:'givf',productName:'G-IVF',receivedQty:12,receivedAt:'2026-05-03',lotNumber:'53651',expiryDate:'2026-06-30',isVoided:false},
+    {id:'r3',productId:'gxtl',productName:'GxTL',receivedQty:6,receivedAt:'2026-03-15',lotNumber:'4421',expiryDate:'2026-04-30',isVoided:false},
+    {id:'r4',productId:'gxtl',productName:'GxTL',receivedQty:6,receivedAt:'2026-04-20',lotNumber:'6666',expiryDate:'2026-06-30',isVoided:false},
+    {id:'r5',productId:'h5gt',productName:'H5GT',receivedQty:4,receivedAt:'2026-04-10',lotNumber:'A2041',expiryDate:'2026-04-27',isVoided:false},
+    {id:'r6',productId:'aoa-ci',productName:'AOA 弘優 CI',receivedQty:2,receivedAt:'2026-03-20',lotNumber:'AA1023',expiryDate:'2026-07-15',isVoided:false},
+    {id:'r7',productId:'101',productName:'101（磊柏）',receivedQty:3,receivedAt:'2026-04-05',lotNumber:'L-2604',expiryDate:'2027-04-05',isVoided:false},
+    {id:'r8',productId:'102',productName:'102（磊柏）',receivedQty:5,receivedAt:'2026-04-20',lotNumber:'LB-OLD-001',expiryDate:'2027-01-31',isVoided:false,qcStatus:'passed'},
+    {id:'r9',productId:'102',productName:'102（磊柏）',receivedQty:5,receivedAt:'2026-05-08',lotNumber:'LB-NEW-002',expiryDate:'2027-06-30',isVoided:false,qcStatus:'pending'},
+    {id:'r10',productId:'102-mm',productName:'102（明美）',receivedQty:3,receivedAt:'2026-05-09',lotNumber:'MM-NEW-999',expiryDate:'2027-08-15',isVoided:false,qcStatus:'pending'},
+  ]));
+  localStorage.setItem('pandian-history', JSON.stringify([
+    {date:'2026-03-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:5,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:3,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:4,target:4}]},
+    {date:'2026-04-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:3,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:2,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:2,target:4}]},
+    {date:'2026-05-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:2,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:1,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:1,target:4},{id:'m-aoa-ci',name:'AOA 弘優 CI',unit:'瓶',actual:1,target:2}]},
+  ]));
+  localStorage.setItem('pandian-result', JSON.stringify({date:'2026-05-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:2,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:1,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:1,target:4},{id:'m-aoa-ci',name:'AOA 弘優 CI',unit:'瓶',actual:1,target:2}]}));
+  localStorage.setItem('beipan-result', JSON.stringify({date:'2026-05-06',batches:[
+    {reagentId:'givf',reagentName:'G-IVF',selectedLot:'53651',remaining:47,unopened:1,usedQty:0,bottleVol:60},
+    {reagentId:'gxtl',reagentName:'GxTL',selectedLot:'6666',remaining:38,unopened:1,usedQty:0,bottleVol:50},
+    {reagentId:'h5gt',reagentName:'H5GT',selectedLot:'A2041',remaining:6,unopened:1,usedQty:0,bottleVol:30},
+    {reagentId:'aoa-ci',reagentName:'AOA 弘優 CI',selectedLot:'AA1023',remaining:9.5,unopened:1,usedQty:0,bottleVol:15},
+  ],threshold:{orange_days:7,red_days:3}}));
+  localStorage.setItem('order-result', JSON.stringify({orders:[{itemId:'m-givf',orderQty:12,receivedQty:0},{itemId:'m-h5gt',orderQty:6,receivedQty:0}]}));
+  localStorage.setItem('kucun-changelog', JSON.stringify([
+    // 2026-03-01 盤點（2筆，同 ts）
+    {id:'c01',ts:'2026-03-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:5,qty:5,unit:'瓶',operator:'高任佑',note:'盤點：高任佑（2026-03-01）'},
+    {id:'c02',ts:'2026-03-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:3,qty:3,unit:'瓶',operator:'高任佑',note:'盤點：高任佑（2026-03-01）'},
+    // 2026-03-10 進貨（3筆，同 ts）
+    {id:'c03',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
+    {id:'c04',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'gxtl',productName:'GxTL',lotNumber:'4421',expiryDate:'2026-05-03',qtyDelta:6,qty:6,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
+    {id:'c05',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',qtyDelta:2,qty:2,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
+    // 2026-04-01 盤點
+    {id:'c06',ts:'2026-04-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:3,qty:3,unit:'瓶',operator:'林OO',note:'盤點：林OO（2026-04-01）'},
+    {id:'c07',ts:'2026-04-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:2,qty:2,unit:'瓶',operator:'林OO',note:'盤點：林OO（2026-04-01）'},
+    // 2026-04-05 進貨（單筆）
+    {id:'c08',ts:'2026-04-05T11:00:00Z',source:'jinhuo',action:'receive',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',qtyDelta:4,qty:4,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-04-05）'},
+    // 2026-04-10 訂貨
+    {id:'c09',ts:'2026-04-10T14:00:00Z',source:'order',action:'order',productId:'givf',productName:'G-IVF',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'訂貨 12 瓶，廠商：弘優（2026-04-10）'},
+    {id:'c10',ts:'2026-04-10T14:00:00Z',source:'order',action:'order',productId:'gxtl',productName:'GxTL',qtyDelta:6,qty:6,unit:'瓶',operator:'高任佑',note:'訂貨 6 瓶，廠商：弘優（2026-04-10）'},
+    // 2026-04-25 備盤（4筆，同 ts，跨批號示範）
+    {id:'c11',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',openExpiryDate:'2026-05-02',qtyDelta:-18.3,qty:-18.3,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 18.3mL；剩餘 41.7mL，未開 2 瓶'},
+    {id:'c12',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'gxtl',productName:'GxTL',lotNumber:'4421',expiryDate:'2026-05-03',openExpiryDate:'2026-05-04',qtyDelta:-12.0,qty:-12.0,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 12.0mL；剩餘 26.0mL，未開 0 瓶'},
+    {id:'c13',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',openExpiryDate:'2026-05-09',qtyDelta:-8.0,qty:-8.0,unit:'mL',bottlesOpened:1,operator:'高任佑+林OO',note:'扣除 8.0mL（開 1 瓶新）；剩餘 22.0mL，未開 2 瓶'},
+    {id:'c14',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',openExpiryDate:'2026-05-04',qtyDelta:-0.6,qty:-0.6,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 0.6mL；剩餘 8.5mL，未開 1 瓶'},
+    // 2026-04-28 手動
+    {id:'c15',ts:'2026-04-28T10:00:00Z',source:'manual',action:'use',productId:'givf',productName:'G-IVF',lotNumber:'53189',qtyDelta:-1,qty:-1,unit:'瓶',note:'打破/損毀'},
+    // 2026-05-01 盤點
+    {id:'c16',ts:'2026-05-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:2,qty:2,unit:'瓶',operator:'曾OO',note:'盤點：曾OO（2026-05-01）'},
+    {id:'c17',ts:'2026-05-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:1,qty:1,unit:'瓶',operator:'曾OO',note:'盤點：曾OO（2026-05-01）'},
+    // 2026-05-03 進貨
+    {id:'c18',ts:'2026-05-03T09:00:00Z',source:'jinhuo',action:'receive',productId:'givf',productName:'G-IVF',lotNumber:'53651',expiryDate:'2026-06-30',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-05-03）'},
+    // 2026-05-06 備盤（跨批號：G-IVF 先把 53189 用完，剩下從 53651 扣）
+    {id:'c19a',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',openExpiryDate:'2026-05-02',qtyDelta:-3.2,qty:-3.2,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 3.2mL（批號用完）；剩餘 0mL，未開 2 瓶'},
+    {id:'c19b',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53651',expiryDate:'2026-06-30',openExpiryDate:'2026-07-01',qtyDelta:-15.1,qty:-15.1,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 15.1mL；剩餘 31.9mL，未開 0 瓶'},
+    {id:'c20',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'gxtl',productName:'GxTL',lotNumber:'6666',expiryDate:'2026-08-15',qtyDelta:-12.0,qty:-12.0,unit:'mL',bottlesOpened:1,operator:'高任佑+林OO',note:'扣除 12.0mL（開 1 瓶新）；剩餘 18.0mL，未開 0 瓶'},
+    {id:'c21',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',openExpiryDate:'2026-05-09',qtyDelta:-8.0,qty:-8.0,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 8.0mL；剩餘 6.0mL，未開 1 瓶'},
+    {id:'c22',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',qtyDelta:-0.6,qty:-0.6,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 0.6mL；剩餘 9.5mL，未開 1 瓶'},
+    // 2026-05-08 手動使用
+    {id:'c23',ts:'2026-05-08T10:00:00Z',source:'manual',action:'use',productId:'givf',productName:'G-IVF',lotNumber:'53651',qtyDelta:-1,qty:-1,unit:'瓶',note:'正常消耗'},
+    // 2026-04-20 進貨 102（磊柏）LB-OLD-001（QC 已通過）
+    {id:'c24',ts:'2026-04-20T10:00:00Z',source:'jinhuo',action:'receive',productId:'102',productName:'102（磊柏）',lotNumber:'LB-OLD-001',expiryDate:'2027-01-31',qtyDelta:5,qty:5,unit:'盒',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-04-20）'},
+    {id:'c25',ts:'2026-04-22T09:00:00Z',source:'manual',action:'qc_pass',productId:'102',productName:'102（磊柏）',lotNumber:'LB-OLD-001',operator:'高任佑',note:'批號 LB-OLD-001 QC 確認通過'},
+    // 2026-05-08 進貨 102（磊柏）LB-NEW-002（QC 待確認）
+    {id:'c26',ts:'2026-05-08T14:00:00Z',source:'jinhuo',action:'receive',productId:'102',productName:'102（磊柏）',lotNumber:'LB-NEW-002',expiryDate:'2027-06-30',qtyDelta:5,qty:5,unit:'盒',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-05-08）'},
+    // 2026-05-09 進貨 102（明美）MM-NEW-999（QC 待確認）
+    {id:'c27',ts:'2026-05-09T09:00:00Z',source:'jinhuo',action:'receive',productId:'102-mm',productName:'102（明美）',lotNumber:'MM-NEW-999',expiryDate:'2027-08-15',qtyDelta:3,qty:3,unit:'盒',operator:'林OO',note:'全數到貨；簽收：林OO（2026-05-09）'},
+  ]));
+  render();
+  showToast('測試資料已載入（28 筆）');
 }
 
 // ════════════════════════════════
@@ -776,15 +1676,22 @@ function setSort(mode) {
   if (cachedData) renderInventoryTable(cachedData);
 }
 
-function toggleLots() {
-  showAllLots = !showAllLots;
-  document.getElementById('lot-toggle-label').textContent = showAllLots ? '顯示全部批號' : '最近 3 批';
-  if (cachedData) renderInventoryTable(cachedData);
-}
-
 // ════════════════════════════════
 // CHANGELOG FILTER
 // ════════════════════════════════
+function matchesCLFilter(e, f) {
+  if (!f) return true;
+  const [src, act] = f.split(':');
+  const srcOk = !src || e.source === src;
+  let actOk = true;
+  if (act) {
+    if (act === 'void') actOk = e.action === 'void' || e.action === 'discard';
+    else if (act === 'edit') actOk = e.action === 'edit' || e.action === 'adjust';
+    else actOk = e.action === act;
+  }
+  return srcOk && actOk;
+}
+
 function setCLFilter(f) {
   clFilter = f;
   document.querySelectorAll('.cl-filter-btn').forEach(b => {
@@ -793,11 +1700,19 @@ function setCLFilter(f) {
   if (cachedData) renderChangelog(cachedData);
 }
 
+function drillDownChangelog(dateStr, filterKey) {
+  const fromEl = document.getElementById('cl-date-from');
+  const toEl   = document.getElementById('cl-date-to');
+  if (fromEl) fromEl.value = dateStr;
+  if (toEl)   toEl.value   = dateStr;
+  setCLFilter(filterKey);
+  document.getElementById('cl-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ════════════════════════════════
 // MANUAL LOG MODAL
 // ════════════════════════════════
 function openLogModal() {
-  // Populate product dropdown
   const sel = document.getElementById('log-product');
   if (sel.options.length <= 1) {
     PRODUCTS.forEach(p => {
@@ -807,7 +1722,6 @@ function openLogModal() {
       sel.appendChild(opt);
     });
   }
-  // Default date = today
   document.getElementById('log-date').value = todayStr();
   document.getElementById('log-overlay').classList.add('open');
   document.getElementById('log-modal').classList.add('open');
@@ -816,6 +1730,14 @@ function openLogModal() {
 function closeLogModal() {
   document.getElementById('log-overlay').classList.remove('open');
   document.getElementById('log-modal').classList.remove('open');
+  const preset = document.getElementById('log-reason-preset');
+  if (preset) preset.value = '';
+}
+
+function applyReasonPreset(v) {
+  if (!v) return;
+  const el = document.getElementById('log-note');
+  if (el && !el.value) el.value = v;
 }
 
 function submitLog() {
@@ -825,12 +1747,15 @@ function submitLog() {
   const date      = document.getElementById('log-date').value;
   const action    = document.getElementById('log-action').value;
   const note      = document.getElementById('log-note').value.trim();
+  const operator  = document.getElementById('log-operator').value.trim();
 
   if (!productId) { showToast('請選擇品項'); return; }
   if (!date)       { showToast('請填入日期'); return; }
+  if (!operator)   { showToast('請填寫操作人'); return; }
   if (action !== 'note' && (isNaN(qty) || qty <= 0)) { showToast('請填入有效數量'); return; }
 
   const p = PRODUCT_MAP[productId];
+  const qtyVal = (action === 'use' || action === 'discard') ? -(qty || 0) : (qty || 0);
   const entry = {
     id: uid(),
     ts: new Date(date + 'T00:00:00').toISOString(),
@@ -839,7 +1764,10 @@ function submitLog() {
     productId,
     productName: p?.name || productId,
     lotNumber: lot || null,
-    qty: (action === 'use' || action === 'discard') ? -(qty || 0) : (qty || 0),
+    qtyDelta: qtyVal,
+    qty: qtyVal,
+    unit: '瓶',
+    operator,
     note: note || null,
   };
 
@@ -849,14 +1777,15 @@ function submitLog() {
 
   closeLogModal();
   cachedData = loadData();
+  renderInventoryTable(cachedData);
   renderChangelog(cachedData);
   showToast(`已記錄：${p?.name} ${ACTION_LABEL[action]}`);
 
-  // Reset form
   document.getElementById('log-product').value = '';
   document.getElementById('log-lot').value = '';
   document.getElementById('log-qty').value = '';
   document.getElementById('log-note').value = '';
+  document.getElementById('log-operator').value = '';
 }
 
 // ════════════════════════════════
@@ -890,7 +1819,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const days = ['日','一','二','三','四','五','六'];
   document.getElementById('today-display').textContent =
     `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${days[d.getDay()]}）`;
-  // Apply initial filter button styles
   document.querySelectorAll('.cl-filter-btn').forEach(b => {
     const isActive = b.dataset.f === clFilter;
     b.style.cssText = isActive
