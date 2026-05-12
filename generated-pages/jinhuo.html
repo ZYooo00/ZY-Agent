@@ -191,6 +191,7 @@
   /* Toast */
   #toast { position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(10px); background:#0F172A; color:white; padding:9px 18px; border-radius:10px; font-size:13.5px; font-weight:500; z-index:70; opacity:0; transition:opacity .22s,transform .22s; pointer-events:none; white-space:nowrap; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.warn { background:#92400E; }
   @media(min-width:768px){ #toast { bottom:24px; } }
 
   ::-webkit-scrollbar { width:4px; }
@@ -274,9 +275,14 @@
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
       <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.6.0</span></h1>
-      <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="loadDemoData()" class="flex items-center gap-1.5 border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors" title="載入測試資料（覆寫 localStorage）">
+          🧪 測試資料
+        </button>
+        <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
+        </button>
+      </div>
     </div>
 
     <!-- Tab bar -->
@@ -1066,6 +1072,17 @@ function onScanSuccess(text) {
     return;
   }
 
+  // 防重複：此條碼已在暫存區 → 提示並恢復掃描，不重複加入
+  if (sessionTray.some(i => i.rawScanText === text)) {
+    if (html5QrCode) { try { html5QrCode.pause(); } catch {} }
+    showToast('⚠ 此條碼已在暫存區，請至抽屜修改數量', 'warn');
+    setTimeout(() => {
+      try { if (html5QrCode) html5QrCode.resume(); } catch {}
+      scanResult = null;
+    }, 1500);
+    return;
+  }
+
   // 極致連續掃碼：背景自動建立暫存紀錄，不打斷相機
   const orders = loadPendingOrdersForProduct(matched.id);
   const firstOrder = orders[0] || null;
@@ -1092,7 +1109,7 @@ function onScanSuccess(text) {
   renderTray();
   showToast(`✓ 已掃描：${matched.name}`);
 
-  // 暫停 800ms 防重複掃同一條碼，再自動 resume
+  // 暫停 800ms 防連環觸發，再自動 resume
   if (html5QrCode) {
     try { html5QrCode.pause(); } catch {}
     setTimeout(() => {
@@ -2092,11 +2109,74 @@ function goToOrderPage() {
 // ───────────────────────────────────────
 
 let _toastTimer;
-function showToast(msg) {
+// ─── 測試資料（DEV ONLY）────────────────────────────────────────────
+function loadDemoData() {
+  if (!confirm('這將覆寫 localStorage 中的測試資料，確定嗎？')) return;
+
+  const now = new Date();
+  const daysAgo = n => new Date(now - n * 86400000).toISOString();
+
+  // order-history：3 筆待收訂單，涵蓋不同廠商
+  const orderHistory = [
+    {
+      id: 'ord-demo-001',
+      date: daysAgo(30).slice(0,10),
+      confirmedAt: daysAgo(30),
+      status: 'pending',
+      orderedBy: '高任佑',
+      orders: [
+        { orderId: 'm-givf',  name: 'G-IVF',    vendor: '亞樸', unit: '瓶', orderQty: 6,  receivedQty: 0 },
+        { orderId: 'm-gxtl',  name: 'GxTL',     vendor: '亞樸', unit: '瓶', orderQty: 4,  receivedQty: 0 },
+        { orderId: 'm-glue',  name: 'EmbryoGlue',vendor:'亞樸', unit: '瓶', orderQty: 2,  receivedQty: 0 },
+      ],
+    },
+    {
+      id: 'ord-demo-002',
+      date: daysAgo(20).slice(0,10),
+      confirmedAt: daysAgo(20),
+      status: 'partial',
+      orderedBy: '高任佑',
+      orders: [
+        { orderId: 'm-h5gt',  name: 'H5GT',     vendor: '弘優', unit: '瓶', orderQty: 4,  receivedQty: 2 },
+        { orderId: 'm-aoa-ci',name: 'AOA 弘優 CI',vendor:'弘優',unit: '瓶', orderQty: 2,  receivedQty: 0 },
+      ],
+    },
+    {
+      id: 'ord-demo-003',
+      date: daysAgo(10).slice(0,10),
+      confirmedAt: daysAgo(10),
+      status: 'pending',
+      orderedBy: '高任佑',
+      orders: [
+        { orderId: 'f-102',   name: '102（磊柏）',vendor:'磊柏', unit: '盒', orderQty: 60, receivedQty: 0 },
+        { orderId: 'f-102-mm',name: '102（明美）',vendor:'明美', unit: '盒', orderQty: 20, receivedQty: 0 },
+      ],
+    },
+  ];
+
+  // jinhuo-records：數筆歷史進貨（供 Tab 2 歷史紀錄測試）
+  const uid = () => Math.random().toString(36).slice(2,9);
+  const jinhuoRecords = [
+    { id: uid(), productId: 'givf',   productName: 'G-IVF',    vendor: '亞樸', unit: '瓶', qty: 6,  lotNumber: 'GI-2501', expiryDate: '2026-12-31', receivedAt: daysAgo(60).slice(0,10), isVoided: false, qcStatus: null },
+    { id: uid(), productId: 'gxtl',   productName: 'GxTL',     vendor: '亞樸', unit: '瓶', qty: 4,  lotNumber: 'GT-2502', expiryDate: '2026-10-31', receivedAt: daysAgo(45).slice(0,10), isVoided: false, qcStatus: null },
+    { id: uid(), productId: 'h5gt',   productName: 'H5GT',     vendor: '弘優', unit: '瓶', qty: 2,  lotNumber: 'H5-2503', expiryDate: '2026-09-30', receivedAt: daysAgo(20).slice(0,10), isVoided: false, qcStatus: null },
+    { id: uid(), productId: '102',    productName: '102（磊柏）',vendor:'磊柏', unit: '盒', qty: 30, lotNumber: 'LB-2504', expiryDate: '2026-11-30', receivedAt: daysAgo(15).slice(0,10), isVoided: false, qcStatus: 'pending' },
+    { id: uid(), productId: '102-mm', productName: '102（明美）',vendor:'明美', unit: '盒', qty: 10, lotNumber: 'MM-2505', expiryDate: '2027-01-31', receivedAt: daysAgo(5).slice(0,10),  isVoided: false, qcStatus: 'pending' },
+  ];
+
+  localStorage.setItem('order-history',  JSON.stringify(orderHistory));
+  localStorage.setItem('jinhuo-records', JSON.stringify(jinhuoRecords));
+  location.reload();
+}
+
+function showToast(msg, type) {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
+  el.textContent = msg;
+  el.classList.remove('warn');
+  if (type === 'warn') el.classList.add('warn');
+  el.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  _toastTimer = setTimeout(() => { el.classList.remove('show','warn'); }, 2400);
 }
 </script>
 </body>
