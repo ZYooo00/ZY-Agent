@@ -840,7 +840,7 @@ function recordRowHtml(r) {
           <span>${isRejected ? '<span class="text-red-500">拒收 0</span>' : '收 <b class="text-slate-700">' + r.receivedQty + '</b> ' + unit}</span>
           <span>批號：${r.lotNumber || '<span class="text-slate-300">—</span>'}</span>
           <span>效期：${r.expiryDate ? fmt(r.expiryDate) : '<span class="text-slate-300">—</span>'}</span>
-          <span>${escHtml(r.receivedBy)} · ${fmt(r.receivedAt)}</span>
+          <span>${escHtml(r.receivedBy || r.operator || '—')} · ${fmt(r.receivedAt)}</span>
         </div>
         ${r.note ? `<p class="mt-1 text-xs text-slate-400">${escHtml(r.note)}</p>` : ''}
         ${isVoided && r.voidReason ? `<p class="mt-1 text-xs text-slate-400">作廢：${escHtml(r.voidedBy || '')} — ${escHtml(r.voidReason)}</p>` : ''}
@@ -1031,8 +1031,8 @@ function startScan() {
 
   html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
   html5QrCode.start(
-    { facingMode: 'environment' },
-    { fps: 12, qrbox: { width: 280, height: 120 }, rememberLastUsedCamera: true },
+    { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+    { fps: 12, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
     (text) => { html5QrCode.pause(true); onScanSuccess(text); },
     () => {}
   ).catch(err => {
@@ -1066,15 +1066,8 @@ function onScanSuccess(text) {
   const matched = matchProductByGtin(parsed.gtin);
   scanResult = { raw: text, parsed, matchedProduct: matched };
 
-  if (!matched) {
-    // 無法識別：開啟 Step 2 讓使用者手動選品項
-    renderScanConfirm(null, parsed, text);
-    return;
-  }
-
-  // 防重複：此條碼已在暫存區 → 提示並恢復掃描，不重複加入
-  if (sessionTray.some(i => i.rawScanText === text)) {
-    if (html5QrCode) { try { html5QrCode.pause(); } catch {} }
+  // 防重複：此條碼已在暫存區 → 黃色提示 + 1.5s 後恢復掃描
+  if (matched && sessionTray.some(i => i.rawScanText === text)) {
     showToast('⚠ 此條碼已在暫存區，請至抽屜修改數量', 'warn');
     setTimeout(() => {
       try { if (html5QrCode) html5QrCode.resume(); } catch {}
@@ -1083,40 +1076,8 @@ function onScanSuccess(text) {
     return;
   }
 
-  // 極致連續掃碼：背景自動建立暫存紀錄，不打斷相機
-  const orders = loadPendingOrdersForProduct(matched.id);
-  const firstOrder = orders[0] || null;
-  const item = {
-    productId:   matched.id,
-    productName: matched.name,
-    vendor:      matched.vendor,
-    unit:        matched.unit,
-    qty:         1,
-    lotNumber:   parsed.lotNumber  || null,
-    expiryDate:  parsed.expiryDate || null,
-    rawScanText: text,
-    orderId:     firstOrder?.orderId  || null,
-    orderedQty:  firstOrder?.orderedQty || null,
-    orderedAt:   firstOrder?.orderedAt  || null,
-    orderedBy:   firstOrder?.orderedBy  || null,
-    overQtyReason: null,
-    anomalyNote:   null,
-    isRejected:    false,
-    rejectReason:  null,
-  };
-  sessionTray.push(item);
-  saveTray();
-  renderTray();
-  showToast(`✓ 已掃描：${matched.name}`);
-
-  // 暫停 800ms 防連環觸發，再自動 resume
-  if (html5QrCode) {
-    try { html5QrCode.pause(); } catch {}
-    setTimeout(() => {
-      try { html5QrCode.resume(); } catch {}
-      scanResult = null;
-    }, 800);
-  }
+  // 無論是否識別，都彈出 Step 2 讓使用者確認數量
+  renderScanConfirm(matched, parsed, text);
 }
 
 function retryScan() {
@@ -1473,14 +1434,15 @@ function addToTray() {
       stopScan();
       setTimeout(openTrayDrawer, 300);
     } else {
-      // 相機路徑：回到 Step 1 繼續掃描
+      // 相機路徑：關閉 Step 2 → 恢復相機，繼續掃下一箱
       document.getElementById('scan-step2').classList.remove('open');
       setTimeout(() => {
         document.getElementById('scan-step1').style.display = 'flex';
-        document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">繼續掃下一個品項，或關閉開始審核</p>';
+        document.getElementById('scan-status').innerHTML =
+          `<p class="text-white/60 text-sm">✓ 已加入 ${sessionTray.length} 筆，繼續掃下一箱</p>`;
         if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
         scanResult = null;
-      }, 310);
+      }, 280);
     }
   }
 }
@@ -2154,14 +2116,24 @@ function loadDemoData() {
     },
   ];
 
-  // jinhuo-records：數筆歷史進貨（供 Tab 2 歷史紀錄測試）
-  const uid = () => Math.random().toString(36).slice(2,9);
+  // jinhuo-records：欄位與 batchSaveAll 產生的結構一致
+  const uid = () => `jr-demo-${Math.random().toString(36).slice(2,9)}`;
+  const rec = (productId, productName, vendor, unit, receivedQty, lotNumber, expiryDate, daysBack, receivedBy, qcStatus) => ({
+    id: uid(), productId, productName, vendor, unit,
+    receivedQty, lotNumber, expiryDate,
+    receivedAt: daysAgo(daysBack).slice(0,10),
+    receivedBy: receivedBy || '高任佑',
+    orderId: null, orderedQty: null, orderedAt: null, orderedBy: null,
+    note: `全數到貨；簽收：${receivedBy || '高任佑'}`,
+    rawScanText: null, status: null,
+    isVoided: false, qcStatus: qcStatus || null, history: [],
+  });
   const jinhuoRecords = [
-    { id: uid(), productId: 'givf',   productName: 'G-IVF',    vendor: '亞樸', unit: '瓶', qty: 6,  lotNumber: 'GI-2501', expiryDate: '2026-12-31', receivedAt: daysAgo(60).slice(0,10), isVoided: false, qcStatus: null },
-    { id: uid(), productId: 'gxtl',   productName: 'GxTL',     vendor: '亞樸', unit: '瓶', qty: 4,  lotNumber: 'GT-2502', expiryDate: '2026-10-31', receivedAt: daysAgo(45).slice(0,10), isVoided: false, qcStatus: null },
-    { id: uid(), productId: 'h5gt',   productName: 'H5GT',     vendor: '弘優', unit: '瓶', qty: 2,  lotNumber: 'H5-2503', expiryDate: '2026-09-30', receivedAt: daysAgo(20).slice(0,10), isVoided: false, qcStatus: null },
-    { id: uid(), productId: '102',    productName: '102（磊柏）',vendor:'磊柏', unit: '盒', qty: 30, lotNumber: 'LB-2504', expiryDate: '2026-11-30', receivedAt: daysAgo(15).slice(0,10), isVoided: false, qcStatus: 'pending' },
-    { id: uid(), productId: '102-mm', productName: '102（明美）',vendor:'明美', unit: '盒', qty: 10, lotNumber: 'MM-2505', expiryDate: '2027-01-31', receivedAt: daysAgo(5).slice(0,10),  isVoided: false, qcStatus: 'pending' },
+    rec('givf',   'G-IVF',      '亞樸', '瓶', 6,  'GI-2501', '2026-12-31', 60, '高任佑', null),
+    rec('gxtl',   'GxTL',       '亞樸', '瓶', 4,  'GT-2502', '2026-10-31', 45, '高任佑', null),
+    rec('h5gt',   'H5GT',       '弘優', '瓶', 2,  'H5-2503', '2026-09-30', 20, '高任佑', null),
+    rec('102',    '102（磊柏）', '磊柏', '盒', 30, 'LB-2504', '2026-11-30', 15, '高任佑', 'pending'),
+    rec('102-mm', '102（明美）', '明美', '盒', 10, 'MM-2505', '2027-01-31',  5, '高任佑', 'pending'),
   ];
 
   localStorage.setItem('order-history',  JSON.stringify(orderHistory));
