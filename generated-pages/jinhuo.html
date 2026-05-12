@@ -393,7 +393,7 @@
         </div>
         <div>
           <label class="sc-label">數量 *</label>
-          <input type="number" id="s2-qty" class="sc-input" min="1" step="1" placeholder="1" inputmode="numeric">
+          <input type="number" id="s2-qty" class="sc-input" min="1" step="1" placeholder="1" inputmode="numeric" onfocus="this.select()" onclick="this.select()">
         </div>
         <div>
           <label class="sc-label">單位</label>
@@ -1038,7 +1038,6 @@ function startScan() {
         const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
         return { width: Math.floor(minEdge * 0.75), height: Math.floor(minEdge * 0.75) };
       },
-      aspectRatio: 1.0,
       rememberLastUsedCamera: true
     },
     (text) => { html5QrCode.pause(true); onScanSuccess(text); },
