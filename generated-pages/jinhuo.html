@@ -63,6 +63,54 @@
   }
   #scan-step2.open { transform:translateY(0); }
 
+  /* ── Tab bar ── */
+  .tab-bar { display:flex; gap:4px; margin-bottom:16px; border-bottom:2px solid #E2E8F0; }
+  .tab-btn { flex:1; padding:10px 4px; font-size:14px; font-weight:600; color:#94A3B8;
+             border:none; background:none; cursor:pointer; transition:color .15s;
+             border-bottom:2px solid transparent; margin-bottom:-2px; }
+  .tab-btn.active { color:#9590D0; border-bottom-color:#9590D0; }
+
+  /* ── Pending task card ── */
+  .pending-card { background:white; border:1px solid #E2E4F4; border-radius:12px;
+                  padding:12px 14px; margin-bottom:10px;
+                  box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .pending-card-meta { font-size:11px; color:#94A3B8; margin-bottom:6px; display:flex;
+                       align-items:center; gap:6px; flex-wrap:wrap; }
+  .pending-card-body { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .pending-card-name { font-size:15px; font-weight:700; color:#1E293B; }
+  .pending-card-qty  { font-size:13px; color:#DC2626; font-weight:600; white-space:nowrap; }
+  .pending-card-btn  { flex-shrink:0; background:#EEF2FF; color:#4338CA; border:none;
+                       border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700;
+                       cursor:pointer; white-space:nowrap; -webkit-tap-highlight-color:transparent;
+                       transition:background .15s; }
+  .pending-card-btn:hover { background:#E0E7FF; }
+  .pending-empty { text-align:center; padding:40px 20px; color:#94A3B8; }
+  .pending-empty-icon { font-size:40px; margin-bottom:8px; }
+  .pending-empty-text { font-size:14px; }
+
+  /* ── Tray inline qty stepper ── */
+  .qty-stepper { display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border-radius:8px; padding:2px 4px; }
+  .qty-btn { width:22px; height:22px; border:none; border-radius:6px; background:transparent; cursor:pointer;
+             font-size:14px; line-height:1; color:#64748B; display:flex; align-items:center; justify-content:center;
+             transition:background .12s; -webkit-tap-highlight-color:transparent; }
+  .qty-btn:hover { background:#E2E8F0; color:#1E293B; }
+  .qty-num { min-width:24px; text-align:center; font-size:13px; font-weight:700; color:#1E293B; }
+
+  /* ── scan-step2 PC centered modal ── */
+  @media(min-width:768px){
+    #scan-step2 {
+      position:fixed; bottom:auto; top:50%; left:50%; right:auto;
+      transform:translateX(-50%) translateY(-40%);
+      width:min(92vw,560px); min-height:auto; max-height:85vh;
+      border-radius:16px;
+      opacity:0; transition:opacity .2s,transform .2s; pointer-events:none;
+    }
+    #scan-step2.open {
+      transform:translateX(-50%) translateY(-50%);
+      opacity:1; pointer-events:all;
+    }
+  }
+
   /* Compact form inputs for step 2 */
   .sc-label { font-size:13px; font-weight:500; color:#475569; margin-bottom:5px; display:block; }
   .sc-input {
@@ -223,46 +271,49 @@
   <!-- MAIN -->
   <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
-    <!-- 待到貨履約中心（有欠貨時才顯示） -->
-    <div id="expected-deliveries" style="display:none;margin:-20px -16px 20px;background:#F8F7FD;border-bottom:1px solid #E2E4F4">
-      <div style="padding:10px 14px 2px;font-size:11px;font-weight:700;color:#7C6FAF;letter-spacing:.07em;text-transform:uppercase">
-        📦 待到貨
-      </div>
-      <div id="ed-scroll"
-           style="overflow-x:auto;display:flex;gap:10px;padding:4px 14px 12px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none">
-      </div>
-    </div>
-
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
-      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.5.9</span></h1>
+      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.6.0</span></h1>
       <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>掃碼收貨
       </button>
     </div>
 
-    <!-- Filter bar -->
-    <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
-      <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-      <span class="text-sm text-slate-500 font-medium">篩選：</span>
-      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-vendor" onchange="renderRecords()">
-        <option value="">所有廠商</option>
-      </select>
-      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-date" onchange="renderRecords()">
-        <option value="30">最近 30 天</option>
-        <option value="7">最近 7 天</option>
-        <option value="90">最近 3 個月</option>
-        <option value="0">全部</option>
-      </select>
-      <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="sort-mode" onchange="renderRecords()">
-        <option value="date">依日期</option>
-        <option value="vendor">依廠商</option>
-      </select>
-      <span class="text-xs text-slate-400 ml-auto tabular" id="record-count"></span>
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button id="tab-btn-pending" class="tab-btn active" onclick="switchTab('pending')">📦 待收任務</button>
+      <button id="tab-btn-history" class="tab-btn" onclick="switchTab('history')">🕒 歷史紀錄</button>
     </div>
 
-    <!-- Records container -->
-    <div id="records-container"></div>
+    <!-- Tab 1: Pending -->
+    <div id="tab-pending">
+      <div id="pending-list"></div>
+    </div>
+
+    <!-- Tab 2: History（含 filter bar + records，初始隱藏） -->
+    <div id="tab-history" style="display:none">
+      <!-- Filter bar -->
+      <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
+        <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+        <span class="text-sm text-slate-500 font-medium">篩選：</span>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-vendor" onchange="renderRecords()">
+          <option value="">所有廠商</option>
+        </select>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-date" onchange="renderRecords()">
+          <option value="30">最近 30 天</option>
+          <option value="7">最近 7 天</option>
+          <option value="90">最近 3 個月</option>
+          <option value="0">全部</option>
+        </select>
+        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="sort-mode" onchange="renderRecords()">
+          <option value="date">依日期</option>
+          <option value="vendor">依廠商</option>
+        </select>
+        <span class="text-xs text-slate-400 ml-auto tabular" id="record-count"></span>
+      </div>
+      <!-- Records container -->
+      <div id="records-container"></div>
+    </div>
 
   </main>
 </div>
@@ -324,8 +375,8 @@
       <!-- Order match area -->
       <div id="s2-order-area" class="mb-3"></div>
 
-      <!-- LOT + Expiry -->
-      <div class="grid grid-cols-2 gap-3 mb-3">
+      <!-- 批號 + 效期 + 數量 + 單位（手機 2-col，PC md:4-col） -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div>
           <label class="sc-label">批號</label>
           <input type="text" id="s2-lot" class="sc-input" placeholder="掃碼或手填">
@@ -334,14 +385,13 @@
           <label class="sc-label">廠商效期</label>
           <input type="date" id="s2-expiry" class="sc-input">
         </div>
-      </div>
-
-      <!-- Qty -->
-      <div class="mb-4">
-        <label class="sc-label">數量 *</label>
-        <div class="flex items-center gap-3">
-          <input type="number" id="s2-qty" class="sc-input flex-1" min="1" step="1" placeholder="1">
-          <span id="s2-unit" class="text-slate-500 text-sm flex-shrink-0 min-w-[2rem]"></span>
+        <div>
+          <label class="sc-label">數量 *</label>
+          <input type="number" id="s2-qty" class="sc-input" min="1" step="1" placeholder="1" inputmode="numeric">
+        </div>
+        <div>
+          <label class="sc-label">單位</label>
+          <div id="s2-unit" class="sc-input bg-slate-50 flex items-center text-slate-500 text-sm" style="min-height:42px">—</div>
         </div>
       </div>
 
@@ -569,6 +619,7 @@ let html5QrCode = null;
 let sessionTray = JSON.parse(localStorage.getItem('session-tray') || '[]');
 function saveTray() { localStorage.setItem('session-tray', JSON.stringify(sessionTray)); }
 let editingTrayIdx = -1; // -1 = adding new; >=0 = editing tray item at this index
+let isQuickReceiveMode = false;
 
 // ───────────────────────────────────────
 // INIT
@@ -986,6 +1037,7 @@ function startScan() {
 }
 
 function stopScan() {
+  isQuickReceiveMode = false;
   document.getElementById('scan-step2').classList.remove('open');
   document.getElementById('scan-step1').style.display = 'flex';
   document.getElementById('scan-modal').classList.remove('open');
@@ -1007,7 +1059,47 @@ function onScanSuccess(text) {
   const parsed = parseBarcode(text);
   const matched = matchProductByGtin(parsed.gtin);
   scanResult = { raw: text, parsed, matchedProduct: matched };
-  renderScanConfirm(matched, parsed, text);
+
+  if (!matched) {
+    // 無法識別：開啟 Step 2 讓使用者手動選品項
+    renderScanConfirm(null, parsed, text);
+    return;
+  }
+
+  // 極致連續掃碼：背景自動建立暫存紀錄，不打斷相機
+  const orders = loadPendingOrdersForProduct(matched.id);
+  const firstOrder = orders[0] || null;
+  const item = {
+    productId:   matched.id,
+    productName: matched.name,
+    vendor:      matched.vendor,
+    unit:        matched.unit,
+    qty:         1,
+    lotNumber:   parsed.lotNumber  || null,
+    expiryDate:  parsed.expiryDate || null,
+    rawScanText: text,
+    orderId:     firstOrder?.orderId  || null,
+    orderedQty:  firstOrder?.orderedQty || null,
+    orderedAt:   firstOrder?.orderedAt  || null,
+    orderedBy:   firstOrder?.orderedBy  || null,
+    overQtyReason: null,
+    anomalyNote:   null,
+    isRejected:    false,
+    rejectReason:  null,
+  };
+  sessionTray.push(item);
+  saveTray();
+  renderTray();
+  showToast(`✓ 已掃描：${matched.name}`);
+
+  // 暫停 800ms 防重複掃同一條碼，再自動 resume
+  if (html5QrCode) {
+    try { html5QrCode.pause(); } catch {}
+    setTimeout(() => {
+      try { html5QrCode.resume(); } catch {}
+      scanResult = null;
+    }, 800);
+  }
 }
 
 function retryScan() {
@@ -1130,85 +1222,108 @@ function _fillStep2Empty() {
   document.getElementById('s2-ordered-by').value = '';
 }
 
-// ─── 待到貨履約中心 ────────────────────────────────────────────
+function switchTab(name) {
+  document.getElementById('tab-pending').style.display = name === 'pending' ? 'block' : 'none';
+  document.getElementById('tab-history').style.display = name === 'history' ? 'block' : 'none';
+  document.getElementById('tab-btn-pending').classList.toggle('active', name === 'pending');
+  document.getElementById('tab-btn-history').classList.toggle('active', name === 'history');
+}
+
+// ─── 待收任務（廠商分群 + 訂購日期排序）────────────────────────────────────────────
 function renderExpectedDeliveries() {
-  const section = document.getElementById('expected-deliveries');
-  const scroll  = document.getElementById('ed-scroll');
-  if (!section || !scroll) return;
+  const list = document.getElementById('pending-list');
+  if (!list) return;
 
   const history = JSON.parse(localStorage.getItem('order-history') || '[]');
-  const active  = history.filter(o => ['pending','partial'].includes(o.status));
 
-  if (active.length === 0) { section.style.display = 'none'; return; }
-
-  // 按廠商聚合欠貨 → { vendor: { productId: { name, unit, pending } } }
-  const vendorMap = {};
-  active.forEach(order => {
+  // 收集所有待收品項，帶上 orderedAt 供排序
+  const allItems = [];
+  history.forEach(order => {
+    if (!['pending','partial'].includes(order.status)) return;
+    const orderedAt = order.confirmedAt || order.date || '';
+    const dateStr = orderedAt
+      ? (() => { const d = new Date(orderedAt); return `${d.getMonth()+1}/${d.getDate()}`; })()
+      : '—';
     (order.orders || []).forEach(item => {
-      const remaining = item.orderQty - (item.receivedQty || 0);
+      const remaining = (item.orderQty || 0) - (item.receivedQty || 0);
       if (remaining <= 0) return;
-      const prod = GUPAN_MAP[item.orderId];        // gupanId → product
-      const pId  = prod?.id || null;
-      const vendor = item.vendor || '未知廠商';
-      if (!vendorMap[vendor]) vendorMap[vendor] = {};
-      const key = pId || item.name;
-      if (!vendorMap[vendor][key]) {
-        vendorMap[vendor][key] = { productId: pId, name: item.name, unit: item.unit, pending: 0 };
-      }
-      vendorMap[vendor][key].pending += remaining;
+      const prod = GUPAN_MAP[item.orderId];
+      allItems.push({
+        pId: prod?.id || null,
+        name: item.name,
+        unit: item.unit || '',
+        vendor: item.vendor || '未知廠商',
+        remaining,
+        isPartial: order.status === 'partial',
+        dateStr,
+        orderedAt,
+      });
     });
   });
 
-  // 廠商是否有部分到貨訂單
-  const partialVendors = new Set();
-  active.filter(o => o.status === 'partial').forEach(o =>
-    (o.orders || []).forEach(item => item.vendor && partialVendors.add(item.vendor))
-  );
+  if (allItems.length === 0) {
+    list.innerHTML = `<div class="pending-empty">
+      <div class="pending-empty-icon">✅</div>
+      <div class="pending-empty-text">目前沒有待到貨的品項</div>
+    </div>`;
+    return;
+  }
 
-  scroll.innerHTML = Object.entries(vendorMap).map(([vendor, items]) => {
-    const isPartial = partialVendors.has(vendor);
-    const badge = isPartial
-      ? `<span style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">部分到貨</span>`
-      : `<span style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">待到貨</span>`;
-    const rows = Object.values(items).map(it => {
-      const btn = it.productId
-        ? `<button onclick="openQuickReceive('${it.productId}')"
-                   style="flex-shrink:0;background:#EEF2FF;color:#4338CA;border:none;border-radius:6px;
-                          padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;
-                          -webkit-tap-highlight-color:transparent">📥 快收</button>`
+  // 依廠商分群，區塊內按 orderedAt 從舊到新
+  const vendorMap = {};
+  allItems.forEach(it => {
+    if (!vendorMap[it.vendor]) vendorMap[it.vendor] = [];
+    vendorMap[it.vendor].push(it);
+  });
+  Object.values(vendorMap).forEach(arr =>
+    arr.sort((a, b) => (a.orderedAt || '').localeCompare(b.orderedAt || ''))
+  );
+  const sortedVendors = Object.keys(vendorMap).sort();
+
+  list.innerHTML = sortedVendors.map(vendor => {
+    const items = vendorMap[vendor];
+    const cards = items.map(it => {
+      const statusBadge = it.isPartial
+        ? `<span style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">部分到貨</span>`
+        : `<span style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">待到貨</span>`;
+      const btn = it.pId
+        ? `<button class="pending-card-btn" onclick="openQuickReceive('${it.pId}')">✍️ 手動入庫</button>`
         : '';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-size:12px;color:#334155;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          ${escHtml(it.name)} <b style="color:#DC2626">欠 ${it.pending}</b> ${escHtml(it.unit)}
-        </span>${btn}</div>`;
+      return `<div class="pending-card">
+        <div class="pending-card-meta">
+          <span>${it.dateStr} 訂購</span>${statusBadge}
+        </div>
+        <div class="pending-card-body">
+          <div>
+            <div class="pending-card-name">${escHtml(it.name)}</div>
+            <div class="pending-card-qty">待到貨 ${it.remaining} ${escHtml(it.unit)}</div>
+          </div>
+          ${btn}
+        </div>
+      </div>`;
     }).join('');
-    return `<div style="min-width:200px;max-width:250px;flex-shrink:0;border:1px solid #E2E4F4;
-                        border-radius:12px;padding:10px 12px;background:white;
-                        box-shadow:0 1px 4px rgba(0,0,0,.06)">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-        <span style="font-weight:700;font-size:12px;color:#1E293B">${escHtml(vendor)}</span>
-        ${badge}
+
+    return `<div class="vendor-group mb-3">
+      <div class="vendor-group-header">
+        <span class="font-semibold text-slate-700 text-sm">${escHtml(vendor)}</span>
+        <span class="text-xs text-slate-400">${items.length} 項待收</span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+      <div class="p-3 flex flex-col gap-2">${cards}</div>
     </div>`;
   }).join('');
-
-  section.style.display = 'block';
 }
 
 function openQuickReceive(productId) {
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) { showToast('找不到品項資料'); return; }
-  // 準備 scanResult，讓 addToTray() 能識別品項（不走相機路徑）
+  isQuickReceiveMode = true;
   scanResult = {
     raw: '',
     parsed: { gtin: '', lotNumber: '', expiryDate: '' },
     matchedProduct: product,
   };
-  // 開啟 Modal，直接顯示 Step 2（跳過相機 Step 1）
   document.getElementById('scan-modal').classList.add('open');
   document.getElementById('scan-step1').style.display = 'none';
-  // renderScanConfirm 負責：①品項卡 ②訂單配對 ③預設數量 = pendingQty
   renderScanConfirm(product, { gtin: '', lotNumber: '', expiryDate: '' }, '');
 }
 
@@ -1334,14 +1449,22 @@ function addToTray() {
     saveTray();
     renderTray();
     showToast(`✓ 已加入暫存（共 ${sessionTray.length} 筆）`);
-    // Resume scanning step 1
-    document.getElementById('scan-step2').classList.remove('open');
-    setTimeout(() => {
-      document.getElementById('scan-step1').style.display = 'flex';
-      document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">繼續掃下一個品項，或關閉開始審核</p>';
-      if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
-      scanResult = null;
-    }, 310);
+
+    if (isQuickReceiveMode) {
+      // 手動入庫路徑：關閉 Modal + 延遲展開暫存抽屜
+      isQuickReceiveMode = false;
+      stopScan();
+      setTimeout(openTrayDrawer, 300);
+    } else {
+      // 相機路徑：回到 Step 1 繼續掃描
+      document.getElementById('scan-step2').classList.remove('open');
+      setTimeout(() => {
+        document.getElementById('scan-step1').style.display = 'flex';
+        document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">繼續掃下一個品項，或關閉開始審核</p>';
+        if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
+        scanResult = null;
+      }, 310);
+    }
   }
 }
 
@@ -1374,8 +1497,15 @@ function renderTray() {
           <span class="font-medium text-slate-800 text-sm">${escHtml(item.productName)}</span>
           ${statusBadge}
         </div>
-        <div class="mt-0.5 text-xs text-slate-500 flex flex-wrap gap-x-3">
-          <span>${item.isRejected ? '<span class="text-red-500">拒收</span>' : item.qty + ' ' + (item.unit || '')}</span>
+        <div class="mt-1 text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
+          ${item.isRejected
+            ? '<span class="text-red-500">拒收</span>'
+            : `<span class="qty-stepper">
+                <button class="qty-btn" onclick="updateTrayQty(${idx},-1)" title="減少">−</button>
+                <span class="qty-num">${item.qty}</span>
+                <button class="qty-btn" onclick="updateTrayQty(${idx},1)" title="增加">+</button>
+                <span style="color:#94A3B8;font-size:11px">${escHtml(item.unit||'')}</span>
+               </span>`}
           ${item.lotNumber ? `<span>批：${escHtml(item.lotNumber)}</span>` : ''}
           ${item.expiryDate ? `<span>效：${fmt(item.expiryDate)}</span>` : ''}
         </div>
@@ -1392,6 +1522,24 @@ function renderTray() {
       </div>
     </div>`;
   }).join('');
+}
+
+function updateTrayQty(idx, delta) {
+  const item = sessionTray[idx];
+  if (!item || item.isRejected) return;
+  const newQty = item.qty + delta;
+  if (newQty <= 0) {
+    if (confirm(`確定要刪除「${item.productName}」這筆暫存紀錄嗎？`)) {
+      sessionTray.splice(idx, 1);
+      saveTray();
+      renderTray();
+      if (sessionTray.length === 0) closeTrayDrawer();
+    }
+    return;
+  }
+  item.qty = newQty;
+  saveTray();
+  renderTray();
 }
 
 function removeTrayItem(idx) {
