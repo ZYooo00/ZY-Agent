@@ -1031,8 +1031,16 @@ function startScan() {
 
   html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
   html5QrCode.start(
-    { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-    { fps: 12, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, rememberLastUsedCamera: true },
+    { facingMode: 'environment' },
+    {
+      fps: 10,
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        return { width: Math.floor(minEdge * 0.75), height: Math.floor(minEdge * 0.75) };
+      },
+      aspectRatio: 1.0,
+      rememberLastUsedCamera: true
+    },
     (text) => { html5QrCode.pause(true); onScanSuccess(text); },
     () => {}
   ).catch(err => {
