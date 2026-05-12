@@ -1031,8 +1031,8 @@ function startScan() {
 
   html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
   html5QrCode.start(
-    { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-    { fps: 12, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+    { facingMode: 'environment' },
+    { fps: 12, qrbox: { width: 250, height: 250 }, videoConstraints: { width: { ideal: 1920 }, height: { ideal: 1080 } }, rememberLastUsedCamera: true },
     (text) => { html5QrCode.pause(true); onScanSuccess(text); },
     () => {}
   ).catch(err => {
@@ -1214,6 +1214,13 @@ function renderExpectedDeliveries() {
 
   const history = JSON.parse(localStorage.getItem('order-history') || '[]');
 
+  // 計算暫存區已暫存的數量（依 orderId 加總，排除拒收）
+  const trayQtyByOrder = {};
+  sessionTray.forEach(i => {
+    if (i.isRejected || !i.orderId) return;
+    trayQtyByOrder[i.orderId] = (trayQtyByOrder[i.orderId] || 0) + (i.qty || 0);
+  });
+
   // 收集所有待收品項，帶上 orderedAt 供排序
   const allItems = [];
   history.forEach(order => {
@@ -1223,7 +1230,7 @@ function renderExpectedDeliveries() {
       ? (() => { const d = new Date(orderedAt); return `${d.getMonth()+1}/${d.getDate()}`; })()
       : '—';
     (order.orders || []).forEach(item => {
-      const remaining = (item.orderQty || 0) - (item.receivedQty || 0);
+      const remaining = (item.orderQty || 0) - (item.receivedQty || 0) - (trayQtyByOrder[item.orderId] || 0);
       if (remaining <= 0) return;
       const prod = GUPAN_MAP[item.orderId];
       allItems.push({
@@ -1428,6 +1435,7 @@ function addToTray() {
     renderTray();
     showToast(`✓ 已加入暫存（共 ${sessionTray.length} 筆）`);
 
+    renderExpectedDeliveries();
     if (isQuickReceiveMode) {
       // 手動入庫路徑：關閉 Modal + 延遲展開暫存抽屜
       isQuickReceiveMode = false;
@@ -1512,6 +1520,7 @@ function updateTrayQty(idx, delta) {
       sessionTray.splice(idx, 1);
       saveTray();
       renderTray();
+      renderExpectedDeliveries();
       if (sessionTray.length === 0) closeTrayDrawer();
     }
     return;
@@ -1519,12 +1528,14 @@ function updateTrayQty(idx, delta) {
   item.qty = newQty;
   saveTray();
   renderTray();
+  renderExpectedDeliveries();
 }
 
 function removeTrayItem(idx) {
   sessionTray.splice(idx, 1);
   saveTray();
   renderTray();
+  renderExpectedDeliveries();
   if (sessionTray.length === 0) closeTrayDrawer();
 }
 
