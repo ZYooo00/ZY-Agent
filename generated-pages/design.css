@@ -1,0 +1,269 @@
+/* design.css — 培養液管理系統共用設計系統
+   載入順序：放在 tailwind-config.js 之前（提供 CSS Variables 給 Tailwind config 使用）
+   v1.0.0
+*/
+
+/* ════════════════════════════════════════
+   1. CSS Variables（Design Tokens）
+   ════════════════════════════════════════ */
+:root {
+  /* Primary */
+  --color-primary:        #9590D0;
+  --color-primary-light:  #BDB8E8;
+  --color-primary-dark:   #7A75BB;
+  --color-primary-xlight: #EDE9FF;
+  --color-secondary:      #E2E4F4;
+
+  /* Semantic state：bg / text */
+  --color-ok-bg:       #DCFCE7;  --color-ok-text:       #166534;
+  --color-warn-bg:     #FFF7ED;  --color-warn-text:     #C2410C;
+  --color-crit-bg:     #FEE2E2;  --color-crit-text:     #B91C1C;
+  --color-info-bg:     #EFF6FF;  --color-info-text:     #1D4ED8;
+  --color-none-bg:     #F1F5F9;  --color-none-text:     #64748B;
+  --color-transit-bg:  #DBEAFE;  --color-transit-text:  #1D4ED8;
+
+  /* Border radius */
+  --r-xs:   6px;
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-pill: 9999px;
+
+  /* Button height */
+  --btn-height-mobile:  52px;
+  --btn-height-desktop: 44px;
+}
+
+
+/* ════════════════════════════════════════
+   2. 字型基礎
+   ════════════════════════════════════════ */
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+}
+h1, h2, h3, .heading, .font-heading {
+  font-family: 'Figtree', 'Noto Sans TC', sans-serif;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ════════════════════════════════════════
+   3. Sidebar Nav Link（統一規格）
+   ════════════════════════════════════════ */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);     /* 8px */
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #64748B;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  user-select: none;
+  text-decoration: none;
+}
+.sidebar-link:hover  { background: #EDE9FF; color: var(--color-primary-dark); }
+.sidebar-link.active { background: #EDE9FF; color: var(--color-primary-dark); font-weight: 600; }
+.sidebar-link svg    { width: 18px; height: 18px; flex-shrink: 0; }
+
+
+/* ════════════════════════════════════════
+   4. Mobile Nav Drawer（統一規格）
+   ════════════════════════════════════════ */
+#nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .4);
+  z-index: 45;
+}
+#nav-overlay.open { display: block; }
+
+#nav-drawer {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  background: white;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  gap: 4px;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, .15);
+}
+#nav-drawer.open { transform: translateX(0); }
+
+
+/* ════════════════════════════════════════
+   5. Badge（統一命名與實作）
+   ════════════════════════════════════════ */
+[class^="badge-"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-ok      { background: var(--color-ok-bg);      color: var(--color-ok-text); }
+.badge-warn    { background: var(--color-warn-bg);    color: var(--color-warn-text); }
+.badge-crit    { background: var(--color-crit-bg);    color: var(--color-crit-text); }
+.badge-info    { background: var(--color-info-bg);    color: var(--color-info-text); }
+.badge-none    { background: var(--color-none-bg);    color: var(--color-none-text); }
+.badge-transit { background: var(--color-transit-bg); color: var(--color-transit-text); }
+
+
+/* ════════════════════════════════════════
+   6. Row Colors（統一命名）
+   ════════════════════════════════════════ */
+.row-ok        { background: #fff; }
+.row-warn      { background: #FFF7ED; }
+.row-crit      { background: #FEE2E2; }
+.row-none      { background: #F8FAFC; color: #94A3B8; }
+.row-unscanned { background: #fff; opacity: 0.65; }
+
+
+/* ════════════════════════════════════════
+   7. Card
+   ════════════════════════════════════════ */
+.card {
+  background: #fff;
+  border-radius: var(--r-lg);         /* 16px */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+  border: 1px solid #F1F5F9;
+  padding: 16px;
+}
+.card-title {
+  font-family: 'Figtree', 'Noto Sans TC', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin-bottom: 12px;
+}
+
+
+/* ════════════════════════════════════════
+   8. Buttons
+   ════════════════════════════════════════ */
+
+/* Primary — 手機全寬高，桌面自動縮 */
+.btn-primary {
+  width: 100%;
+  height: var(--btn-height-mobile);  /* 52px */
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+  font-family: 'Noto Sans TC', sans-serif;
+  white-space: nowrap;
+}
+.btn-primary:hover,
+.btn-primary:active { background: var(--color-primary-dark); }
+
+@media (min-width: 768px) {
+  .btn-primary {
+    width: auto;
+    height: var(--btn-height-desktop); /* 44px */
+    border-radius: var(--r-md);        /* 12px */
+    padding: 0 20px;
+    font-size: 14px;
+  }
+}
+
+/* Secondary */
+.btn-secondary {
+  width: 100%;
+  height: 44px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--r-sm);  /* 8px */
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  font-family: 'Noto Sans TC', sans-serif;
+  white-space: nowrap;
+}
+.btn-secondary:hover  { background: #E9EEF5; border-color: #CBD5E1; }
+.btn-secondary:active { background: #E2E8F0; }
+
+@media (min-width: 768px) {
+  .btn-secondary {
+    width: auto;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+}
+
+/* Confirm（藍色，用於二次確認動作）*/
+.btn-confirm {
+  width: 100%;
+  height: var(--btn-height-mobile);
+  background: #2563EB;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+.btn-confirm:hover,
+.btn-confirm:active { background: #1D4ED8; }
+
+@media (min-width: 768px) {
+  .btn-confirm {
+    width: auto;
+    height: var(--btn-height-desktop);
+    border-radius: var(--r-md);
+    padding: 0 20px;
+    font-size: 14px;
+  }
+}
+
+
+/* ════════════════════════════════════════
+   9. Toast（全域提示，由 design.js 動態建立 DOM）
+   ════════════════════════════════════════ */
+#global-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  max-width: 300px;
+  padding: 10px 20px;
+  border-radius: var(--r-md);
+  background: #1E293B;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Noto Sans TC', sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+  z-index: 9999;
+  pointer-events: none;  /* 不阻擋下層按鈕點擊 */
+  opacity: 0;
+  transition: opacity .2s ease, transform .2s ease;
+  text-align: center;
+  white-space: pre-line;
+}
+#global-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#global-toast.toast-warn { background: #DC2626; }
+#global-toast.toast-ok   { background: #16A34A; }
