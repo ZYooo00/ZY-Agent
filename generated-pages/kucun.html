@@ -4,38 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>培養液管理系統 — 庫存總覽</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#9590D0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="design.css">
+<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          primary: { DEFAULT:'#9590D0', light:'#BDB8E8', dark:'#7A75BB', xlight:'#EDE9FF' },
-          secondary: '#E2E4F4',
-        },
-        fontFamily: {
-          sans: ['Noto Sans TC','sans-serif'],
-          heading: ['Figtree','Noto Sans TC','sans-serif'],
-        },
-      }
-    }
-  }
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="design.js" defer></script>
 <style>
-  body { font-family:'Noto Sans TC',sans-serif; background:#F8FAFC; }
-  h1,h2,h3,.heading { font-family:'Figtree','Noto Sans TC',sans-serif; }
-  .tabular { font-variant-numeric:tabular-nums; }
-
-  /* ── Sidebar & Nav ── */
-  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
-  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
-  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
-  #nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
-  #nav-overlay.open { display:block; }
-  #nav-drawer { position:fixed; top:0; left:0; bottom:0; width:220px; background:white; z-index:41; transform:translateX(-105%); transition:transform .25s cubic-bezier(.4,0,.2,1); padding:16px 12px; }
-  #nav-drawer.open { transform:translateX(0); }
-
   /* ── Sort tabs ── */
   .sort-tab { padding:6px 14px; border-radius:8px; font-size:13px; font-weight:500; color:#64748B; cursor:pointer; transition:all .15s; border:1.5px solid transparent; }
   .sort-tab:hover { background:#F1F5F9; }
@@ -76,14 +54,6 @@
   .year-sep-inner { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9px; font-weight:700; color:#7A75BB; letter-spacing:.08em; padding:6px 0; display:block; text-align:center; }
   /* Event columns */
   .ev-col { min-width:80px; width:80px; text-align:center; }
-
-  /* ── Badges ── */
-  .badge { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap; }
-  .b-ok      { background:#DCFCE7; color:#15803D; }
-  .b-warn    { background:#FFF7ED; color:#C2410C; }
-  .b-crit    { background:#FEE2E2; color:#B91C1C; }
-  .b-none    { background:#F1F5F9; color:#64748B; }
-  .b-transit { background:#DBEAFE; color:#1D4ED8; }
 
   /* ── KPI Cards ── */
   .kpi-card { background:white; border:1.5px solid #E2E4F4; border-radius:16px; padding:16px 20px; cursor:pointer; transition:all .15s; flex:1; min-width:150px; user-select:none; }
@@ -174,10 +144,6 @@
   .sc-input:focus { border-color:#9590D0; box-shadow:0 0 0 3px rgba(149,144,208,.12); }
   select.sc-input { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:16px; padding-right:36px; }
 
-  /* Toast */
-  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(12px); background:#1E293B; color:white; padding:10px 20px; border-radius:12px; font-size:13.5px; font-weight:500; opacity:0; transition:opacity .2s,transform .2s; z-index:99; pointer-events:none; white-space:nowrap; }
-  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
   /* ── Info tooltip ── */
   .info-tip { position:relative; display:inline-block; cursor:help; color:#9590D0; vertical-align:middle; }
   .info-tip::before {
@@ -238,10 +204,12 @@
     <span class="heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
   </div>
   <div class="space-y-0.5">
-    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤</div>
-    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
-    <div class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
+    <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>今日估盤</div>
+    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>今日備盤</div>
+    <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>庫存盤點</div>
     <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+    <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
 </div>
 
@@ -263,15 +231,17 @@
 </header>
 
 <!-- LAYOUT -->
-<div class="flex pt-14">
+<div class="flex min-h-screen pt-14">
 
   <!-- DESKTOP SIDEBAR -->
   <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4">
     <div class="px-3 space-y-0.5">
-      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤</div>
-      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
-      <div class="sidebar-link active"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
+      <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>今日估盤</div>
+      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>今日備盤</div>
+      <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>庫存盤點</div>
       <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+      <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
     </div>
     <div class="mt-auto px-3 pt-4 border-t border-slate-100">
       <div class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定</div>
@@ -285,7 +255,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div class="flex items-center gap-3">
         <h1 class="heading text-2xl font-bold text-slate-800">庫存總覽</h1>
-        <span class="text-xs text-slate-400 font-mono">v2.3.0</span>
+        <span class="text-xs text-slate-400 font-mono">v2.4.0</span>
       </div>
       <div class="flex items-center gap-2">
         <!-- Export CSV -->
@@ -607,13 +577,6 @@ function beipanToBottles(entry) {
   return (p.remaining > 0 ? 1 : 0) + p.unopened;
 }
 
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2200);
-}
-
 // ════════════════════════════════
 // DATA LOADING
 // ════════════════════════════════
@@ -624,6 +587,7 @@ function loadData() {
     pandianHistory:JSON.parse(localStorage.getItem('pandian-history')  || '[]'),
     beipan:        JSON.parse(localStorage.getItem('beipan-result')    || 'null'),
     order:         JSON.parse(localStorage.getItem('order-result')     || 'null'),
+    orderHistory:  JSON.parse(localStorage.getItem('order-history')    || '[]'),
     changelog:     JSON.parse(localStorage.getItem('kucun-changelog')  || '[]'),
   };
 }
@@ -676,10 +640,23 @@ function calcProductInfo(product, data) {
   const target = pandianItem?.target ?? null;
 
   // ── Pending delivery ──
-  const orderItem = product.gupanId
-    ? order?.orders?.find(o => o.itemId === product.gupanId)
-    : null;
-  const pending   = orderItem ? Math.max(0, (orderItem.orderQty||0) - (orderItem.receivedQty||0)) : 0;
+  let pending = 0;
+  if (product.gupanId) {
+    const orderHistory = data.orderHistory || [];
+    orderHistory.forEach(ord => {
+      if (!['pending', 'partial'].includes(ord.status)) return;
+      (ord.orders || []).forEach(oi => {
+        if (oi.orderId === product.gupanId) {
+          pending += Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0));
+        }
+      });
+    });
+    // fallback：若 orderHistory 為空但舊 order-result 存在
+    if (pending === 0 && data.order?.orders) {
+      const oi = data.order.orders.find(o => o.itemId === product.gupanId);
+      if (oi) pending = Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0));
+    }
+  }
 
   // ── Active lots (from jinhuo, group by lot#) ──
   const lotMap = {};
@@ -847,10 +824,10 @@ function buildChangelogCols(changelog) {
 // RENDER: INVENTORY TABLE
 // ════════════════════════════════
 function badgeHtml(status) {
-  if (status === 'crit') return `<span class="badge b-crit">🔴 危急</span>`;
-  if (status === 'warn') return `<span class="badge b-warn">🟠 注意</span>`;
-  if (status === 'ok')   return `<span class="badge b-ok">🟢 充足</span>`;
-  return `<span class="badge b-none">⚪ 無資料</span>`;
+  if (status === 'crit') return `<span class="badge-crit">🔴 危急</span>`;
+  if (status === 'warn') return `<span class="badge-warn">🟠 注意</span>`;
+  if (status === 'ok')   return `<span class="badge-ok">🟢 充足</span>`;
+  return `<span class="badge-none">⚪ 無資料</span>`;
 }
 
 function getSortedProducts(data) {
@@ -958,7 +935,7 @@ function renderInventoryTable(data) {
       ? `<div class="font-semibold text-slate-700 text-sm tabular">${info.stockDisplay}</div>`
       : `<span class="text-slate-300 text-sm">—</span>`;
     const pendingCell = info.pending > 0
-      ? `<span class="badge b-transit">🔵 ${info.pending} ${p.unit}</span>`
+      ? `<span class="badge-transit">🔵 ${info.pending} ${p.unit}</span>`
       : `<span class="text-slate-300 text-sm">—</span>`;
 
     let midCells = '';
@@ -1619,6 +1596,16 @@ function loadDemoData() {
     {reagentId:'aoa-ci',reagentName:'AOA 弘優 CI',selectedLot:'AA1023',remaining:9.5,unopened:1,usedQty:0,bottleVol:15},
   ],threshold:{orange_days:7,red_days:3}}));
   localStorage.setItem('order-result', JSON.stringify({orders:[{itemId:'m-givf',orderQty:12,receivedQty:0},{itemId:'m-h5gt',orderQty:6,receivedQty:0}]}));
+  localStorage.setItem('order-history', JSON.stringify([{
+    id: 'demo-order-1',
+    confirmedAt: new Date(Date.now() - 5*86400000).toISOString(),
+    date: new Date(Date.now() - 5*86400000).toISOString().slice(0,10),
+    status: 'pending',
+    orders: [
+      { orderId:'m-givf', name:'G-IVF',  vendor:'亞樸', unit:'瓶', orderQty:12, receivedQty:0 },
+      { orderId:'m-h5gt', name:'H5GT',   vendor:'弘優', unit:'瓶', orderQty:6,  receivedQty:0 },
+    ]
+  }]));
   localStorage.setItem('kucun-changelog', JSON.stringify([
     // 2026-03-01 盤點（2筆，同 ts）
     {id:'c01',ts:'2026-03-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:5,qty:5,unit:'瓶',operator:'高任佑',note:'盤點：高任佑（2026-03-01）'},
