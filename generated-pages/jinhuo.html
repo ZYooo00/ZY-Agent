@@ -4,33 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>培養液管理系統 — 進貨記錄</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#9590D0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="design.css">
+<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          primary: { DEFAULT:'#9590D0', light:'#BDB8E8', dark:'#7A75BB', xlight:'#EDE9FF' },
-          secondary: '#E2E4F4',
-        },
-        fontFamily: {
-          sans: ['Noto Sans TC','sans-serif'],
-          heading: ['Figtree','Noto Sans TC','sans-serif'],
-        },
-      }
-    }
-  }
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="design.js" defer></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-  body { font-family:'Noto Sans TC',sans-serif; background:#F8FAFC; }
-  h1,h2,h3,.heading { font-family:'Figtree','Noto Sans TC',sans-serif; }
-  .tabular { font-variant-numeric:tabular-nums; }
-
-  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
-  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
-  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
+  body { background:#F8FAFC; }
 
   .vendor-group { background:white; border-radius:14px; border:1px solid #E2E8F0; overflow:hidden; }
   .vendor-group-header { padding:11px 16px; background:#F8F7FD; border-bottom:1px solid #E2E4F4; display:flex; align-items:center; justify-content:space-between; }
@@ -182,18 +167,6 @@
   #alert-102-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:62; align-items:center; justify-content:center; padding:20px; }
   #alert-102-overlay.open { display:flex; }
 
-  /* Mobile nav drawer */
-  #nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:40; }
-  #nav-overlay.open { display:block; }
-  #nav-drawer { position:fixed; left:0; top:0; bottom:0; width:240px; background:white; z-index:42; padding:16px 12px; transform:translateX(-100%); transition:transform .25s ease; box-shadow:4px 0 24px rgba(0,0,0,.12); }
-  #nav-drawer.open { transform:translateX(0); }
-
-  /* Toast */
-  #toast { position:fixed; bottom:86px; left:50%; transform:translateX(-50%) translateY(10px); background:#0F172A; color:white; padding:9px 18px; border-radius:10px; font-size:13.5px; font-weight:500; z-index:70; opacity:0; transition:opacity .22s,transform .22s; pointer-events:none; white-space:nowrap; }
-  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  #toast.warn { background:#92400E; }
-  @media(min-width:768px){ #toast { bottom:24px; } }
-
   ::-webkit-scrollbar { width:4px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:4px; }
@@ -211,31 +184,25 @@
     <span class="heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
   </div>
   <div class="space-y-0.5">
-    <div class="sidebar-link" onclick="location.href='beipan.html'">
-      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤
-    </div>
-    <div class="sidebar-link active">
-      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄
-    </div>
-    <div class="sidebar-link">
-      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽
-    </div>
-    <div class="sidebar-link" onclick="location.href='order.html'">
-      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理
-    </div>
+    <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>今日估盤</div>
+    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>今日備盤</div>
+    <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>庫存盤點</div>
+    <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+    <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
 </div>
 
 <!-- FIXED HEADER -->
-<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+<header id="app-header" class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
   <div class="flex items-center gap-3">
-    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500" onclick="openNav()">
+    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" onclick="openNav()">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
     </div>
-    <span class="heading font-semibold text-slate-800 text-base">培養液管理系統</span>
+    <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
   </div>
   <div class="flex items-center gap-3">
     <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
@@ -244,23 +211,17 @@
 </header>
 
 <!-- LAYOUT -->
-<div class="flex pt-14">
+<div class="flex min-h-screen pt-14">
 
   <!-- DESKTOP SIDEBAR -->
-  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4">
+  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4 overflow-y-auto">
     <div class="px-3 space-y-0.5">
-      <div class="sidebar-link" onclick="location.href='beipan.html'">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>今日備盤
-      </div>
-      <div class="sidebar-link active">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄
-      </div>
-      <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽
-      </div>
-      <div class="sidebar-link" onclick="location.href='order.html'">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理
-      </div>
+      <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>今日估盤</div>
+      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>今日備盤</div>
+      <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>庫存盤點</div>
+      <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>訂貨管理</div>
+      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>進貨記錄</div>
+      <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
     </div>
     <div class="mt-auto px-3 pt-4 border-t border-slate-100">
       <div class="sidebar-link">
@@ -270,13 +231,13 @@
   </aside>
 
   <!-- MAIN -->
-  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
+  <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
     <!-- Title row -->
     <div class="flex items-center justify-between mb-5">
       <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.6.6</span></h1>
       <div class="flex items-center gap-2">
-        <button onclick="loadDemoData()" class="flex items-center gap-1.5 border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors" title="載入測試資料（覆寫 localStorage）">
+        <button onclick="loadDemoData()" class="flex items-center gap-1.5 border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors" title="載入測試資料（覆寫 localStorage）" style="display:none !important;">
           🧪 測試資料
         </button>
         <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
@@ -608,9 +569,6 @@
     <button onclick="close102Alert()" class="w-full py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">了解，已記錄</button>
   </div>
 </div>
-
-<!-- TOAST -->
-<div id="toast"></div>
 
 <script src="shared.js"></script>
 <script>
@@ -2084,11 +2042,6 @@ function goToOrderPage() {
   window.location.href = 'order.html';
 }
 
-// ───────────────────────────────────────
-// TOAST
-// ───────────────────────────────────────
-
-let _toastTimer;
 // ─── 測試資料（DEV ONLY）────────────────────────────────────────────
 function loadDemoData() {
   if (!confirm('這將覆寫 localStorage 中的測試資料，確定嗎？')) return;
@@ -2159,15 +2112,6 @@ function loadDemoData() {
   location.reload();
 }
 
-function showToast(msg, type) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.remove('warn');
-  if (type === 'warn') el.classList.add('warn');
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => { el.classList.remove('show','warn'); }, 2400);
-}
 </script>
 </body>
 </html>
