@@ -4,51 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>培養液管理系統 — 今日備盤</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#9590D0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="design.css">
+<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          primary: { DEFAULT: '#9590D0', light: '#BDB8E8', dark: '#7A75BB', xlight: '#EDE9FF' },
-          secondary: '#E2E4F4',
-        },
-        fontFamily: {
-          sans: ['Noto Sans TC', 'sans-serif'],
-          heading: ['Figtree', 'Noto Sans TC', 'sans-serif'],
-        },
-      }
-    }
-  }
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="design.js" defer></script>
 <style>
-  body { font-family: 'Noto Sans TC', sans-serif; }
-  .font-heading, h1, h2, h3 { font-family: 'Figtree', 'Noto Sans TC', sans-serif; }
-  .tabular { font-variant-numeric: tabular-nums; }
-
-  .badge-ok     { background:#DCFCE7; color:#166534; }
-  .badge-info   { background:#EFF6FF; color:#1D4ED8; }
-  .badge-warn   { background:#FFF7ED; color:#9A3412; }
-  .badge-danger { background:#FEF2F2; color:#991B1B; }
-  .badge-block  { background:#F1F5F9; color:#94A3B8; }
-
-  .row-ok    { background:#fff; }
-  .row-danger { background:#FFF1F2; }
-  .row-block  { background:#F8FAFC; color:#94A3B8; }
-  .row-diff   { background:#FEF2F2; }
+  /* beipan 專屬 */
+  .row-crit  { background:#FFF1F2; }
+  .row-none  { background:#F8FAFC; color:#94A3B8; }
+  .row-diff  { background:#FEF2F2; }
 
   .cell-h5gt { background:#F5F0FB; }
   .cell-gxtl { background:#EEF0FB; }
   .cell-na   { background:#F8FAFC; color:#CBD5E1; }
-
-  .sidebar-link { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:6px; color:#475569; font-size:13.5px; cursor:pointer; transition:all .15s; }
-  .sidebar-link:hover { background:#EDE9FF; color:#7A75BB; }
-  .sidebar-link.active { background:#EDE9FF; color:#7A75BB; font-weight:600; }
-
-  .demo-btn { padding:4px 14px; border-radius:20px; font-size:12px; font-weight:500; border:1.5px solid #E2E8F0; color:#64748B; cursor:pointer; transition:all .15s; white-space:nowrap; }
-  .demo-btn:hover { border-color:#9590D0; color:#9590D0; }
-  .demo-btn.active { background:#9590D0; color:#fff; border-color:#9590D0; }
 
   input[type=radio] { accent-color:#9590D0; width:16px; height:16px; cursor:pointer; }
   input[type=number], input[type=text], input[type=date], select { font-family:'Noto Sans TC',sans-serif; }
@@ -67,60 +40,113 @@
 
 <body class="bg-slate-50 min-h-screen">
 
+<!-- ════════════════ MOBILE NAV OVERLAY ════════════════ -->
+<div id="nav-overlay" onclick="closeNav()"></div>
+
+<!-- ════════════════ MOBILE NAV DRAWER ════════════════ -->
+<div id="nav-drawer">
+  <div class="flex items-center justify-between mb-4 px-1">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      </div>
+      <span class="font-heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
+    </div>
+    <button onclick="closeNav()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sidebar-link" onclick="location.href='gupan.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    今日估盤
+  </div>
+  <div class="sidebar-link active">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    今日備盤
+  </div>
+  <div class="sidebar-link" onclick="location.href='pandian.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+    庫存盤點
+  </div>
+  <div class="sidebar-link" onclick="location.href='order.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    訂貨管理
+  </div>
+  <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    進貨記錄
+  </div>
+  <div class="sidebar-link" onclick="location.href='kucun.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    庫存總覽
+  </div>
+  <div class="mt-auto pt-4 border-t border-slate-100">
+    <div class="sidebar-link text-slate-400 cursor-default">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      後台設定
+    </div>
+  </div>
+</div>
+
 <!-- ──────────── HEADER ──────────── -->
-<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shadow-sm">
+<header id="app-header" class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
   <div class="flex items-center gap-3">
-    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" onclick="openNav()">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
     </div>
     <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
   </div>
-  <div class="flex items-center gap-4">
-    <span class="text-sm text-slate-500 tabular">2026/04/30 (四)</span>
-    <div class="flex items-center gap-2 cursor-pointer">
-      <div class="w-7 h-7 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
-      <span class="text-sm text-slate-700 font-medium">高任佑</span>
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-    </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
   </div>
 </header>
 
 <!-- ──────────── LAYOUT ──────────── -->
-<div class="flex pt-14">
+<div class="flex min-h-screen pt-14">
 
   <!-- SIDEBAR -->
-  <aside class="fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex flex-col py-4">
-    <div class="px-3 space-y-0.5">
-      <div class="sidebar-link active">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-        今日備盤
-      </div>
-      <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-        進貨記錄
-      </div>
-      <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-        庫存總覽
-      </div>
-      <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-        訂貨管理
-      </div>
+  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 flex-col border-r border-slate-200 bg-white z-20 overflow-y-auto px-3 py-4 gap-1">
+    <div class="sidebar-link" onclick="location.href='gupan.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      今日估盤
     </div>
-    <div class="mt-auto px-3 pt-4 border-t border-slate-100">
-      <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    <div class="sidebar-link active">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      今日備盤
+    </div>
+    <div class="sidebar-link" onclick="location.href='pandian.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+      庫存盤點
+    </div>
+    <div class="sidebar-link" onclick="location.href='order.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      訂貨管理
+    </div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      進貨記錄
+    </div>
+    <div class="sidebar-link" onclick="location.href='kucun.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      庫存總覽
+    </div>
+    <div class="mt-auto pt-3 border-t border-slate-100">
+      <div class="sidebar-link text-slate-400 cursor-default">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         後台設定
       </div>
     </div>
   </aside>
 
   <!-- MAIN -->
-  <main class="ml-52 flex-1">
+  <main class="flex-1 md:ml-52">
 
-    <!-- DEMO SWITCHER -->
-    <div class="sticky top-14 z-10 bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-2 overflow-x-auto">
+    <!-- DEMO SWITCHER（開發用，隱藏）-->
+    <div id="dev-demo-controls" class="hidden sticky top-14 z-10 bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-2 overflow-x-auto" style="display: none !important;">
       <span class="text-xs text-slate-400 font-medium whitespace-nowrap">示範：</span>
       <button class="demo-btn" id="btn-a" onclick="switchState('a')">🔒 A：備盤鎖定</button>
       <button class="demo-btn active" id="btn-b" onclick="switchState('b')">📋 B：備盤作業中</button>
@@ -198,7 +224,7 @@
       </div>
 
       <!-- ── 左右兩欄 ── -->
-      <div class="grid gap-6" style="grid-template-columns: minmax(0,430px) 1fr;">
+      <div class="flex flex-col md:grid md:grid-cols-[minmax(0,430px)_1fr] gap-6">
 
         <!-- ██ LEFT：盤子計數 ██ -->
         <div class="space-y-4">
@@ -209,6 +235,7 @@
             <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
               <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">卵子 (GIVF)</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead class="border-b border-slate-100">
                 <tr class="text-xs text-slate-400">
@@ -219,6 +246,7 @@
               </thead>
               <tbody id="givf-dish-body" class="divide-y divide-slate-50"></tbody>
             </table>
+          </div>
           </div>
 
           <!-- 胚胎矩陣 H5GT × GxTL -->
@@ -257,6 +285,7 @@
               <span class="text-xs font-heading font-semibold text-slate-600 uppercase tracking-wide">Glue 盤</span>
               <span class="text-xs text-slate-400">BT / FBT 適用</span>
             </div>
+            <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead class="border-b border-slate-100">
                 <tr class="text-xs text-slate-400">
@@ -282,6 +311,7 @@
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
 
           <div id="bulk-reagent-section" class="space-y-4"></div>
@@ -419,15 +449,15 @@ function fmtDate(isoStr) {
 // 可用量 = 已開封剩餘 + 未開封瓶數 × 單瓶容量
 // 充足：開封瓶已夠 / 需開新瓶：總量夠但開封瓶不夠 / 批號不足：總量也不夠
 function calcBadge(b, needed) {
-  if (b.blocked) return { status:'blocked', cls:'badge-block', text:'❌ 已過期' };
+  if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
   const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
   if (total < needed)          return { status:'insufficient', cls:'badge-warn',   text:'⚠️ 批號不足' };
   if ((b.remaining||0) < needed) return { status:'needOpen',   cls:'badge-info',   text:'🔄 需開新瓶' };
   const days = daysUntilExpiry(b.expiry);
   if (days !== null) {
-    if (days <= 0)  return { status:'todayLast',  cls:'badge-danger', text:'🔴 今天最後' };
-    if (days === 1) return { status:'expire1',    cls:'badge-danger', text:'🔴 明天到期' };
-    if (days <= 3)  return { status:'expireWarn', cls:'badge-warn',   text:`🟠 ${days}天到期` };
+    if (days <= 0)  return { status:'todayLast',  cls:'badge-crit', text:'🔴 今天最後' };
+    if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期' };
+    if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
   return { status:'ok', cls:'badge-ok', text:'✅ 充足' };
 }
@@ -511,14 +541,14 @@ const gm508Config = {
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
   if (b.blocked) {
-    return `<tr class="row-block">
+    return `<tr class="row-none">
       <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
       <td class="px-3 py-3 font-mono line-through text-slate-300">${b.lot}</td>
       <td class="px-3 py-3 tabular text-slate-300">—</td>
       <td class="px-3 py-3 tabular text-slate-300">—</td>
       <td class="px-3 py-3 text-right tabular text-slate-300">—</td>
       <td class="px-3 py-3 text-right tabular text-slate-300 text-xs">—</td>
-      <td class="px-3 py-3"><span class="badge-block text-xs px-2 py-0.5 rounded-full font-medium">❌ 已過期</span></td>
+      <td class="px-3 py-3"><span class="badge-none text-xs px-2 py-0.5 rounded-full font-medium">❌ 已過期</span></td>
     </tr>`;
   }
   const badge    = calcBadge(b, needed);
@@ -1149,24 +1179,8 @@ function submitBeipan() {
   };
   localStorage.setItem('beipan-result', JSON.stringify(payload));
   appendKucunLog(logEntries);
-  showToast('備盤結果已儲存 ✓');
+  showToast('備盤結果已儲存 ✓', 'ok');
   switchState('a');
-}
-
-function showToast(msg) {
-  const el = document.createElement('div');
-  el.textContent = msg;
-  Object.assign(el.style, {
-    position: 'fixed', bottom: '28px', right: '28px',
-    background: '#22c55e', color: '#fff',
-    padding: '10px 20px', borderRadius: '10px',
-    fontWeight: '600', fontSize: '14px',
-    boxShadow: '0 4px 16px rgba(0,0,0,.15)',
-    zIndex: '9999', opacity: '1',
-    transition: 'opacity 0.4s',
-  });
-  document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2000);
 }
 
 // ── Glue 計畫值（可由 gupan 覆蓋）──
@@ -1241,6 +1255,13 @@ function loadGupanData() {
 }
 
 // ── Init ──
+(function initDate() {
+  const now = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  const el = document.getElementById('today-display');
+  if (el) el.textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+})();
+
 loadGupanData();
 buildGivfTable();
 buildMatrixTable();
@@ -1249,6 +1270,15 @@ buildAllBulkCards();
 
 // 初始化「今日需用」（以計畫值全算）
 recalcAllNeeded();
+
+function openNav() {
+  document.getElementById('nav-drawer').classList.add('open');
+  document.getElementById('nav-overlay').classList.add('open');
+}
+function closeNav() {
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+}
 </script>
 </body>
 </html>

@@ -4,32 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>培養液管理系統 — 今日估盤</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#9590D0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="design.css">
+<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          primary: { DEFAULT: '#9590D0', light: '#BDB8E8', dark: '#7A75BB', xlight: '#EDE9FF' },
-          secondary: '#E2E4F4',
-        },
-        fontFamily: {
-          sans: ['Noto Sans TC', 'sans-serif'],
-          heading: ['Figtree', 'Noto Sans TC', 'sans-serif'],
-        },
-      }
-    }
-  }
-</script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="design.js" defer></script>
 <style>
-  body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
-  .font-heading, h1, h2, h3 { font-family: 'Figtree', 'Noto Sans TC', sans-serif; }
-  .tabular { font-variant-numeric: tabular-nums; }
+  body { -webkit-tap-highlight-color: transparent; }
 
-  /* ── 卡片 ── */
-  .card { background:#fff; border-radius:16px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:16px; margin-bottom:12px; }
-  .card-title { font-family:'Figtree','Noto Sans TC',sans-serif; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#94A3B8; margin-bottom:12px; }
+  /* ── 卡片 margin（gupan 專屬：每張卡片下方 12px）── */
+  .card { margin-bottom: 12px; }
 
   /* ── 台類輸入格 ── */
   .tai-input {
@@ -80,20 +68,6 @@
   }
   .staff-select:focus { border-color:#9590D0; }
 
-  /* ── Bottom Tab ── */
-  .tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:8px 0; color:#94A3B8; cursor:pointer; transition:color .15s; border:none; background:transparent; }
-  .tab-btn.active { color:#9590D0; }
-  .tab-btn svg { width:22px; height:22px; }
-  .tab-label { font-size:11px; font-weight:500; }
-
-  /* ── 按鈕 ── */
-  .btn-primary { width:100%; height:52px; background:#9590D0; color:#fff; font-size:16px; font-weight:600; border-radius:14px; border:none; cursor:pointer; transition:background .15s; font-family:'Noto Sans TC',sans-serif; }
-  .btn-primary:active { background:#7A75BB; }
-  .btn-secondary { width:100%; height:44px; background:#F1F5F9; color:#475569; font-size:14px; font-weight:500; border-radius:10px; border:none; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
-  .btn-secondary:active { background:#E2E8F0; }
-  .btn-confirm { width:100%; height:52px; background:#2563EB; color:#fff; font-size:16px; font-weight:600; border-radius:14px; border:none; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
-  .btn-confirm:active { background:#1D4ED8; }
-
   /* disabled state */
   input:disabled, select:disabled { opacity:.55; cursor:not-allowed; }
   .form-locked .tai-input,
@@ -128,99 +102,144 @@
   /* ── 鎖定確認卡片 ── */
   .confirm-info { background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:14px 16px; }
 
-  /* ════ 庫存盤點頁 ════ */
-  .pd-group-card { background:#fff; border-radius:16px; box-shadow:0 1px 4px rgba(0,0,0,.06); margin-bottom:10px; overflow:hidden; }
-  .pd-group-header { display:flex; align-items:center; padding:12px 14px; cursor:pointer; user-select:none; gap:6px; }
-  .pd-group-icon { font-size:15px; flex-shrink:0; }
-  .pd-group-title { font-family:'Figtree','Noto Sans TC',sans-serif; font-size:13.5px; font-weight:700; color:#0F172A; flex:1; }
-  .pd-group-chip { font-size:11px; color:#94A3B8; background:#F1F5F9; border-radius:99px; padding:2px 8px; white-space:nowrap; }
-  .pd-chevron { transition:transform .2s; flex-shrink:0; color:#CBD5E1; }
-  .pd-chevron.collapsed { transform:rotate(-90deg); }
-  .pd-group-body { }
-  .pd-item-row { display:flex; align-items:center; padding:8px 14px; border-top:1px solid #F8FAFC; gap:10px; }
-  .pd-item-info { flex:1; min-width:0; }
-  .pd-item-name { font-size:14px; color:#0F172A; font-weight:500; }
-  .pd-item-note { font-size:11px; color:#94A3B8; margin-top:1px; }
-  .pd-num-input {
-    width:60px; height:40px; text-align:center; font-size:17px; font-weight:600;
-    font-variant-numeric:tabular-nums; border:1.5px solid #E2E8F0; border-radius:8px;
-    background:#F8FAFC; color:#0F172A; outline:none; flex-shrink:0;
-    transition:border-color .15s, background .15s;
-  }
-  .pd-num-input:focus { border-color:#9590D0; background:#fff; }
-  .pd-note-input {
-    flex:1; min-width:70px; height:36px; font-size:12px;
-    border:1.5px solid #E2E8F0; border-radius:8px;
-    background:#F8FAFC; color:#475569; padding:0 8px; outline:none;
-    font-family:'Noto Sans TC',sans-serif;
-  }
-  .pd-note-input:focus { border-color:#9590D0; background:#fff; }
-  .pd-note-toggle {
-    font-size:11px; color:#9590D0; background:#F5F3FF;
-    border:1px solid #C4B5FD; border-radius:8px; padding:3px 8px;
-    cursor:pointer; flex-shrink:0; white-space:nowrap; line-height:1.4;
-  }
-  .pd-note-toggle:active, .pd-note-toggle.open { background:#EDE9FA; }
-  .pd-batch-info { font-size:11px; color:#CBD5E1; font-style:italic; flex:1; text-align:center; }
-  .pd-badge {
-    font-size:11px; font-weight:700; border-radius:99px; padding:3px 9px;
-    min-width:38px; text-align:center; white-space:nowrap; flex-shrink:0;
-  }
-  .pd-badge-empty { background:#F1F5F9; color:#94A3B8; }
-  .pd-badge-ok    { background:#DCFCE7; color:#166534; }
-  .pd-badge-warn  { background:#FFF7ED; color:#C2410C; }
-  .pd-badge-crit  { background:#FEE2E2; color:#B91C1C; }
-  /* 進度列 */
-  .pd-progress-bar { height:5px; border-radius:99px; background:#E2E8F0; overflow:hidden; }
-  .pd-progress-fill { height:100%; border-radius:99px; background:#9590D0; transition:width .3s ease; }
-  /* 補貨結果列 */
-  .pd-result-row { display:flex; align-items:center; gap:8px; padding:9px 14px; border-top:1px solid #F8FAFC; }
-  .pd-result-name { flex:1; font-size:14px; color:#0F172A; font-weight:500; }
-  .pd-result-detail { font-size:12px; color:#94A3B8; white-space:nowrap; }
-  .pd-result-suggest { font-size:13px; font-weight:700; color:#EF4444; white-space:nowrap; }
 </style>
 </head>
 
-<body class="bg-slate-50" style="padding-top:56px; padding-bottom:60px;">
+<body class="bg-slate-50 text-slate-800">
+
+<!-- ════════════════ MOBILE NAV OVERLAY ════════════════ -->
+<div id="nav-overlay" onclick="closeNav()"></div>
+
+<!-- ════════════════ MOBILE NAV DRAWER ════════════════ -->
+<div id="nav-drawer">
+  <div class="flex items-center justify-between mb-4 px-1">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+        </svg>
+      </div>
+      <span class="font-heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
+    </div>
+    <button onclick="closeNav()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="sidebar-link active">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    今日估盤
+  </div>
+  <div class="sidebar-link" onclick="location.href='beipan.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    今日備盤
+  </div>
+  <div class="sidebar-link" onclick="location.href='pandian.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+    庫存盤點
+  </div>
+  <div class="sidebar-link" onclick="location.href='order.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    訂貨管理
+  </div>
+  <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    進貨記錄
+  </div>
+  <div class="sidebar-link" onclick="location.href='kucun.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    庫存總覽
+  </div>
+  <div class="mt-auto pt-4 border-t border-slate-100">
+    <div class="sidebar-link text-slate-400 cursor-default">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      後台設定
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ DESKTOP ASIDE ════════════════ -->
+<aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 flex-col border-r border-slate-200 bg-white z-20 overflow-y-auto px-3 py-4 gap-1">
+  <div class="sidebar-link active">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    今日估盤
+  </div>
+  <div class="sidebar-link" onclick="location.href='beipan.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+    今日備盤
+  </div>
+  <div class="sidebar-link" onclick="location.href='pandian.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+    庫存盤點
+  </div>
+  <div class="sidebar-link" onclick="location.href='order.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    訂貨管理
+  </div>
+  <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    進貨記錄
+  </div>
+  <div class="sidebar-link" onclick="location.href='kucun.html'">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    庫存總覽
+  </div>
+  <div class="mt-auto pt-3 border-t border-slate-100">
+    <div class="sidebar-link text-slate-400 cursor-default">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      後台設定
+    </div>
+  </div>
+</aside>
 
 <!-- ════════════════ HEADER ════════════════ -->
-<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
-  <div class="flex items-center gap-2.5">
+<header id="app-header" class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+  <div class="flex items-center gap-3">
+    <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" onclick="openNav()">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
     <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
       </svg>
     </div>
-    <div>
-      <div class="font-heading font-semibold text-slate-800 text-sm leading-tight" id="header-title">今日估盤 <span style="font-size:10px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.1</span></div>
-      <div class="text-xs text-slate-400 tabular leading-tight" id="header-date">2026/04/30</div>
-    </div>
+    <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
   </div>
-  <div class="flex items-center gap-2">
-    <span class="autosave-dot"></span>
-    <span class="text-xs text-slate-400 tabular">自動儲存 <span id="autosave-time">14:22</span></span>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+    <span class="flex items-center gap-1 text-xs text-slate-400 tabular">
+      <span class="autosave-dot"></span>自動儲存 <span id="autosave-time">--:--</span>
+    </span>
+    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
   </div>
 </header>
 
-<!-- ════════════════ STATE BANNER ════════════════ -->
-<div id="banner-b" class="banner banner-blue hidden" style="position:sticky; top:56px; z-index:20;">
-  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-  </svg>
-  等待第二人核對確認
-</div>
-<div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
-  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-  </svg>
-  <span>估盤已確認鎖定 — <span id="confirm-info-text">胚胎師乙 核對，14:38</span></span>
-</div>
+<div class="flex flex-col min-h-screen pt-14">
 
-<!-- ════════════════ MAIN ════════════════ -->
-<main class="px-3">
+  <!-- ════════════════ STATE BANNER ════════════════ -->
+  <div id="banner-b" class="banner banner-blue hidden" style="position:sticky; top:56px; z-index:20;">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    等待第二人核對確認
+  </div>
+  <div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span>估盤已確認鎖定 — <span id="confirm-info-text">胚胎師乙 核對，14:38</span></span>
+  </div>
 
-  <!-- ── Demo 狀態切換 ── -->
-  <div class="flex gap-2 py-3 overflow-x-auto">
+  <div class="flex flex-1">
+
+  <!-- ════════════════ MAIN ════════════════ -->
+  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
+
+  <!-- ── Demo 狀態切換（開發用，隱藏）── -->
+  <div id="dev-demo-controls" class="hidden flex gap-2 py-1 overflow-x-auto mb-3" style="display: none !important;">
     <span class="text-xs text-slate-400 whitespace-nowrap self-center">預覽狀態：</span>
     <button class="demo-btn active" onclick="switchState('A')">A 輸入中</button>
     <button class="demo-btn" onclick="switchState('B')">B 等待核對</button>
@@ -315,7 +334,6 @@
           <div class="text-xs text-slate-500 mb-1.5">Spindle 幾盤
             <span class="suggest-tag ml-1">建議 <span id="oil-spindle-sug" class="suggest-val text-primary-dark">—</span></span>
           </div>
-
           <input type="number" class="bulk-field" id="oil-spindle" placeholder="0" min="0" oninput="calcOil()">
         </div>
         <div>
@@ -362,13 +380,13 @@
       </div>
     </div>
 
-    <!-- ⑥ 備盤備註 -->
+    <!-- ⑦ 備盤備註 -->
     <div class="card">
       <div class="card-title">備盤備註（選填）</div>
       <textarea class="note-textarea" id="gupan-note" placeholder="特殊情況、術者指示等..."></textarea>
     </div>
 
-    <!-- ⑦ 確認卡片（State C 顯示）-->
+    <!-- ⑧ 確認卡片（State C 顯示）-->
     <div id="confirm-card" class="confirm-info mb-3 hidden">
       <div class="flex items-center gap-2 text-green-700">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,7 +401,7 @@
       </div>
     </div>
 
-    <!-- ⑧ 操作按鈕 -->
+    <!-- ⑨ 操作按鈕 -->
     <div id="btn-area" class="pb-2">
       <!-- State A: 送出 -->
       <div id="btn-a">
@@ -405,423 +423,13 @@
 
   </div><!-- /page-gupan -->
 
-  <!-- ════ PAGE: 庫存盤點 ════ -->
-  <div id="page-stock" class="hidden">
-
-    <!-- 盤點人 -->
-    <div class="card">
-      <div class="card-title">盤點人</div>
-      <select class="staff-select w-full" id="pd-staff" onchange="savePandianDraft()">
-        <option value="">（選擇）</option>
-        <option>胚胎師 ZY</option>
-        <option>胚胎師 Lin</option>
-        <option>胚胎師 Chen</option>
-        <option>胚胎師 Wang</option>
-      </select>
-    </div>
-
-    <!-- 進度卡片 -->
-    <div class="card" id="pd-progress-card">
-      <div class="text-xs text-slate-400 mb-2">填入目前架上實際庫存量</div>
-      <div class="flex items-center justify-between mb-2">
-        <div class="text-sm text-slate-600">
-          已填 <span id="pd-filled" class="font-bold tabular" style="color:#9590D0">0</span>
-          <span class="text-slate-400"> / 共 <span id="pd-total" class="tabular">0</span> 項</span>
-        </div>
-        <button onclick="resetPandian()" class="text-xs text-slate-400 underline underline-offset-2">重置草稿</button>
-      </div>
-      <div class="pd-progress-bar">
-        <div class="pd-progress-fill" id="pd-progress" style="width:0%"></div>
-      </div>
-      <div id="pd-last-save" class="text-xs text-slate-300 mt-1.5 text-right tabular"></div>
-    </div>
-
-    <!-- 群組（JS 動態產生）-->
-    <div id="pd-groups"></div>
-
-    <!-- 完成盤點 CTA -->
-    <div id="pd-submit-area" class="pb-2">
-      <button class="btn-primary" onclick="completePandian()">完成盤點</button>
-    </div>
-
-    <!-- 補貨建議結果（完成後顯示）-->
-    <div id="pd-result" class="hidden">
-      <div class="card">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-lg">⚠️</span>
-          <span class="font-heading font-semibold text-slate-800 text-base">低於安全庫存警戒線
-            <span id="pd-result-count" class="tabular" style="color:#EF4444">0</span> 項
-          </span>
-        </div>
-        <div class="text-xs text-slate-400 mb-3" id="pd-result-meta"></div>
-        <div id="pd-result-list"></div>
-        <div id="pd-result-empty" class="hidden text-center py-6">
-          <div class="text-2xl mb-2">✅</div>
-          <div class="text-sm text-slate-500">所有已盤點品項均高於安全庫存警戒線</div>
-        </div>
-        <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">
-          安全庫存量為最低警戒線，實際訂購量請在電腦版訂貨頁確認
-        </div>
-      </div>
-      <div class="space-y-2 pb-2">
-        <button class="btn-primary" id="pd-transfer-btn" onclick="showTransferSuccess()">傳送至訂貨管理</button>
-        <div id="pd-transfer-msg" class="hidden text-center text-sm py-2 rounded-xl"
-          style="color:#7C6FCF; background:#F5F3FF; border:1px solid #C4B5FD;">
-          ✅ 盤點資料已成功儲存！請前往電腦版訂貨管理頁面查看。
-        </div>
-        <button class="btn-secondary" onclick="backToPandian()">修改本次盤點</button>
-        <button class="btn-secondary" onclick="newPandian()">開始新盤點</button>
-      </div>
-    </div>
-
-  </div><!-- /page-stock -->
-
 </main>
+  </div><!-- /flex flex-1 -->
+</div><!-- /flex flex-col min-h-screen pt-14 -->
 
-<!-- ════════════════ BOTTOM TAB BAR ════════════════ -->
-<nav class="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-slate-200 flex z-30" id="bottom-nav">
-  <button class="tab-btn active" id="tab-gupan" onclick="switchPage('gupan')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-    </svg>
-    <span class="tab-label">今日估盤</span>
-  </button>
-  <button class="tab-btn" id="tab-stock" onclick="switchPage('stock')">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-    </svg>
-    <span class="tab-label">庫存盤點</span>
-  </button>
-</nav>
-
-<!-- ════════════════ SCRIPT ════════════════ ─────────────────────────────── -->
+<!-- ════════════════ SCRIPT ════════════════ -->
 <script src="shared.js"></script>
 <script>
-
-// ══════════════════════════════════════════
-// 庫存盤點：品項主檔由 shared.js PRODUCTS 動態生成
-// ══════════════════════════════════════════
-
-const LOCATION_ORDER = ['培養箱','冰箱','櫃1','櫃2','櫃3','精蟲室','半年一次','需要再叫'];
-const LOCATION_ICONS = {
-  '培養箱':'🧪', '冰箱':'🧊', '櫃1':'🗄️', '櫃2':'🗄️', '櫃3':'🗄️',
-  '精蟲室':'🔬', '半年一次':'📅', '需要再叫':'🔔',
-};
-const LOCATION_COLLAPSED_SET = new Set(['培養箱','半年一次','需要再叫']);
-
-const STOCK_GROUPS = (() => {
-  const grouped = {};
-  PRODUCTS.forEach(p => {
-    if (!p.gupanId || !p.location) return;
-    if (!grouped[p.location]) grouped[p.location] = [];
-    grouped[p.location].push({ id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0 });
-  });
-  return LOCATION_ORDER.filter(loc => grouped[loc]).map(loc => ({
-    id: loc.replace(/[^a-z0-9一-鿿]/gi, '-').toLowerCase(),
-    label: loc,
-    icon: LOCATION_ICONS[loc] || '📦',
-    collapsed: LOCATION_COLLAPSED_SET.has(loc),
-    items: grouped[loc],
-  }));
-})();
-
-// ── 盤點：折疊狀態（動態維護，初始從 config 讀取）──
-const pdCollapsed = {};
-
-// ══════════════════════════════════════════
-// 盤點：建立所有群組 HTML
-// ══════════════════════════════════════════
-function buildPandianGroups() {
-  const total = STOCK_GROUPS.reduce((s, g) => s + g.items.length, 0);
-  document.getElementById('pd-total').textContent = total;
-
-  STOCK_GROUPS.forEach(g => {
-    if (!(g.id in pdCollapsed)) pdCollapsed[g.id] = g.collapsed;
-  });
-
-  const container = document.getElementById('pd-groups');
-  container.innerHTML = STOCK_GROUPS.map(g => {
-    const isCollapsed = pdCollapsed[g.id];
-    const isMedium = g.id.startsWith('med-');
-    const itemsHtml = g.items.map(item => {
-      return `
-      <div class="pd-item-row flex-col items-start gap-1">
-        <div class="flex items-center gap-2 w-full">
-          <div class="pd-item-info flex-shrink-0" style="min-width:60px; max-width:90px;">
-            <div class="pd-item-name">${item.name}</div>
-            ${item.note ? `<div class="pd-item-note">${item.note}</div>` : ''}
-          </div>
-          <div class="pd-batch-info">—</div>
-          <div class="flex flex-col items-center gap-0.5 flex-shrink-0">
-            <input type="number" class="pd-num-input" id="pd-${item.id}"
-              min="0" inputmode="numeric" placeholder="—"
-              oninput="onPandianInput('${item.id}', this)">
-            <span class="text-slate-300" style="font-size:10px">現有量</span>
-          </div>
-          <button class="pd-note-toggle" id="pd-notebtn-${item.id}"
-            onclick="toggleMediumNote('${item.id}')">＋備註</button>
-          <div class="pd-badge pd-badge-empty hidden" id="pd-badge-${item.id}">—</div>
-        </div>
-        <div class="hidden w-full" id="pd-note-wrap-${item.id}">
-          <input type="text" class="pd-note-input" id="pd-note-${item.id}"
-            placeholder="效期備註（效期 / 剩餘瓶數）" oninput="savePandianDraft()">
-        </div>
-      </div>`;
-    }).join('');
-
-    return `
-    <div class="pd-group-card" id="pd-group-${g.id}">
-      <div class="pd-group-header" onclick="togglePandianGroup('${g.id}')">
-        <span class="pd-group-icon">${g.icon}</span>
-        <span class="pd-group-title">${g.label}</span>
-        <span class="pd-group-chip" id="pd-chip-${g.id}">0 / ${g.items.length}</span>
-        <svg class="pd-chevron${isCollapsed ? ' collapsed' : ''}" id="pd-chev-${g.id}"
-          width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-        </svg>
-      </div>
-      <div class="pd-group-body" id="pd-body-${g.id}" ${isCollapsed ? 'style="display:none"' : ''}>
-        ${itemsHtml}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function toggleMediumNote(itemId) {
-  const wrap = document.getElementById(`pd-note-wrap-${itemId}`);
-  const btn = document.getElementById(`pd-notebtn-${itemId}`);
-  if (wrap) {
-    const nowHidden = wrap.classList.toggle('hidden');
-    if (btn) btn.classList.toggle('open', !nowHidden);
-  }
-}
-
-function togglePandianGroup(groupId) {
-  const body  = document.getElementById(`pd-body-${groupId}`);
-  const chev  = document.getElementById(`pd-chev-${groupId}`);
-  const isNowCollapsed = body.style.display === 'none';
-  body.style.display = isNowCollapsed ? '' : 'none';
-  chev.classList.toggle('collapsed', !isNowCollapsed);
-  pdCollapsed[groupId] = !isNowCollapsed;
-}
-
-// ══════════════════════════════════════════
-// 盤點：輸入事件
-// ══════════════════════════════════════════
-function onPandianInput(itemId, input) {
-  updatePandianProgress();
-  savePandianDraft();
-
-  // 更新該群組的已填計數 chip
-  const group = STOCK_GROUPS.find(g => g.items.some(it => it.id === itemId));
-  if (group) updateGroupChip(group);
-}
-
-function updateGroupChip(group) {
-  const filled = group.items.filter(it => {
-    const el = document.getElementById(`pd-${it.id}`);
-    return el && el.value !== '';
-  }).length;
-  const chip = document.getElementById(`pd-chip-${group.id}`);
-  if (chip) chip.textContent = `${filled} / ${group.items.length}`;
-}
-
-function updatePandianProgress() {
-  const allItems = STOCK_GROUPS.flatMap(g => g.items);
-  const filled = allItems.filter(it => {
-    const el = document.getElementById(`pd-${it.id}`);
-    return el && el.value !== '';
-  }).length;
-  const total = allItems.length;
-  document.getElementById('pd-filled').textContent = filled;
-  document.getElementById('pd-progress').style.width = total ? `${(filled / total) * 100}%` : '0%';
-}
-
-// ══════════════════════════════════════════
-// 盤點：完成 / 重新盤點
-// ══════════════════════════════════════════
-function completePandian() {
-  const staffEl = document.getElementById('pd-staff');
-  if (!staffEl.value) {
-    staffEl.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    staffEl.classList.add('ring-2', 'ring-red-400');
-    setTimeout(() => staffEl.classList.remove('ring-2', 'ring-red-400'), 2000);
-    alert('請先選擇盤點人再完成盤點。');
-    return;
-  }
-  const allItems = STOCK_GROUPS.flatMap(g => g.items);
-  const needReorder = allItems.filter(it => {
-    const el = document.getElementById(`pd-${it.id}`);
-    if (!el || el.value === '') return false;
-    return parseFloat(el.value) < it.target;
-  });
-
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  const staffName = document.getElementById('pd-staff').value || '（未填）';
-  document.getElementById('pd-result-count').textContent = needReorder.length;
-  document.getElementById('pd-result-meta').textContent = `盤點時間：${dateStr} ${timeStr}　盤點人：${staffName}`;
-
-  const list = document.getElementById('pd-result-list');
-  const empty = document.getElementById('pd-result-empty');
-
-  if (needReorder.length === 0) {
-    list.innerHTML = '';
-    empty.classList.remove('hidden');
-  } else {
-    empty.classList.add('hidden');
-    list.innerHTML = needReorder.map(it => {
-      const actual = parseFloat(document.getElementById(`pd-${it.id}`).value);
-      const badgeCls = actual === 0 ? 'pd-badge-crit' : 'pd-badge-warn';
-      const badgeTxt = actual === 0 ? '缺貨' : '注意';
-      return `<div class="pd-result-row">
-        <div class="flex-1 min-w-0">
-          <div class="pd-result-name">${it.name}</div>
-          <div class="text-xs text-slate-400 mt-0.5">現有 ${actual} ${it.unit}　警戒線 ${it.target} ${it.unit}</div>
-        </div>
-        <span class="pd-badge ${badgeCls}">${badgeTxt}</span>
-      </div>`;
-    }).join('');
-  }
-
-  // 儲存結果（allValues 供電腦版訂貨頁讀取全品項現有量）
-  const pandianAllValues = allItems
-    .filter(it => { const el = document.getElementById(`pd-${it.id}`); return el && el.value !== ''; })
-    .map(it => ({
-      id: it.id, name: it.name, unit: it.unit,
-      actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
-      target: it.target,
-      note: document.getElementById(`pd-note-${it.id}`)?.value || '',
-    }));
-  const pandianPayload = {
-    date: dateStr, completedAt: timeStr, staff: staffName,
-    summary: needReorder.map(it => ({
-      id: it.id, name: it.name, unit: it.unit,
-      actual: parseFloat(document.getElementById(`pd-${it.id}`).value),
-      target: it.target,
-    })),
-    allValues: pandianAllValues,
-  };
-  try {
-    localStorage.setItem('pandian-result', JSON.stringify(pandianPayload));
-    // 追加至 pandian-history（供庫存總覽計算使用量）
-    const hist = JSON.parse(localStorage.getItem('pandian-history') || '[]');
-    hist.push(pandianPayload);
-    localStorage.setItem('pandian-history', JSON.stringify(hist));
-    // 寫入 kucun-changelog
-    appendKucunLog(pandianAllValues.map(it => ({
-      source: 'pandian', action: 'pandian',
-      productId: it.id.replace(/^m-/, ''), productName: it.name,
-      lotNumber: null,
-      qty: it.actual,
-      note: `盤點：${staffName}（${dateStr}）`,
-    })));
-  } catch(e) {}
-
-  document.getElementById('pd-submit-area').classList.add('hidden');
-  document.getElementById('pd-groups').classList.add('hidden');
-  document.getElementById('pd-result').classList.remove('hidden');
-  document.getElementById('pd-progress-card').classList.add('hidden');
-  // 完成時也隱藏盤點人卡片（結果中已顯示）
-  document.getElementById('pd-staff').closest('.card').classList.add('hidden');
-}
-
-function showPandianInput() {
-  document.getElementById('pd-submit-area').classList.remove('hidden');
-  document.getElementById('pd-groups').classList.remove('hidden');
-  document.getElementById('pd-result').classList.add('hidden');
-  document.getElementById('pd-progress-card').classList.remove('hidden');
-  document.getElementById('pd-staff').closest('.card').classList.remove('hidden');
-}
-
-function backToPandian() {
-  // 修改本次盤點：返回填寫，保留所有已填數值
-  showPandianInput();
-}
-
-function newPandian() {
-  // 開始新盤點：清空後重填
-  if (!confirm('確定要清空所有數量、重新盤點？')) return;
-  localStorage.removeItem('pandian-draft');
-  STOCK_GROUPS.flatMap(g => g.items).forEach(it => {
-    const el = document.getElementById(`pd-${it.id}`);
-    if (el) el.value = '';
-    const noteEl = document.getElementById(`pd-note-${it.id}`);
-    if (noteEl) noteEl.value = '';
-    const badge = document.getElementById(`pd-badge-${it.id}`);
-    if (badge) { badge.className = 'pd-badge pd-badge-empty hidden'; badge.textContent = '—'; }
-  });
-  STOCK_GROUPS.forEach(g => updateGroupChip(g));
-  updatePandianProgress();
-  showPandianInput();
-}
-
-function resetPandian() {
-  // 「重置草稿」按鈕（在進行中時用）
-  if (!confirm('確定要清除所有已填數量？')) return;
-  newPandian();
-}
-
-function restartPandian() { newPandian(); }
-
-function showTransferSuccess() {
-  document.getElementById('pd-transfer-msg').classList.remove('hidden');
-}
-
-// ══════════════════════════════════════════
-// 盤點：自動儲存 / 載入 (localStorage)
-// ══════════════════════════════════════════
-const PD_STORAGE_KEY = 'pandian-draft';
-
-function savePandianDraft() {
-  const values = {};
-  const notes = {};
-  STOCK_GROUPS.flatMap(g => g.items).forEach(it => {
-    const el = document.getElementById(`pd-${it.id}`);
-    if (el && el.value !== '') values[it.id] = el.value;
-    const noteEl = document.getElementById(`pd-note-${it.id}`);
-    if (noteEl && noteEl.value !== '') notes[it.id] = noteEl.value;
-  });
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const staff = document.getElementById('pd-staff')?.value || '';
-  try { localStorage.setItem(PD_STORAGE_KEY, JSON.stringify({ date: dateStr, values, notes, staff })); } catch(e) {}
-  const now = new Date();
-  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const saveEl = document.getElementById('pd-last-save');
-  if (saveEl) saveEl.textContent = `自動儲存 ${t}`;
-}
-
-function loadPandianDraft() {
-  let data;
-  try { data = JSON.parse(localStorage.getItem(PD_STORAGE_KEY) || 'null'); } catch(e) {}
-  if (!data) return;
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  if (data.date !== todayStr) { localStorage.removeItem(PD_STORAGE_KEY); return; }
-
-  if (data.staff) {
-    const staffEl = document.getElementById('pd-staff');
-    if (staffEl) staffEl.value = data.staff;
-  }
-  if (data.values) {
-    Object.entries(data.values).forEach(([id, val]) => {
-      const el = document.getElementById(`pd-${id}`);
-      if (el) {
-        el.value = val;
-        onPandianInput(id, el);
-      }
-    });
-  }
-  if (data.notes) {
-    Object.entries(data.notes).forEach(([id, val]) => {
-      const el = document.getElementById(`pd-note-${id}`);
-      if (el) el.value = val;
-    });
-  }
-}
 
 // ── 資料：台類輸入欄位 ──
 const taiFields = [
@@ -866,7 +474,8 @@ let taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
   const now = new Date();
   const days = ['日','一','二','三','四','五','六'];
   const d = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
-  document.getElementById('header-date').textContent = d;
+  const todayEl = document.getElementById('today-display');
+  if (todayEl) todayEl.textContent = d;
   const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   document.getElementById('autosave-time').textContent = t;
 })();
@@ -883,7 +492,6 @@ function buildTaiGrid() {
         placeholder="0" oninput="onTaiChange('${f.id}', this.value)">
     </div>
   `).join('');
-  // 強制 3 欄排版（OPU/TE/受精 一列，FBT/BT/TBx 一列）
   document.getElementById('tai-grid').style.gridTemplateColumns = 'repeat(3, 1fr)';
 }
 
@@ -905,7 +513,7 @@ function buildGivfTable() {
     return `
     <tr id="givf-row-${d.key}" class="border-b border-slate-50 last:border-0">
       <td class="py-2.5 text-sm text-slate-700 font-medium pr-2" style="width:90px">
-        ${d.name}${d.unit && d.unit !== '' ? '' : ''}
+        ${d.name}
       </td>
       <td class="py-2.5 text-center" style="width:56px">
         <span class="suggest-tag">
@@ -981,21 +589,18 @@ function checkMatrixDiff(key, side, input) {
 }
 
 // ══════════════════════════════════════════
-// UPDATE: 建議值即時更新（台數輸入後觸發）
+// UPDATE: 建議值即時更新
 // ══════════════════════════════════════════
 function updateAllSuggestions() {
-  // GIVF
   givfDishes.forEach(d => {
     const el = document.getElementById(`givf-sug-${d.key}`);
     if (!el || d.manual) return;
     const sug = Math.max(0, d.suggest(taiVals));
     el.textContent = d.unit === 'mL' ? sug.toFixed(1) : sug;
-    // 重新檢查 diff
     const input = document.getElementById(`givf-in-${d.key}`);
     if (input && input.value !== '') checkGivfDiff(d.key, input);
   });
 
-  // Matrix
   matrixDishes.forEach(d => {
     if (d.manual) return;
     const sh5 = Math.max(0, d.h5(taiVals));
@@ -1007,21 +612,18 @@ function updateAllSuggestions() {
     if (elH5) elH5.textContent = fmt(sh5);
     if (elGx) elGx.textContent = fmt(sgx);
 
-    // Re-check diff
     const inH5 = document.getElementById(`mx-in-h5-${d.key}`);
     const inGx = document.getElementById(`mx-in-gx-${d.key}`);
     if (inH5 && inH5.value !== '') checkMatrixDiff(d.key, 'h5', inH5);
     if (inGx && inGx.value !== '') checkMatrixDiff(d.key, 'gx', inGx);
   });
 
-  // Oil 的建議值（Spindle = OPU 台數）
   const spindleSug = document.getElementById('oil-spindle-sug');
   if (spindleSug) spindleSug.textContent = taiVals.opu || '—';
 }
 
 // ══════════════════════════════════════════
 // CALC: 油
-// 公式：ROUNDUP(((總受精/3)×7 + (Spindle+Bx)×5 + STD×10 + 50) / 50, 0)
 // ══════════════════════════════════════════
 function calcOil() {
   const szu     = parseFloat(document.getElementById('oil-szu').value)     || 0;
@@ -1036,7 +638,6 @@ function calcOil() {
 
 // ══════════════════════════════════════════
 // CALC: HEPES
-// 公式：MAX(8, ROUNDUP(≤5×0.5 + 6-9×1 + ≥10×2 + 梁金×1 + 1, 0))
 // ══════════════════════════════════════════
 function calcHepes() {
   const lt5  = parseFloat(document.getElementById('he-lt5').value)  || 0;
@@ -1080,10 +681,8 @@ function loadFromStorage() {
   try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
   if (!data) return;
 
-  // 還原 taiVals
   if (data.taiVals) Object.assign(taiVals, data.taiVals);
 
-  // 還原所有欄位值
   if (data.fields) {
     Object.entries(data.fields).forEach(([id, val]) => {
       const el = document.getElementById(id);
@@ -1091,7 +690,6 @@ function loadFromStorage() {
     });
   }
 
-  // 還原確認資訊（State C 才有意義）
   if (data.confirm && data.state === 'C') {
     const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
     set('confirm-staff-a',    data.confirm.staffA);
@@ -1100,7 +698,6 @@ function loadFromStorage() {
     set('confirm-info-text',  data.confirm.infoText);
   }
 
-  // 還原 State 並刷新計算
   if (data.state) switchState(data.state);
   updateAllSuggestions();
   calcOil();
@@ -1113,41 +710,35 @@ function loadFromStorage() {
 function switchState(state) {
   currentState = state;
 
-  // Demo buttons
   document.querySelectorAll('.demo-btn').forEach((btn, i) => {
     btn.classList.toggle('active', ['A','B','C'][i] === state);
   });
 
-  // Banners
   document.getElementById('banner-b').classList.toggle('hidden', state !== 'B');
   document.getElementById('banner-c').classList.toggle('hidden', state !== 'C');
 
-  // Action buttons
   document.getElementById('btn-a').classList.toggle('hidden', state !== 'A');
   document.getElementById('btn-b').classList.toggle('hidden', state !== 'B');
   document.getElementById('btn-c').classList.toggle('hidden', state !== 'C');
 
-  // Confirm card
   document.getElementById('confirm-card').classList.toggle('hidden', state !== 'C');
 
-  // Form lock
   const formEl = document.getElementById('page-gupan');
   formEl.classList.toggle('form-locked', state !== 'A');
 
-  // Inputs disabled
   const inputs = formEl.querySelectorAll('input, select, textarea');
   inputs.forEach(inp => { inp.disabled = (state !== 'A'); });
 }
 
 function submitGupan() {
   const staffA = document.getElementById('staff-a').value;
-  if (!staffA) { alert('請先選擇估盤人甲'); return; }
+  if (!staffA) { showToast('請先選擇估盤人甲', 'warn'); return; }
   switchState('B');
 }
 
 function confirmGupan() {
   const staffB = document.getElementById('staff-b').value;
-  if (!staffB) { alert('請先選擇核對人乙'); return; }
+  if (!staffB) { showToast('請先選擇核對人乙', 'warn'); return; }
   const now = new Date();
   const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const staffA = document.getElementById('staff-a').value || '—';
@@ -1195,15 +786,15 @@ function saveConfirmedData(now, t, staffA, staffB) {
 }
 
 // ══════════════════════════════════════════
-// PAGE SWITCHING（Tab Bar）
+// MOBILE NAV
 // ══════════════════════════════════════════
-function switchPage(page) {
-  document.getElementById('page-gupan').classList.toggle('hidden', page !== 'gupan');
-  document.getElementById('page-stock').classList.toggle('hidden', page !== 'stock');
-  document.getElementById('tab-gupan').classList.toggle('active', page === 'gupan');
-  document.getElementById('tab-stock').classList.toggle('active', page === 'stock');
-  const titles = { gupan: '今日估盤', stock: '庫存盤點' };
-  document.getElementById('header-title').textContent = titles[page] || '';
+function openNav() {
+  document.getElementById('nav-drawer').classList.add('open');
+  document.getElementById('nav-overlay').classList.add('open');
+}
+function closeNav() {
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
 }
 
 // ══════════════════════════════════════════
@@ -1216,14 +807,9 @@ function switchPage(page) {
   switchState('A');
   loadFromStorage();
 
-  // 事件委派：任何輸入變動都自動儲存
   const formEl = document.getElementById('page-gupan');
   formEl.addEventListener('input',  saveToStorage);
   formEl.addEventListener('change', saveToStorage);
-
-  // 初始化盤點頁
-  buildPandianGroups();
-  loadPandianDraft();
 })();
 
 </script>
