@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ⚠️ 開發期暫用全開，Phase 9b 上線前必須收緊
+    // TODO: 改為 Firebase App Check 或 Auth Token 驗證
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

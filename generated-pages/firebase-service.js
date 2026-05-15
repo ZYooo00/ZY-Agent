@@ -1,0 +1,275 @@
+// firebase-service.js  v2 — Phase 9a 雙軌服務
+//
+// ⚠️  已知限制（Phase 9a 接受，Phase 9b 解決）：
+//   1. 斷線時資料存 localStorage，連線恢復後「不會」自動補推回 Firestore。
+//      → Phase 9b 改用 enableIndexedDbPersistence，讓 Firebase 引擎處理離線同步。
+//   2. 快照類資料（gupan/beipan/pandian）以日期為 Document ID，同日多人修改
+//      會發生 Last-Write-Wins 靜默覆蓋。
+//      → Phase 9b 引入 Firestore Transaction 解決。
+//   3. Security Rules 目前全開，上線前必須收緊（App Check 或 Auth）。
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, doc,
+  setDoc, getDoc, getDocs, updateDoc,
+  query, orderBy, limit, where,
+  serverTimestamp, Timestamp, arrayUnion
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ─── Firebase Config（從 Console 複製貼上）─────────────────────
+// 步驟：https://console.firebase.google.com → 專案設定 → Your apps → Web App → firebaseConfig
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC3FHchC_pHZHz2ZghxSS0mrDGBWhB_M1o",
+  authDomain: "stork11-embryo-lab.firebaseapp.com",
+  projectId: "stork11-embryo-lab",
+  storageBucket: "stork11-embryo-lab.firebasestorage.app",
+  messagingSenderId: "565116361227",
+  appId: "1:565116361227:web:6788ae3503bf431cf3050e"
+};
+
+// ─── 初始化 ────────────────────────────────────────────────────
+let _db = null;
+let _fsReady = false;
+
+export function initFirebaseApp() {
+  try {
+    const app = initializeApp(FIREBASE_CONFIG);
+    _db = getFirestore(app);
+    _fsReady = true;
+    console.log("[Firebase] Firestore 連線成功");
+  } catch (err) {
+    _fsReady = false;
+    console.warn("[Firebase] 初始化失敗，降級至 localStorage", err);
+  }
+}
+
+export function isFirestoreAvailable() {
+  return _fsReady && _db !== null;
+}
+
+// ─── 雙軌寫入核心 ──────────────────────────────────────────────
+// ⚠️ 斷線時 Firestore 失敗，localStorage 有資料但不自動補推
+async function dualWrite(localKey, localData, firestoreFn) {
+  try {
+    const raw = localStorage.getItem(localKey);
+    const existing = JSON.parse(raw || "[]");
+    if (Array.isArray(existing)) {
+      const idx = existing.findIndex(x => x.id === localData.id);
+      if (idx >= 0) existing[idx] = localData;
+      else existing.push(localData);
+      localStorage.setItem(localKey, JSON.stringify(existing));
+    } else {
+      localStorage.setItem(localKey, JSON.stringify(localData));
+    }
+  } catch (e) {
+    console.warn("[dualWrite] localStorage 寫入失敗", e);
+  }
+
+  if (isFirestoreAvailable()) {
+    try {
+      await firestoreFn(_db);
+    } catch (e) {
+      console.warn("[dualWrite] Firestore 寫入失敗，⚠️ 資料僅存 localStorage，不會自動補推", e);
+    }
+  }
+}
+
+// ─── 通用讀取：優先 Firestore，降級 localStorage ───────────────
+async function fsGetOrFallback(localKey, firestoreFn, fallbackDefault = []) {
+  if (isFirestoreAvailable()) {
+    try {
+      return await firestoreFn(_db);
+    } catch (e) {
+      console.warn("[fsGetOrFallback] Firestore 讀取失敗，使用 localStorage", e);
+    }
+  }
+  return JSON.parse(localStorage.getItem(localKey) || JSON.stringify(fallbackDefault));
+}
+
+// ─── 工具：安全寫入 createdAt（只在第一次建立時設定）──────────
+async function buildPayloadWithTimestamps(db, collectionName, docId, data) {
+  const ref = doc(db, collectionName, docId);
+  const snap = await getDoc(ref);
+  const payload = { ...data, updatedAt: serverTimestamp() };
+  if (!snap.exists()) payload.createdAt = serverTimestamp();
+  return { ref, payload };
+}
+
+// ─── orders ───────────────────────────────────────────────────
+export async function saveOrder(orderObj) {
+  await dualWrite("order-history", orderObj, async (db) => {
+    const { ref, payload } = await buildPayloadWithTimestamps(db, "orders", orderObj.id, orderObj);
+    await setDoc(ref, payload, { merge: true });
+  });
+}
+
+export async function getOrders() {
+  return fsGetOrFallback("order-history", async (db) => {
+    const snap = await getDocs(query(collection(db, "orders"), orderBy("date", "desc")));
+    return snap.docs.map(d => d.data());
+  });
+}
+
+export async function updateOrderStatus(orderId, status) {
+  try {
+    if (isFirestoreAvailable()) {
+      await updateDoc(doc(_db, "orders", orderId), { status, updatedAt: serverTimestamp() });
+    }
+    const orders = JSON.parse(localStorage.getItem("order-history") || "[]");
+    const idx = orders.findIndex(o => o.id === orderId);
+    if (idx >= 0) { orders[idx].status = status; localStorage.setItem("order-history", JSON.stringify(orders)); }
+  } catch (e) { console.warn("[updateOrderStatus]", e); }
+}
+
+// ─── jinhuo_records ───────────────────────────────────────────
+export async function saveJinhuoRecord(recordObj) {
+  await dualWrite("jinhuo-records", recordObj, async (db) => {
+    const { ref, payload } = await buildPayloadWithTimestamps(db, "jinhuo_records", recordObj.id, recordObj);
+    await setDoc(ref, payload, { merge: true });
+  });
+}
+
+export async function getJinhuoRecords() {
+  return fsGetOrFallback("jinhuo-records", async (db) => {
+    const snap = await getDocs(query(collection(db, "jinhuo_records"), orderBy("receivedAt", "desc")));
+    return snap.docs.map(d => d.data());
+  });
+}
+
+// logObj 為必填：{ productId, productName, lotNumber, qty, unit, vendor }
+// 強綁定設計：作廢 + 稽核日誌封裝在同一個函數，UI 層不需另外呼叫 appendKucunLog
+export async function voidJinhuoRecord(recordId, voidedBy, voidReason, logObj) {
+  const historyEntry = {
+    changedAt: new Date().toISOString(),
+    changedBy: voidedBy,
+    changes: [{ field: "status", from: "正常", to: "作廢" }],
+    reason: voidReason
+  };
+  try {
+    if (isFirestoreAvailable()) {
+      await updateDoc(doc(_db, "jinhuo_records", recordId), {
+        isVoided: true, voidedBy, voidReason,
+        updatedAt: serverTimestamp(),
+        history: arrayUnion(historyEntry)
+      });
+    }
+    const records = JSON.parse(localStorage.getItem("jinhuo-records") || "[]");
+    const idx = records.findIndex(r => r.id === recordId);
+    if (idx >= 0) {
+      Object.assign(records[idx], { isVoided: true, voidedBy, voidReason });
+      records[idx].history = [...(records[idx].history || []), historyEntry];
+      localStorage.setItem("jinhuo-records", JSON.stringify(records));
+    }
+  } catch (e) { console.warn("[voidJinhuoRecord]", e); }
+
+  await appendKucunLog({
+    id: `${Date.now()}-void`,
+    ts: new Date().toISOString(),
+    source: "void",
+    action: "void",
+    ...logObj,
+    note: `作廢進貨紀錄 ${recordId}：${voidReason}`
+  });
+}
+
+// ─── kucun_changelog（append-only，稽核軌跡，不能修改）─────────
+export async function appendKucunLog(logObj) {
+  try {
+    const existing = JSON.parse(localStorage.getItem("kucun-changelog") || "[]");
+    existing.push(logObj);
+    localStorage.setItem("kucun-changelog", JSON.stringify(existing));
+  } catch (e) { console.warn("[appendKucunLog] localStorage 失敗", e); }
+
+  if (isFirestoreAvailable()) {
+    try {
+      const ref = doc(_db, "kucun_changelog", logObj.id);
+      await setDoc(ref, {
+        ...logObj,
+        ts: Timestamp.fromDate(new Date(logObj.ts)),
+        tsRaw: logObj.ts
+      });
+    } catch (e) { console.warn("[appendKucunLog] Firestore 失敗", e); }
+  }
+}
+
+export async function getKucunChangelog(productId = null, limitCount = 200) {
+  return fsGetOrFallback("kucun-changelog", async (db) => {
+    let q = query(collection(db, "kucun_changelog"), orderBy("ts", "desc"), limit(limitCount));
+    if (productId) q = query(collection(db, "kucun_changelog"),
+      where("productId", "==", productId), orderBy("ts", "desc"), limit(limitCount));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data());
+  });
+}
+
+// ─── pandian_snapshots ────────────────────────────────────────
+export async function savePandianSnapshot(snapshotObj) {
+  const docId = snapshotObj.date.replace(/\//g, "-");
+  await dualWrite("pandian-history", { ...snapshotObj, _docId: docId }, async (db) => {
+    const { ref, payload } = await buildPayloadWithTimestamps(db, "pandian_snapshots", docId, snapshotObj);
+    await setDoc(ref, payload, { merge: true });
+  });
+  localStorage.setItem("pandian-result", JSON.stringify(snapshotObj));
+}
+
+export async function getLatestPandian() {
+  if (isFirestoreAvailable()) {
+    try {
+      const snap = await getDocs(query(collection(_db, "pandian_snapshots"), orderBy("date", "desc"), limit(1)));
+      if (!snap.empty) return snap.docs[0].data();
+    } catch (e) { console.warn("[getLatestPandian]", e); }
+  }
+  return JSON.parse(localStorage.getItem("pandian-result") || "null");
+}
+
+export async function getPandianHistory() {
+  return fsGetOrFallback("pandian-history", async (db) => {
+    const snap = await getDocs(query(collection(db, "pandian_snapshots"), orderBy("date", "desc")));
+    return snap.docs.map(d => d.data());
+  });
+}
+
+// ─── beipan_snapshots ─────────────────────────────────────────
+export async function saveBeipanSnapshot(snapshotObj) {
+  const docId = snapshotObj.date.replace(/\//g, "-");
+  await dualWrite("beipan-result", snapshotObj, async (db) => {
+    const { ref, payload } = await buildPayloadWithTimestamps(db, "beipan_snapshots", docId, snapshotObj);
+    await setDoc(ref, payload, { merge: true });
+  });
+}
+
+export async function getLatestBeipan() {
+  if (isFirestoreAvailable()) {
+    try {
+      const snap = await getDocs(query(collection(_db, "beipan_snapshots"), orderBy("date", "desc"), limit(1)));
+      if (!snap.empty) return snap.docs[0].data();
+    } catch (e) { console.warn("[getLatestBeipan]", e); }
+  }
+  return JSON.parse(localStorage.getItem("beipan-result") || "null");
+}
+
+// ─── gupan_snapshots ──────────────────────────────────────────
+export async function saveGupanSnapshot(snapshotObj) {
+  const docId = snapshotObj.date.replace(/\//g, "-");
+  await dualWrite("gupan-confirmed", snapshotObj, async (db) => {
+    const { ref, payload } = await buildPayloadWithTimestamps(db, "gupan_snapshots", docId, snapshotObj);
+    await setDoc(ref, payload, { merge: true });
+  });
+}
+
+export async function getLatestGupan() {
+  if (isFirestoreAvailable()) {
+    try {
+      const snap = await getDocs(query(collection(_db, "gupan_snapshots"), orderBy("date", "desc"), limit(1)));
+      if (!snap.empty) return snap.docs[0].data();
+    } catch (e) { console.warn("[getLatestGupan]", e); }
+  }
+  return JSON.parse(localStorage.getItem("gupan-confirmed") || "null");
+}
+
+export async function getGupanHistory(limitCount = 30) {
+  return fsGetOrFallback("gupan-confirmed", async (db) => {
+    const snap = await getDocs(query(collection(db, "gupan_snapshots"), orderBy("date", "desc"), limit(limitCount)));
+    return snap.docs.map(d => d.data());
+  }, []);
+}

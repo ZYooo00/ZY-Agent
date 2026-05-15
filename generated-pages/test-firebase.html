@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase 連線測試</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8 font-mono text-sm">
+  <h1 class="text-xl font-bold mb-6 text-blue-400">Firebase Phase 9a 連線測試</h1>
+
+  <div class="space-y-3 mb-8">
+    <button onclick="runTest('init')" class="block w-full text-left px-4 py-2 bg-blue-800 hover:bg-blue-700 rounded">① 初始化 Firebase（initFirebaseApp）</button>
+    <button onclick="runTest('saveOrder')" class="block w-full text-left px-4 py-2 bg-green-800 hover:bg-green-700 rounded">② 寫入測試訂單（saveOrder）</button>
+    <button onclick="runTest('getOrders')" class="block w-full text-left px-4 py-2 bg-green-800 hover:bg-green-700 rounded">③ 讀回訂單（getOrders）</button>
+    <button onclick="runTest('appendLog')" class="block w-full text-left px-4 py-2 bg-yellow-800 hover:bg-yellow-700 rounded">④ 寫入稽核日誌（appendKucunLog）</button>
+    <button onclick="runTest('voidRecord')" class="block w-full text-left px-4 py-2 bg-red-800 hover:bg-red-700 rounded">⑤ 測試作廢（voidJinhuoRecord + 自動日誌）</button>
+    <button onclick="runTest('saveGupan')" class="block w-full text-left px-4 py-2 bg-purple-800 hover:bg-purple-700 rounded">⑥ 寫入估盤快照（saveGupanSnapshot）</button>
+    <button onclick="clearLog()" class="block w-full text-left px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded">清除 Log</button>
+  </div>
+
+  <div id="log" class="bg-gray-800 rounded p-4 min-h-40 max-h-96 overflow-y-auto space-y-1"></div>
+
+  <p class="mt-4 text-gray-500 text-xs">
+    ⚠️ 填好 firebase-service.js 的 FIREBASE_CONFIG 後才能測試 Firestore 寫入。<br>
+    未填 config 的情況下，所有操作會自動降級至 localStorage。
+  </p>
+
+  <script type="module">
+    import {
+      initFirebaseApp, isFirestoreAvailable,
+      saveOrder, getOrders,
+      saveJinhuoRecord, voidJinhuoRecord,
+      appendKucunLog,
+      saveGupanSnapshot, getLatestGupan
+    } from "./firebase-service.js";
+
+    const log = document.getElementById("log");
+    function print(msg, color = "text-gray-300") {
+      const line = document.createElement("div");
+      line.className = color;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    const TEST_ORDER = {
+      id: "ord-test-001",
+      date: "2026/05/15",
+      completedAt: "10:00",
+      pandianDate: null,
+      status: "pending",
+      orders: [{ orderId: "m-givf", itemId: "m-givf", name: "G-IVF", vendor: "亞樸", unit: "瓶", actual: 2, target: 3, reorderQty: 12, orderQty: 12, receivedQty: 0 }]
+    };
+
+    const TEST_RECORD = {
+      id: "jr-test-001",
+      productId: "givf",
+      productName: "G-IVF",
+      vendor: "亞樸",
+      unit: "瓶",
+      receivedQty: 6,
+      lotNumber: "GI-2601",
+      expiryDate: "2027-06-30",
+      receivedAt: "2026-05-15",
+      receivedBy: "高任佑",
+      orderId: "ord-test-001",
+      note: "測試用",
+      isVoided: false,
+      isGift: false,
+      isRejected: false,
+      history: []
+    };
+
+    const TEST_GUPAN = {
+      date: "2026/05/15",
+      confirmedAt: "08:30",
+      staffA: "高任佑",
+      staffB: "林小明",
+      note: "測試估盤",
+      taiVals: { opu: 3, te: 2, szu: 4, fbt: 2, bt: 1, tbx: 2 },
+      givf: { opu: 3, de: 3, te: 2, aoa_ci: 0, aoa508: 0, sperm: 4, givf_ph: 1, givf_x: 2.0 },
+      matrix: {
+        geri_szu: { h5: 4, gx: 4 }, d0: { h5: 0, gx: 0 },
+        bx: { h5: 2, gx: 0 }, tb: { h5: 3, gx: 0 },
+        glue: { h5: 3, gx: 0 }, geri_fbt: { h5: 2, gx: 0 },
+        ph: { h5: 0, gx: 0 }, multi: { h5: 2.0, gx: 2.0 }
+      }
+    };
+
+    window.runTest = async function(testName) {
+      try {
+        switch(testName) {
+          case "init":
+            initFirebaseApp();
+            print(`Firestore 可用：${isFirestoreAvailable()}`, isFirestoreAvailable() ? "text-green-400" : "text-yellow-400");
+            break;
+
+          case "saveOrder":
+            await saveOrder(TEST_ORDER);
+            print("saveOrder 完成 → 請到 Firebase Console 確認 orders/ord-test-001", "text-green-400");
+            print(`localStorage 驗證：${JSON.parse(localStorage.getItem("order-history") || "[]").length} 筆訂單`, "text-gray-400");
+            break;
+
+          case "getOrders":
+            const orders = await getOrders();
+            print(`getOrders 回傳 ${orders.length} 筆，第一筆 id：${orders[0]?.id}`, "text-green-400");
+            break;
+
+          case "appendLog":
+            await appendKucunLog({
+              id: `${Date.now()}-test`,
+              ts: new Date().toISOString(),
+              source: "order",
+              action: "order",
+              productId: "givf",
+              productName: "G-IVF",
+              lotNumber: null,
+              qty: 12,
+              qtyDelta: 12,
+              unit: "瓶",
+              vendor: "亞樸",
+              note: "測試日誌寫入"
+            });
+            print("appendKucunLog 完成 → 請確認 kucun_changelog collection", "text-green-400");
+            break;
+
+          case "voidRecord":
+            await saveJinhuoRecord(TEST_RECORD);
+            print("先建立測試進貨紀錄 jr-test-001…", "text-gray-400");
+            await voidJinhuoRecord("jr-test-001", "高任佑", "測試作廢功能", {
+              productId: "givf", productName: "G-IVF",
+              lotNumber: "GI-2601", qty: 6, unit: "瓶", vendor: "亞樸"
+            });
+            print("voidJinhuoRecord 完成（含自動稽核日誌）", "text-green-400");
+            const records = JSON.parse(localStorage.getItem("jinhuo-records") || "[]");
+            const voided = records.find(r => r.id === "jr-test-001");
+            print(`localStorage 驗證：isVoided=${voided?.isVoided}，history 長度=${voided?.history?.length}`, "text-gray-400");
+            break;
+
+          case "saveGupan":
+            await saveGupanSnapshot(TEST_GUPAN);
+            print("saveGupanSnapshot 完成 → 請確認 gupan_snapshots/2026-05-15", "text-green-400");
+            const latest = await getLatestGupan();
+            print(`getLatestGupan 回傳 date：${latest?.date}，staffA：${latest?.staffA}`, "text-gray-400");
+            break;
+        }
+      } catch(e) {
+        print(`❌ 錯誤：${e.message}`, "text-red-400");
+        console.error(e);
+      }
+    };
+
+    window.clearLog = function() {
+      log.innerHTML = "";
+    };
+
+    print("測試頁載入完成，請依序按下按鈕測試。先執行 ① 初始化。", "text-blue-400");
+  </script>
+</body>
+</html>
