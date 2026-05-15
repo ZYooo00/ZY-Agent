@@ -3,35 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>台北胚胎室 管理系統</title>
+  <title>培養液管理系統 — 訂貨管理</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#9590D0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="design.css">
+  <script src="tailwind-config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: { primary: '#9590D0', secondary: '#E2E4F4' },
-          fontFamily: { sans: ['Noto Sans TC', 'Figtree', 'sans-serif'] }
-        }
-      }
-    }
-  </script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="design.js" defer></script>
+  <!-- Firebase Phase 9b bridge：module 是 deferred，DOMContentLoaded 之前執行完畢 -->
+  <script type="module">
+    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js';
+    initFirebaseApp();
+    window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog };
+  </script>
   <style>
-    body { font-family: 'Noto Sans TC', 'Figtree', sans-serif; }
-
-    .nav-item {
-      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
-      border-radius: 8px; font-size: 14px; font-weight: 500; color: #64748b;
-      cursor: pointer; background: transparent; border: none; transition: all 0.15s;
-      width: 100%; text-align: left;
-    }
-    .nav-item:hover { background: #F1F0FA; color: #9590D0; }
-    .nav-active { background: #E2E4F4 !important; color: #9590D0 !important; font-weight: 600; }
-
-    .card {
-      background: white; border-radius: 12px; padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.07); border: 1px solid #f1f5f9;
-    }
+    /* ── 訂貨管理頁面專屬樣式 ── */
 
     .vendor-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -48,10 +37,11 @@
     .order-table tbody tr:last-child { border-bottom: none; }
     .order-table tbody td { padding: 9px 12px; font-size: 14px; vertical-align: middle; }
 
-    .row-warn { background: #FFF7ED; border-left: 3px solid #F97316; }
-    .row-crit { background: #FEF2F2; border-left: 3px solid #EF4444; }
-    .row-ok   { background: white; border-left: 3px solid transparent; }
-    .row-unscanned { background: white; border-left: 3px solid #e2e8f0; opacity: 0.65; }
+    /* row 背景繼承自 design.css；此頁 table row 另加左側色條 */
+    .row-warn      { border-left: 3px solid #F97316; }
+    .row-crit      { border-left: 3px solid #EF4444; }
+    .row-ok        { border-left: 3px solid transparent; }
+    .row-unscanned { border-left: 3px solid #e2e8f0; }
 
     .status-ok   { color: #16a34a; font-weight: 600; }
     .status-warn { color: #ea580c; font-weight: 600; }
@@ -65,19 +55,6 @@
     }
     .order-input:focus { border-color: #9590D0; box-shadow: 0 0 0 2px rgba(149,144,208,0.15); }
     .order-input:not(:placeholder-shown) { border-color: #9590D0; background: #F8F7FD; font-weight: 600; color: #9590D0; }
-
-    .btn-primary {
-      background: #9590D0; color: white; border: none; border-radius: 10px;
-      padding: 9px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
-      transition: all 0.15s; white-space: nowrap;
-    }
-    .btn-primary:hover { background: #7B76BD; }
-    .btn-secondary {
-      background: white; color: #64748b; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 9px 16px; font-size: 14px; font-weight: 500; cursor: pointer;
-      transition: all 0.15s; white-space: nowrap;
-    }
-    .btn-secondary:hover { background: #f8fafc; }
 
     .stub-page {
       display: flex; flex-direction: column; align-items: center;
@@ -95,33 +72,109 @@
 </head>
 <body class="bg-slate-50 text-slate-800">
 
+  <!-- MOBILE NAV OVERLAY -->
+  <div id="nav-overlay" onclick="closeNav()"></div>
+
+  <!-- MOBILE NAV DRAWER -->
+  <div id="nav-drawer">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:8px;background:#9590D0;display:flex;align-items:center;justify-content:center">
+          <svg style="width:16px;height:16px;color:white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+        </div>
+        <span style="font-weight:600;font-size:14px;color:#1e293b">培養液管理系統</span>
+      </div>
+      <button onclick="closeNav()" style="padding:4px;border-radius:8px;border:none;background:none;cursor:pointer;color:#94a3b8">
+        <svg style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="sidebar-link" onclick="location.href='gupan.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      今日估盤
+    </div>
+    <div class="sidebar-link" onclick="location.href='beipan.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      今日備盤
+    </div>
+    <div class="sidebar-link" onclick="location.href='pandian.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+      庫存盤點
+    </div>
+    <div class="sidebar-link active">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      訂貨管理
+    </div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      進貨記錄
+    </div>
+    <div class="sidebar-link" onclick="location.href='kucun.html'">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      庫存總覽
+    </div>
+    <div style="margin-top:auto;padding-top:16px;border-top:1px solid #f1f5f9">
+      <div class="sidebar-link" style="color:#94a3b8;cursor:default">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        後台設定
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Top Header -->
-  <header id="app-header" class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-6 z-20 shadow-sm">
-    <span class="text-primary font-bold text-base">🧪 台北胚胎室</span>
-    <span class="ml-2 text-slate-400 text-sm">管理系統</span>
-    <span class="ml-3 text-slate-200">|</span>
-    <span id="header-module-title" class="ml-3 text-slate-600 text-sm font-medium">訂貨管理</span>
+  <header id="app-header" class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+    <div class="flex items-center gap-3">
+      <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" onclick="openNav()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      </div>
+      <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+      <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
+    </div>
   </header>
 
   <div class="flex min-h-screen pt-14">
 
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-10 flex flex-col">
-      <nav class="p-3 space-y-0.5 flex-1">
-        <button onclick="switchModule('beipan')"        id="nav-beipan"         class="nav-item">📋 今日備盤</button>
-        <button onclick="switchModule('receipt')"       id="nav-receipt"        class="nav-item">📦 進貨記錄</button>
-        <button onclick="switchModule('stock-overview')" id="nav-stock-overview" class="nav-item">📊 庫存總覽</button>
-        <button onclick="switchModule('order')"         id="nav-order"          class="nav-item nav-active">🛒 訂貨管理</button>
-        <button onclick="switchModule('admin')"         id="nav-admin"          class="nav-item">⚙️ 後台設定</button>
-      </nav>
-      <div class="p-3 border-t border-slate-100">
-        <div class="text-xs text-slate-300 text-center">v0.7 · Phase 2</div>
+    <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 flex-col border-r border-slate-200 bg-white z-20 px-3 py-4 gap-1 overflow-y-auto">
+      <div class="sidebar-link" onclick="location.href='gupan.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        今日估盤
+      </div>
+      <div class="sidebar-link" onclick="location.href='beipan.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+        今日備盤
+      </div>
+      <div class="sidebar-link" onclick="location.href='pandian.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+        庫存盤點
+      </div>
+      <div class="sidebar-link active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        訂貨管理
+      </div>
+      <div class="sidebar-link" onclick="location.href='jinhuo.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        進貨記錄
+      </div>
+      <div class="sidebar-link" onclick="location.href='kucun.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        庫存總覽
+      </div>
+      <div style="margin-top:auto;padding-top:12px;border-top:1px solid #f1f5f9">
+        <div class="sidebar-link" style="color:#94a3b8;cursor:default">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          後台設定
+        </div>
       </div>
     </aside>
 
     <!-- Main content -->
-    <main class="ml-52 flex-1 p-6">
-      <div class="max-w-5xl mx-auto">
+    <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
         <!-- ── 訂貨管理 ── -->
         <div id="page-order">
@@ -130,10 +183,16 @@
           <div id="order-input-view">
             <div class="flex items-start justify-between mb-5">
               <div>
-                <h1 class="text-xl font-semibold text-slate-800">🛒 訂貨管理</h1>
-                <p class="text-sm text-slate-500 mt-0.5">根據最新庫存盤點結果填寫本次訂購數量</p>
+                <h1 class="heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  訂貨管理
+                  <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v1.0.0</span>
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">根據最新庫存盤點結果填寫本次訂購數量</p>
               </div>
-              <button onclick="buildOrderPage()" class="btn-secondary text-xs px-3 py-1.5 no-print">↻ 重新讀取盤點結果</button>
+              <div class="flex items-center gap-2" id="header-action-area">
+                <button onclick="buildOrderPage()" class="btn-secondary text-xs px-3 py-1.5 no-print">↻ 重新讀取盤點結果</button>
+              </div>
             </div>
 
             <!-- Pandian info card -->
@@ -237,7 +296,6 @@
           </div>
         </div>
 
-      </div>
     </main>
   </div>
 
@@ -342,16 +400,13 @@
   // ═══════════════════════════════════════════════════════════════
   // Load pandian-result
   // ═══════════════════════════════════════════════════════════════
-  function loadPandianResult() {
+  async function loadPandianResult() {
     actualMap = {};
     pandianMeta = null;
-    const raw = localStorage.getItem('pandian-result');
-    if (!raw) return false;
     try {
-      const data = JSON.parse(raw);
+      const data = await window._fb.getLatestPandian();
+      if (!data) return false;
       pandianMeta = data;
-      // allValues has all filled items (added in Session 5 gupan.html update)
-      // fallback to summary if allValues not yet present
       const source = data.allValues || data.summary || [];
       source.forEach(it => {
         if (it.id) actualMap[it.id] = it;
@@ -363,18 +418,18 @@
   // ═══════════════════════════════════════════════════════════════
   // Load in-transit (previous pending order-result)
   // ═══════════════════════════════════════════════════════════════
-  function loadIntransit() {
+  async function loadIntransit() {
     intransitMap = {};
     activeOrders = [];
     try {
-      let history = JSON.parse(localStorage.getItem('order-history') || '[]');
+      let history = await window._fb.getOrders();
       // 一次性舊資料遷移：order-result → order-history
       if (history.length === 0) {
         const legacy = JSON.parse(localStorage.getItem('order-result') || 'null');
         if (legacy && legacy.orders) {
           legacy.id = legacy.id || `ord-${Date.now()}`;
           history = [legacy];
-          localStorage.setItem('order-history', JSON.stringify(history));
+          await window._fb.saveOrder(legacy);
         }
       }
       history.forEach(order => {
@@ -439,26 +494,21 @@
     }).join('');
   }
 
-  function forceCloseOrder(orderId) {
+  async function forceCloseOrder(orderId) {
     if (!confirm('確定要放棄未到貨品項，強制結案嗎？')) return;
-    try {
-      const history = JSON.parse(localStorage.getItem('order-history') || '[]');
-      const order = history.find(o => o.id === orderId);
-      if (order) { order.status = 'force_closed'; localStorage.setItem('order-history', JSON.stringify(history)); }
-    } catch(e) {}
-    loadIntransit();
+    await window._fb.updateOrderStatus(orderId, 'force_closed');
+    await loadIntransit();
     buildVendorGroups();
   }
 
   function urgeOrder(orderId) {
-    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
-    const order = history.find(o => o.id === orderId);
+    const order = activeOrders.find(o => o.id === orderId);
     if (!order) return;
     const missing = (order.orders||[])
       .filter(o => (o.orderQty - (o.receivedQty||0)) > 0)
       .map(o => `${o.name} x ${o.orderQty-(o.receivedQty||0)} ${o.unit}`)
       .join('、');
-    if (!missing) { alert('此訂單已無欠貨品項。'); return; }
+    if (!missing) { showToast('此訂單已無欠貨品項。', 'warn'); return; }
     const msg = `【催貨提醒】您好，我們在 ${order.date} 訂購的貨品，尚缺 ${missing}，再請協助確認交期，謝謝！`;
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center';
@@ -484,9 +534,9 @@
   // ═══════════════════════════════════════════════════════════════
   // Build order page
   // ═══════════════════════════════════════════════════════════════
-  function buildOrderPage() {
-    loadIntransit();
-    const hasPandian = loadPandianResult();
+  async function buildOrderPage() {
+    await loadIntransit();
+    const hasPandian = await loadPandianResult();
 
     document.getElementById('order-pandian-card').classList.toggle('hidden', !hasPandian);
     document.getElementById('order-no-data').classList.toggle('hidden', hasPandian);
@@ -532,22 +582,24 @@
           <span class="text-xs text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">廠商：${group.vendor}（${group.contact}）</span>
         </div>
       </div>
-      <table class="order-table">
-        <thead>
-          <tr>
-            <th style="min-width:140px">品項名稱</th>
-            <th style="width:100px">安全警戒線</th>
-            <th style="width:70px">月使用量</th>
-            <th style="width:80px">現有庫存</th>
-            <th style="min-width:80px">效期備註</th>
-            <th style="min-width:100px">應有效期與瓶數</th>
-            <th style="width:65px">在途</th>
-            <th style="width:100px">本次訂購</th>
-            <th style="width:50px">單位</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th style="min-width:140px">品項名稱</th>
+              <th style="width:100px">安全警戒線</th>
+              <th style="width:70px">月使用量</th>
+              <th style="width:80px">現有庫存</th>
+              <th style="min-width:80px">效期備註</th>
+              <th style="min-width:100px">應有效期與瓶數</th>
+              <th style="width:65px">在途</th>
+              <th style="width:100px">本次訂購</th>
+              <th style="width:50px">單位</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
   }
 
@@ -626,23 +678,25 @@
           ${alertBadge}
         </div>
       </div>
-      <table class="order-table">
-        <thead>
-          <tr>
-            <th style="min-width:140px">品項名稱</th>
-            <th style="width:100px">安全警戒線</th>
-            <th style="width:70px">月使用量</th>
-            <th style="width:80px">現有庫存</th>
-            <th style="min-width:80px">效期備註</th>
-            <th style="width:75px">在途數量</th>
-            <th style="width:75px">月基準量</th>
-            <th style="width:65px">缺口</th>
-            <th style="width:100px">本次訂購</th>
-            <th style="width:50px">單位</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th style="min-width:140px">品項名稱</th>
+              <th style="width:100px">安全警戒線</th>
+              <th style="width:70px">月使用量</th>
+              <th style="width:80px">現有庫存</th>
+              <th style="min-width:80px">效期備註</th>
+              <th style="width:75px">在途數量</th>
+              <th style="width:75px">月基準量</th>
+              <th style="width:65px">缺口</th>
+              <th style="width:100px">本次訂購</th>
+              <th style="width:50px">單位</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>`;
   }
 
@@ -791,7 +845,7 @@
   function previewOrder() {
     const orders = _collectOrders();
     if (orders.length === 0) {
-      alert('尚未填寫任何訂購數量，請至少填寫一項。');
+      showToast('尚未填寫任何訂購數量，請至少填寫一項。', 'warn');
       return;
     }
     const now = new Date();
@@ -802,26 +856,36 @@
   }
 
   // State B → C → A：存檔、清空、回 A
-  function confirmOrder() {
+  async function confirmOrder() {
     if (!_pendingOrderResult) return;
+
+    // Loading 防呆：按鈕 disable + 文字變更
+    const btn = document.querySelector('#order-result-view button[onclick="confirmOrder()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
+
     const result = _pendingOrderResult;
-    result.id = `ord-${Date.now()}`;   // 唯一訂單 ID
+    result.id = `ord-${Date.now()}`;
     try {
-      const history = JSON.parse(localStorage.getItem('order-history') || '[]');
-      history.unshift(result);          // 最新訂單插前端
-      localStorage.setItem('order-history', JSON.stringify(history));
-      appendKucunLog(result.orders.map(o => ({
-        source: 'order', action: 'order',
-        productId: (o.itemId || '').replace(/^[a-z]\d?-/, ''),
-        productName: o.name,
-        lotNumber: null,
-        qty: o.orderQty,
-        qtyDelta: o.orderQty,
-        unit: o.unit,
-        vendor: o.vendor,
-        note: `訂貨 ${o.orderQty} ${o.unit}，廠商：${o.vendor}`,
-      })));
-    } catch(e) {}
+      await window._fb.saveOrder(result);
+      // 逐筆寫入稽核日誌（強綁定在 firebase-service，localStorage + Firestore 都寫）
+      for (const o of result.orders) {
+        await window._fb.fsLog({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          ts: new Date().toISOString(),
+          source: 'order', action: 'order',
+          productId: (o.itemId || '').replace(/^[a-z]\d?-/, ''),
+          productName: o.name,
+          lotNumber: null,
+          qty: o.orderQty, qtyDelta: o.orderQty,
+          unit: o.unit, vendor: o.vendor,
+          note: `訂貨 ${o.orderQty} ${o.unit}，廠商：${o.vendor}`,
+        });
+      }
+    } catch(e) {
+      console.warn('[confirmOrder] 儲存失敗', e);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '✅ 確認送出並存檔'; }
+    }
     _pendingOrderResult = null;
 
     // 清空所有輸入欄
@@ -838,14 +902,9 @@
     document.getElementById('order-result-view').classList.add('hidden');
     document.getElementById('order-input-view').classList.remove('hidden');
     updateFilledCount();
-    loadIntransit();
+    await loadIntransit();
 
-    // Toast 提示
-    const t = document.createElement('div');
-    t.textContent = '✅ 訂單已建立存檔';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1E293B;color:white;padding:10px 22px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2500);
+    showToast('✅ 訂單已建立存檔', 'ok');
   }
 
   function showOrderResult(result, mode) {
@@ -889,6 +948,7 @@
             </button>
           </div>
         </div>
+        <div class="overflow-x-auto">
         <table class="order-table">
           <thead>
             <tr>
@@ -913,6 +973,7 @@
             }).join('')}
           </tbody>
         </table>
+        </div>
         <!-- LINE 預覽區塊 -->
         <div id="line-${vendorKey}" class="hidden mt-4 no-print">
           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
@@ -1004,7 +1065,23 @@
   // ═══════════════════════════════════════════════════════════════
   // Init
   // ═══════════════════════════════════════════════════════════════
-  window.addEventListener('DOMContentLoaded', buildOrderPage);
+  window.addEventListener('DOMContentLoaded', async function() {
+    const now = new Date();
+    const el = document.getElementById('today-display');
+    if (el) {
+      el.textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    }
+    await buildOrderPage();
+  });
+
+  function openNav() {
+    document.getElementById('nav-drawer').classList.add('open');
+    document.getElementById('nav-overlay').classList.add('open');
+  }
+  function closeNav() {
+    document.getElementById('nav-drawer').classList.remove('open');
+    document.getElementById('nav-overlay').classList.remove('open');
+  }
   </script>
 </body>
 </html>

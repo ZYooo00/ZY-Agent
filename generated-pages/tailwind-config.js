@@ -1,6 +1,7 @@
 // tailwind-config.js — 培養液管理系統共用 Tailwind 設定
 // 載入順序：此檔必須在 cdn.tailwindcss.com script 之前載入
-tailwind.config = {
+// 用 window.tailwind = { config } 而非 tailwind.config = {}，避免 tailwind 尚未定義時報錯
+window.tailwind = { config: {
   theme: {
     extend: {
       colors: {
@@ -18,4 +19,4 @@ tailwind.config = {
       },
     }
   }
-}
+}};
