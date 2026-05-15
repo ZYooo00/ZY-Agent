@@ -13,6 +13,12 @@
 <script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
+<!-- Firebase Phase 9b bridge -->
+<script type="module">
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog } from './firebase-service.js';
+  initFirebaseApp();
+  window._fb = { saveBeipanSnapshot, fsLog };
+</script>
 <style>
   /* beipan 專屬 */
   .row-crit  { background:#FFF1F2; }
@@ -184,10 +190,14 @@
           <p class="text-sm text-slate-500 mt-1">核對批號與開瓶用量，確認備盤項目與實際一致</p>
         </div>
         <div class="flex items-center gap-2" id="header-action-area">
-          <div class="flex items-center gap-1.5 text-xs text-slate-400">
-            <svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            草稿已自動儲存 14:22
+          <div id="gupan-sync-indicator" class="hidden flex items-center gap-1.5 text-xs text-slate-400">
+            <svg class="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            估盤 <span id="gupan-sync-time">—</span>
           </div>
+          <button onclick="refreshGupanData()" class="flex items-center gap-1 text-xs text-slate-500 hover:text-primary border border-slate-200 hover:border-primary rounded-lg px-2.5 py-1.5 transition-colors" title="重新載入估盤資料">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            重整估盤
+          </button>
         </div>
       </div>
 
@@ -418,7 +428,7 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">開封日期</label>
-        <input type="date" value="2026-04-30" class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary">
+        <input type="date" id="modal-open-date" class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary">
         <p class="text-xs text-slate-400 mt-1">預設今日，開封後效期計時開始</p>
       </div>
     </div>
@@ -441,7 +451,7 @@ function switchState(s) {
 }
 
 // ── Date utilities ──
-const TODAY = new Date('2026-04-30');
+const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
 
 function daysUntilExpiry(isoStr) {
   if (!isoStr) return null;
@@ -464,7 +474,8 @@ function calcBadge(b, needed) {
   if ((b.remaining||0) < needed) return { status:'needOpen',   cls:'badge-info',   text:'🔄 需開新瓶' };
   const days = daysUntilExpiry(b.expiry);
   if (days !== null) {
-    if (days <= 0)  return { status:'todayLast',  cls:'badge-crit', text:'🔴 今天最後' };
+    if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
+    if (days === 0) return { status:'todayLast',  cls:'badge-crit', text:'🔴 今天最後' };
     if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
@@ -812,6 +823,9 @@ function openModal(r, cardId) {
   } else {
     document.getElementById('modal-expiry-date').value = '';
   }
+  const _d = new Date();
+  const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+  document.getElementById('modal-open-date').value = todayStr;
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
@@ -826,8 +840,12 @@ function confirmOpenBottle() {
       if (batch && (batch.unopened || 0) > 0) {
         batch.unopened  -= 1;
         batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || 0)).toFixed(1));
+        batch.openDate = '今日';
+      } else if (batch) {
+        showToast('此批號已無未開封瓶可供開啟', 'warn');
+        closeModal();
+        return;
       }
-      if (batch) batch.openDate = '今日';
     }
     const renderId  = (_modalCardId === 'gm508') ? 'aoa-ci' : _modalCardId;
     const renderCfg = reagentConfig.find(c => c.id === renderId);
@@ -1109,7 +1127,7 @@ function recalcAllNeeded() {
 }
 
 // ── submitBeipan：儲存備盤結果到 localStorage ──
-function submitBeipan() {
+async function submitBeipan() {
   const staff1 = document.getElementById('beipan-staff-1')?.value || '';
   const staff2 = document.getElementById('beipan-staff-2')?.value || '';
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
@@ -1186,8 +1204,16 @@ function submitBeipan() {
     date: dateStr, operator, batches: updatedBatches,
     threshold: { orange_days: 3, red_days: 1 },
   };
-  localStorage.setItem('beipan-result', JSON.stringify(payload));
-  appendKucunLog(logEntries);
+  try {
+    await window._fb.saveBeipanSnapshot(payload);
+    const now = new Date().toISOString();
+    await Promise.all(logEntries.map((e, i) => window._fb.fsLog({
+      id: `${Date.now()}-${i}-beipan`,
+      ts: now,
+      qty: e.qtyDelta,
+      ...e,
+    })));
+  } catch(e) { console.error('[beipan] Firebase 儲存失敗', e); }
   showToast('備盤結果已儲存 ✓', 'ok');
   switchState('a');
 }
@@ -1244,6 +1270,14 @@ function loadGupanData() {
     banner.classList.remove('hidden');
   }
 
+  // 更新 header 同步時間戳
+  const syncEl = document.getElementById('gupan-sync-indicator');
+  const syncTimeEl = document.getElementById('gupan-sync-time');
+  if (syncEl && syncTimeEl) {
+    syncTimeEl.textContent = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'});
+    syncEl.classList.remove('hidden');
+  }
+
   // 若有備盤備註，置頂顯示警示區塊
   if (data.note) {
     let noteBlock = document.getElementById('beipan-top-note');
@@ -1279,6 +1313,20 @@ buildAllBulkCards();
 
 // 初始化「今日需用」（以計畫值全算）
 recalcAllNeeded();
+
+function refreshGupanData() {
+  loadGupanData();
+  buildGivfTable();
+  buildMatrixTable();
+  buildAllBatchCards();
+  buildAllBulkCards();
+  recalcAllNeeded();
+}
+
+// 切換回本頁時自動重新讀取最新估盤（gupan 頁送出後不需手動重整）
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') refreshGupanData();
+});
 
 function openNav() {
   document.getElementById('nav-drawer').classList.add('open');
