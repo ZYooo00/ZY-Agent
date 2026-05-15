@@ -999,6 +999,7 @@ async function confirmEdit() {
       lotNumber: record.lotNumber || null,
       qty: 0, qtyDelta: 0,
       unit: record.unit || '瓶', vendor: record.vendor || '',
+      operator: editBy,
       note: `修改：${changes.map(c=>`${c.field}: ${c.from}→${c.to}`).join('；')}（${editBy}）`,
     });
   } finally {
@@ -1868,6 +1869,7 @@ async function batchSaveAll() {
         lotNumber: i.lotNumber || null,
         qty: i.qty, qtyDelta: i.qty,
         unit: '瓶', vendor: i.vendor || '',
+        operator: receivedBy,
         note: [deliveryStatus, `簽收：${receivedBy}（${receivedAt}）`].filter(Boolean).join('；'),
       };
     });

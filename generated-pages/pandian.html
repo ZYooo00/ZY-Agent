@@ -403,6 +403,7 @@ async function completePandian() {
       ts: new Date().toISOString(),
       source: 'pandian', action: 'pandian',
       productId: it.id.replace(/^m-/, ''), productName: it.name,
+      operator: staffName,
       lotNumber: null, qty: it.actual, qtyDelta: 0,
       unit: it.unit || '瓶', vendor: '',
       note: `盤點：${staffName}（${dateStr}）`,

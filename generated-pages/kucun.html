@@ -13,6 +13,12 @@
 <script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
+<!-- Firebase Phase 9b bridge -->
+<script type="module">
+  import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog } from './firebase-service.js';
+  initFirebaseApp();
+  window._fb = { saveJinhuoRecord, appendLog };
+</script>
 <style>
   /* ── Sort tabs ── */
   .sort-tab { padding:6px 14px; border-radius:8px; font-size:13px; font-weight:500; color:#64748B; cursor:pointer; transition:all .15s; border:1.5px solid transparent; }
@@ -1473,29 +1479,39 @@ function closeDrawer() {
   document.getElementById('item-drawer').classList.remove('open');
 }
 
-function markQcPassed(productId, lotNumber) {
+async function markQcPassed(productId, lotNumber) {
   const operator = prompt(`請輸入您的姓名，確認批號 ${lotNumber} 已通過 QC：`);
   if (!operator || !operator.trim()) return;
 
   const records = JSON.parse(localStorage.getItem('jinhuo-records') || '[]');
+  const updatedRecords = [];
   let updated = false;
   records.forEach(r => {
     if (r.productId === productId && r.lotNumber === lotNumber && r.qcStatus === 'pending') {
       r.qcStatus = 'passed';
       updated = true;
+      updatedRecords.push(r);
     }
   });
   if (!updated) { showToast('找不到對應的待 QC 批號'); return; }
   localStorage.setItem('jinhuo-records', JSON.stringify(records));
 
   const productName = PRODUCT_MAP[productId]?.name || productId;
-  appendKucunLog([{
+  const logEntry = {
+    id: `${Date.now().toString(36)}-qcpass`,
+    ts: new Date().toISOString(),
     source: 'manual', action: 'qc_pass',
     productId, productName,
-    lotNumber,
-    operator: operator.trim(),
-    note: `批號 ${lotNumber} QC 確認通過`,
-  }]);
+    lotNumber, qty: 0, qtyDelta: 0,
+    unit: '瓶', vendor: '',
+    note: `批號 ${lotNumber} QC 確認通過（${operator.trim()}）`,
+  };
+  appendKucunLog([logEntry]);
+
+  try {
+    await Promise.all(updatedRecords.map(r => window._fb.saveJinhuoRecord(r)));
+    await window._fb.appendLog(logEntry);
+  } catch(e) { console.error('[kucun] QC Pass Firebase 寫入失敗', e); }
 
   showToast(`✓ 批號 ${lotNumber} QC 已通過`);
   render();
@@ -1731,7 +1747,7 @@ function applyReasonPreset(v) {
   if (el && !el.value) el.value = v;
 }
 
-function submitLog() {
+async function submitLog() {
   const productId = document.getElementById('log-product').value;
   const lot       = document.getElementById('log-lot').value.trim();
   const qty       = parseFloat(document.getElementById('log-qty').value);
@@ -1765,6 +1781,9 @@ function submitLog() {
   const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
   cl.push(entry);
   saveChangelog(cl);
+
+  try { await window._fb.appendLog(entry); }
+  catch(e) { console.error('[kucun] submitLog Firebase 寫入失敗', e); }
 
   closeLogModal();
   cachedData = loadData();
