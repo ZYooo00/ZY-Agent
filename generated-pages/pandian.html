@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="design.css">
-<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
 <style>
@@ -130,10 +130,16 @@
 <div class="flex min-h-screen pt-14">
 <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
-  <div class="flex items-center justify-between mb-5">
-    <h1 class="font-heading text-2xl font-bold text-slate-800">
-      庫存盤點 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.0.0</span>
-    </h1>
+  <div class="flex items-start justify-between mb-5">
+    <div>
+      <h1 class="font-heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+        庫存盤點
+        <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v1.0.0</span>
+      </h1>
+      <p class="text-sm text-slate-500 mt-1">定期清點實物存量，修正帳面與實際落差</p>
+    </div>
+    <div class="flex items-center gap-2" id="header-action-area"></div>
   </div>
 
   <!-- 盤點人 -->

@@ -9,10 +9,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="design.css">
-<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
+<!-- Firebase Phase 9b bridge：module 是 deferred，DOMContentLoaded 之前執行完畢 -->
+<script type="module">
+  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, appendKucunLog as fsLog } from './firebase-service.js';
+  initFirebaseApp();
+  window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, fsLog };
+</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   body { background:#F8FAFC; }
@@ -234,9 +240,16 @@
   <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
 
     <!-- Title row -->
-    <div class="flex items-center justify-between mb-5">
-      <h1 class="heading text-2xl font-bold text-slate-800">進貨記錄 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v0.6.6</span></h1>
-      <div class="flex items-center gap-2">
+    <div class="flex items-start justify-between mb-5">
+      <div>
+        <h1 class="heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+          進貨記錄
+          <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v0.6.6</span>
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">掃碼登記收貨批號，自動更新庫存並比對待收清單</p>
+      </div>
+      <div class="flex items-center gap-2" id="header-action-area">
         <button onclick="loadDemoData()" class="flex items-center gap-1.5 border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium hover:bg-slate-50 transition-colors" title="載入測試資料（覆寫 localStorage）" style="display:none !important;">
           🧪 測試資料
         </button>
@@ -589,9 +602,9 @@ let isQuickReceiveMode = false;
 // INIT
 // ───────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initDate();
-  loadRecords();
+  await loadRecords();
   buildScanProductSelect();
   buildVendorFilter();
   renderRecords();
@@ -618,8 +631,8 @@ function escHtml(s) {
 // LOCAL STORAGE
 // ───────────────────────────────────────
 
-function loadRecords() {
-  try { records = JSON.parse(localStorage.getItem('jinhuo-records') || '[]'); }
+async function loadRecords() {
+  try { records = await window._fb.getJinhuoRecords(); }
   catch { records = []; }
 }
 
@@ -659,10 +672,11 @@ function loadPendingOrdersForProduct(productId) {
   } catch { return []; }
 }
 
-function updateOrderStatus(orderId, qty) {
+async function updateOrderStatus(orderId, qty) {
   try {
     const history = JSON.parse(localStorage.getItem('order-history') || '[]');
     // FIFO：從最舊的訂單（陣列末端）往前找，更新第一筆有欠貨的
+    let modifiedOrder = null;
     for (let i = history.length - 1; i >= 0; i--) {
       const order = history[i];
       if (!['pending', 'partial'].includes(order.status)) continue;
@@ -674,9 +688,11 @@ function updateOrderStatus(orderId, qty) {
       const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
       const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
       order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
+      modifiedOrder = order;
       break;
     }
     localStorage.setItem('order-history', JSON.stringify(history));
+    if (modifiedOrder) await window._fb.saveOrder(modifiedOrder);
   } catch {}
 }
 
@@ -838,35 +854,43 @@ function closeVoidSheet() {
   _voidingRecordId = null;
 }
 
-function confirmVoid() {
+async function confirmVoid() {
   const voidBy = document.getElementById('void-by').value.trim();
   const voidReason = document.getElementById('void-reason').value.trim();
   if (!voidBy) { showToast('請填寫作廢者姓名'); return; }
   if (!voidReason) { showToast('請填寫作廢原因'); return; }
   const record = records.find(r => r.id === _voidingRecordId);
   if (!record) return;
-  if (record.orderId) rollbackOrderQty(record.orderId, record.receivedQty);
-  record.isVoided = true;
-  record.voidedBy = voidBy;
-  record.voidedAt = new Date().toISOString();
-  record.voidReason = voidReason;
-  saveRecords();
-  appendKucunLog([{
-    source:'jinhuo', action:'void',
-    productId: record.productId, productName: record.productName,
-    lotNumber: record.lotNumber || null,
-    qty: -(record.receivedQty || 0),
-    note: `作廢原因：${voidReason}（${voidBy}）`,
-  }]);
+
+  const btn = document.querySelector('[onclick="confirmVoid()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '作廢中…'; }
+  try {
+    if (record.orderId) await rollbackOrderQty(record.orderId, record.receivedQty);
+    record.isVoided = true;
+    record.voidedBy = voidBy;
+    record.voidedAt = new Date().toISOString();
+    record.voidReason = voidReason;
+    // voidJinhuoRecord 內建寫入 kucun_changelog，不需另呼叫 appendKucunLog
+    await window._fb.voidJinhuoRecord(record.id, voidBy, voidReason, {
+      productId: record.productId, productName: record.productName,
+      lotNumber: record.lotNumber || null,
+      qty: -(record.receivedQty || 0), qtyDelta: -(record.receivedQty || 0),
+      unit: record.unit || '瓶', vendor: record.vendor || '',
+    });
+    saveRecords();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '確認作廢'; }
+  }
   renderRecords();
   closeVoidSheet();
   showToast('已作廢此筆紀錄');
 }
 
-function rollbackOrderQty(orderId, qty) {
+async function rollbackOrderQty(orderId, qty) {
   try {
     const history = JSON.parse(localStorage.getItem('order-history') || '[]');
     // LIFO：作廢時從最新的訂單（陣列前端）往後找，回滾第一筆有收貨的
+    let modifiedOrder = null;
     for (let i = 0; i < history.length; i++) {
       const order = history[i];
       if (!['pending', 'partial', 'closed'].includes(order.status)) continue;
@@ -876,9 +900,11 @@ function rollbackOrderQty(orderId, qty) {
       const allDone = order.orders.every(o => (o.receivedQty || 0) >= o.orderQty);
       const anyDone = order.orders.some(o => (o.receivedQty || 0) > 0);
       order.status = allDone ? 'closed' : (anyDone ? 'partial' : 'pending');
+      modifiedOrder = order;
       break;
     }
     localStorage.setItem('order-history', JSON.stringify(history));
+    if (modifiedOrder) await window._fb.saveOrder(modifiedOrder);
   } catch(e) { console.error('rollbackOrderQty', e); }
 }
 
@@ -938,7 +964,7 @@ function closeEditSheet() {
   _editingRecordId = null;
 }
 
-function confirmEdit() {
+async function confirmEdit() {
   const editBy = document.getElementById('edit-by').value.trim();
   if (!editBy) { showToast('請填寫修改者姓名'); return; }
   const record = records.find(r => r.id === _editingRecordId);
@@ -960,14 +986,24 @@ function confirmEdit() {
   record.lotNumber = newLot || null;
   record.expiryDate = newExpiry || null;
   record.note = newNote || null;
-  saveRecords();
-  appendKucunLog([{
-    source:'jinhuo', action:'edit',
-    productId: record.productId, productName: record.productName,
-    lotNumber: record.lotNumber || null,
-    qty: 0,
-    note: `修改：${changes.map(c=>`${c.field}: ${c.from}→${c.to}`).join('；')}（${editBy}）`,
-  }]);
+
+  const btn = document.querySelector('[onclick="confirmEdit()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
+  try {
+    await window._fb.saveJinhuoRecord(record);
+    await window._fb.fsLog({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      ts: new Date().toISOString(),
+      source: 'jinhuo', action: 'edit',
+      productId: record.productId, productName: record.productName,
+      lotNumber: record.lotNumber || null,
+      qty: 0, qtyDelta: 0,
+      unit: record.unit || '瓶', vendor: record.vendor || '',
+      note: `修改：${changes.map(c=>`${c.field}: ${c.from}→${c.to}`).join('；')}（${editBy}）`,
+    });
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '儲存'; }
+  }
   renderRecords();
   closeEditSheet();
   showToast('✓ 已儲存修改');
@@ -1721,7 +1757,7 @@ function reviewEditItem(idx) {
   setTimeout(() => editTrayItem(idx), 200);
 }
 
-function batchSaveAll() {
+async function batchSaveAll() {
   const receivedBy = document.getElementById('review-received-by')?.value.trim();
   const receivedAt = document.getElementById('review-received-at')?.value;
   if (!receivedBy) { showToast('請填入簽收人'); return; }
@@ -1811,24 +1847,34 @@ function batchSaveAll() {
   });
 
   saveRecords();
-  const logEntries = sessionTray.filter(i => !i.isRejected).map(i => {
-    const isPartial = i.orderedQty && i.qty < i.orderedQty;
-    const deliveryStatus = i.orderedQty
-      ? (isPartial ? `部分到貨（${i.qty}/${i.orderedQty}）` : '全數到貨')
-      : null;
-    return {
-      source: 'jinhuo', action: 'receive',
-      productId: i.productId, productName: i.productName,
-      lotNumber: i.lotNumber || null,
-      expiryDate: i.expiryDate || null,
-      qtyDelta: i.qty,
-      qty: i.qty,
-      unit: '瓶',
-      operator: receivedBy,
-      note: [deliveryStatus, `簽收：${receivedBy}（${receivedAt}）`].filter(Boolean).join('；'),
-    };
-  });
-  if (logEntries.length) appendKucunLog(logEntries);
+
+  // 找出本次新增的 records（records 陣列前 count 筆）
+  const submitBtn = document.querySelector('[onclick="batchSaveAll()"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '儲存中…'; }
+  try {
+    const newRecords = records.slice(0, count);
+    await Promise.all(newRecords.map(r => window._fb.saveJinhuoRecord(r)));
+
+    const logEntries = sessionTray.filter(i => !i.isRejected).map(i => {
+      const isPartial = i.orderedQty && i.qty < i.orderedQty;
+      const deliveryStatus = i.orderedQty
+        ? (isPartial ? `部分到貨（${i.qty}/${i.orderedQty}）` : '全數到貨')
+        : null;
+      return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+        ts: new Date().toISOString(),
+        source: 'jinhuo', action: 'receive',
+        productId: i.productId, productName: i.productName,
+        lotNumber: i.lotNumber || null,
+        qty: i.qty, qtyDelta: i.qty,
+        unit: '瓶', vendor: i.vendor || '',
+        note: [deliveryStatus, `簽收：${receivedBy}（${receivedAt}）`].filter(Boolean).join('；'),
+      };
+    });
+    await Promise.all(logEntries.map(e => window._fb.fsLog(e)));
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '確認入庫'; }
+  }
   renderRecords();
   sessionTray = [];
   saveTray();

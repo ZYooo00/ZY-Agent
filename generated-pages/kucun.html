@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="design.css">
-<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
 <style>
@@ -252,12 +252,16 @@
   <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-10">
 
     <!-- Title + controls -->
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <div class="flex items-center gap-3">
-        <h1 class="heading text-2xl font-bold text-slate-800">庫存總覽</h1>
-        <span class="text-xs text-slate-400 font-mono">v2.4.0</span>
+    <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
+      <div>
+        <h1 class="heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          庫存總覽
+          <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v2.4.0</span>
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">即時查看各試劑庫存狀態、批號到期日與消耗趨勢</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap" id="header-action-area">
         <!-- Export CSV -->
         <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-medium hover:bg-emerald-100 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>

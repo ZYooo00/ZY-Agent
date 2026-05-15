@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="design.css">
-<script src="tailwind-config.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
 <style>
@@ -219,12 +219,26 @@
 
 <div class="flex flex-col min-h-screen pt-14">
 
+  <div class="flex flex-1">
+
+  <!-- ════════════════ MAIN ════════════════ -->
+  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
+
+  <!-- ── Demo 狀態切換（開發用，隱藏）── -->
+  <div id="dev-demo-controls" class="hidden flex gap-2 py-1 overflow-x-auto mb-3" style="display: none !important;">
+
+    <span class="text-xs text-slate-400 whitespace-nowrap self-center">預覽狀態：</span>
+    <button class="demo-btn active" onclick="switchState('A')">A 輸入中</button>
+    <button class="demo-btn" onclick="switchState('B')">B 等待核對</button>
+    <button class="demo-btn" onclick="switchState('C')">C 已確認</button>
+  </div>
+
   <!-- ════════════════ STATE BANNER ════════════════ -->
   <div id="banner-b" class="banner banner-blue hidden" style="position:sticky; top:56px; z-index:20;">
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
-    等待第二人核對確認
+    等待核對人確認
   </div>
   <div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -233,17 +247,19 @@
     <span>估盤已確認鎖定 — <span id="confirm-info-text">胚胎師乙 核對，14:38</span></span>
   </div>
 
-  <div class="flex flex-1">
-
-  <!-- ════════════════ MAIN ════════════════ -->
-  <main class="flex-1 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-8">
-
-  <!-- ── Demo 狀態切換（開發用，隱藏）── -->
-  <div id="dev-demo-controls" class="hidden flex gap-2 py-1 overflow-x-auto mb-3" style="display: none !important;">
-    <span class="text-xs text-slate-400 whitespace-nowrap self-center">預覽狀態：</span>
-    <button class="demo-btn active" onclick="switchState('A')">A 輸入中</button>
-    <button class="demo-btn" onclick="switchState('B')">B 等待核對</button>
-    <button class="demo-btn" onclick="switchState('C')">C 已確認</button>
+  <!-- ════ Page Title ════ -->
+  <div class="flex items-start justify-between mb-6">
+    <div>
+      <h1 class="heading text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        今日估盤
+        <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v1.0.0</span>
+      </h1>
+      <p class="text-sm text-slate-500 mt-1">輸入今日手術案例數，自動估算各培養液耗用量</p>
+    </div>
+    <div class="flex items-center gap-2" id="header-action-area">
+      <button onclick="resetToday()" class="btn-secondary text-xs px-3 py-1.5" title="清除今日暫存，回到 State A">↺ 重置今日</button>
+    </div>
   </div>
 
   <!-- ════ PAGE: 今日估盤 ════ -->
@@ -254,7 +270,7 @@
       <div class="card-title">人員選擇</div>
       <div class="flex gap-3">
         <div class="flex-1">
-          <div class="text-xs text-slate-400 mb-1.5">估盤人 甲</div>
+          <div class="text-xs text-slate-400 mb-1.5">估盤人</div>
           <select class="staff-select" id="staff-a">
             <option value="">（選擇）</option>
             <option>胚胎師 ZY</option>
@@ -263,8 +279,8 @@
             <option>胚胎師 Wang</option>
           </select>
         </div>
-        <div class="flex-1">
-          <div class="text-xs text-slate-400 mb-1.5">核對人 乙</div>
+        <div class="flex-1 hidden" id="staff-b-wrapper">
+          <div class="text-xs text-slate-400 mb-1.5">核對人</div>
           <select class="staff-select" id="staff-b">
             <option value="">（選擇）</option>
             <option>胚胎師 ZY</option>
@@ -395,8 +411,8 @@
         <span class="font-semibold text-sm">估盤已核對確認</span>
       </div>
       <div class="mt-2 text-xs text-green-600 space-y-0.5">
-        <div>估盤人甲：<span id="confirm-staff-a" class="font-medium">—</span></div>
-        <div>核對人乙：<span id="confirm-staff-b" class="font-medium">—</span></div>
+        <div>估盤人：<span id="confirm-staff-a" class="font-medium">—</span></div>
+        <div>核對人：<span id="confirm-staff-b" class="font-medium">—</span></div>
         <div>確認時間：<span id="confirm-time-display" class="font-medium tabular">—</span></div>
       </div>
     </div>
@@ -654,12 +670,18 @@ function calcHepes() {
 // ══════════════════════════════════════════
 const STORAGE_KEY = 'gupan-draft';
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function saveToStorage() {
   const fields = {};
   document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => {
     if (el.id) fields[el.id] = el.value;
   });
   const data = {
+    date: todayStr(),
     state: currentState,
     taiVals: { ...taiVals },
     fields,
@@ -680,6 +702,11 @@ function loadFromStorage() {
   let data;
   try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
   if (!data) return;
+
+  if (!data.date || data.date !== todayStr()) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
 
   if (data.taiVals) Object.assign(taiVals, data.taiVals);
 
@@ -704,6 +731,17 @@ function loadFromStorage() {
   calcHepes();
 }
 
+function resetToday() {
+  localStorage.removeItem(STORAGE_KEY);
+  taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
+  document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => { el.value = ''; });
+  switchState('A');
+  updateAllSuggestions();
+  calcOil();
+  calcHepes();
+  showToast('已清除今日資料，回到 State A', 'default');
+}
+
 // ══════════════════════════════════════════
 // STATE MACHINE
 // ══════════════════════════════════════════
@@ -724,21 +762,39 @@ function switchState(state) {
   document.getElementById('confirm-card').classList.toggle('hidden', state !== 'C');
 
   const formEl = document.getElementById('page-gupan');
-  formEl.classList.toggle('form-locked', state !== 'A');
+  const staffBWrapper = document.getElementById('staff-b-wrapper');
+  const staffBSelect = document.getElementById('staff-b');
 
-  const inputs = formEl.querySelectorAll('input, select, textarea');
-  inputs.forEach(inp => { inp.disabled = (state !== 'A'); });
+  if (state === 'A') {
+    // 解鎖所有欄位，隱藏核對人
+    formEl.classList.remove('form-locked');
+    formEl.querySelectorAll('input, select, textarea').forEach(inp => { inp.disabled = false; });
+    staffBWrapper.classList.add('hidden');
+    staffBSelect.disabled = true;
+    staffBSelect.value = '';
+  } else if (state === 'B') {
+    // 鎖定所有資料欄位與估盤人，顯示並開放核對人
+    formEl.classList.remove('form-locked');
+    formEl.querySelectorAll('input, select, textarea').forEach(inp => { inp.disabled = true; });
+    staffBWrapper.classList.remove('hidden');
+    staffBSelect.disabled = false;
+  } else {
+    // State C：全面鎖定
+    formEl.classList.add('form-locked');
+    formEl.querySelectorAll('input, select, textarea').forEach(inp => { inp.disabled = true; });
+    staffBWrapper.classList.remove('hidden');
+  }
 }
 
 function submitGupan() {
   const staffA = document.getElementById('staff-a').value;
-  if (!staffA) { showToast('請先選擇估盤人甲', 'warn'); return; }
+  if (!staffA) { showToast('請先選擇估盤人', 'warn'); return; }
   switchState('B');
 }
 
 function confirmGupan() {
   const staffB = document.getElementById('staff-b').value;
-  if (!staffB) { showToast('請先選擇核對人乙', 'warn'); return; }
+  if (!staffB) { showToast('請先選擇核對人', 'warn'); return; }
   const now = new Date();
   const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const staffA = document.getElementById('staff-a').value || '—';
