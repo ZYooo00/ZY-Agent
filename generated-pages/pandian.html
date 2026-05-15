@@ -13,6 +13,12 @@
 <script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
+<!-- Firebase Phase 9b bridge -->
+<script type="module">
+  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog } from './firebase-service.js';
+  initFirebaseApp();
+  window._fb = { savePandianSnapshot, fsLog };
+</script>
 <style>
   /* ── 人員選擇 ── */
   .staff-select {
@@ -330,7 +336,7 @@ function updatePandianProgress() {
   document.getElementById('pd-progress').style.width = total ? `${(filled / total) * 100}%` : '0%';
 }
 
-function completePandian() {
+async function completePandian() {
   const staffEl = document.getElementById('pd-staff');
   if (!staffEl.value) {
     staffEl.closest('.card').scrollIntoView({ behavior:'smooth', block:'center' });
@@ -388,18 +394,26 @@ function completePandian() {
     })),
     allValues: pandianAllValues,
   };
+  const btn = document.querySelector('[onclick="completePandian()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
   try {
-    localStorage.setItem('pandian-result', JSON.stringify(pandianPayload));
-    const hist = JSON.parse(localStorage.getItem('pandian-history') || '[]');
-    hist.push(pandianPayload);
-    localStorage.setItem('pandian-history', JSON.stringify(hist));
-    appendKucunLog(pandianAllValues.map(it => ({
+    await window._fb.savePandianSnapshot(pandianPayload);
+    await Promise.all(pandianAllValues.map(it => window._fb.fsLog({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}-${it.id}`,
+      ts: new Date().toISOString(),
       source: 'pandian', action: 'pandian',
       productId: it.id.replace(/^m-/, ''), productName: it.name,
-      lotNumber: null, qty: it.actual,
+      lotNumber: null, qty: it.actual, qtyDelta: 0,
+      unit: it.unit || '瓶', vendor: '',
       note: `盤點：${staffName}（${dateStr}）`,
     })));
-  } catch(e) {}
+  } catch(e) {
+    console.error('[pandian] Firebase 儲存失敗', e);
+    showToast('雲端儲存失敗，資料已暫存本機', 'warn');
+    return;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '完成盤點'; }
+  }
   document.getElementById('pd-submit-area').classList.add('hidden');
   document.getElementById('pd-groups').classList.add('hidden');
   document.getElementById('pd-result').classList.remove('hidden');
