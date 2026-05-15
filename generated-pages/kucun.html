@@ -914,7 +914,7 @@ function renderInventoryTable(data) {
       </th>`;
     }
   });
-  if (cols.length === 0) theadHtml += '<th style="min-width:40px"></th>';
+  theadHtml += '<th style="width:100%;min-width:20px;border-bottom:2px solid #E2E4F4"></th>';
   theadHtml += `<th class="sr-1" style="padding:10px 8px">期間估計用量 <span class="info-tip" data-tip="${tooltipText}" style="font-size:14px">ℹ️</span></th>`;
   theadHtml += `<th class="sr" style="padding:10px 8px">預計可撐天數 <span class="info-tip" data-tip="公式：目前庫存 ÷ (期間估計用量 ÷ 期間天數)" style="font-size:14px">ℹ️</span></th>`;
   document.getElementById('inv-thead').innerHTML = `<tr>${theadHtml}</tr>`;
@@ -929,7 +929,7 @@ function renderInventoryTable(data) {
     const groupKey = sortMode === 'group' ? p.group : sortMode === 'vendor' ? p.vendor : null;
     if (groupKey && groupKey !== lastGroupKey) {
       lastGroupKey = groupKey;
-      const midSpan = Math.max(cols.length, 1);
+      const midSpan = cols.length + 1;
       tbodyRows.push(`<tr class="group-row">
         <td class="sl sl-0">${groupKey}</td>
         <td class="sl sl-1"></td>
@@ -994,7 +994,7 @@ function renderInventoryTable(data) {
         }
       }
     });
-    if (cols.length === 0) midCells = '<td></td>';
+    midCells += '<td style="width:100%"></td>';
 
     const est = calcEstUsage(p.id, data.pandianHistory, data.beipan, data.jinhuo);
     let estCell;
@@ -1543,6 +1543,11 @@ function initScrollSync() {
   const wrap   = document.getElementById('inv-wrap');
   const table  = document.getElementById('inv-table');
   if (!mirror || !wrap || !table) return;
+  if (table.scrollWidth <= wrap.clientWidth) {
+    mirror.style.display = 'none';
+    return;
+  }
+  mirror.style.display = '';
   const spacer = document.getElementById('inv-spacer');
   if (spacer) spacer.style.width = table.scrollWidth + 'px';
   mirror._lock = false; wrap._lock = false;

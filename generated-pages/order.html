@@ -21,6 +21,15 @@
   </script>
   <style>
     /* ── 訂貨管理頁面專屬樣式 ── */
+    .staff-select {
+      flex:1; height:40px; border:1.5px solid #E2E8F0; border-radius:10px;
+      background:#F8FAFC; color:#0F172A; font-size:14px; padding:0 10px;
+      outline:none; font-family:'Noto Sans TC',sans-serif;
+      -webkit-appearance:none; appearance:none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239590D0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 10px center; padding-right:28px;
+    }
+    .staff-select:focus { border-color:#9590D0; }
 
     .vendor-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -193,6 +202,18 @@
               <div class="flex items-center gap-2" id="header-action-area">
                 <button onclick="buildOrderPage()" class="btn-secondary text-xs px-3 py-1.5 no-print">↻ 重新讀取盤點結果</button>
               </div>
+            </div>
+
+            <!-- 訂貨人 -->
+            <div class="card mb-4 flex items-center gap-3">
+              <label class="text-sm font-semibold text-slate-600 whitespace-nowrap">訂貨人</label>
+              <select class="staff-select" id="order-staff">
+                <option value="">（選擇）</option>
+                <option value="胚胎師 ZY">胚胎師 ZY</option>
+                <option value="胚胎師 Lin">胚胎師 Lin</option>
+                <option value="胚胎師 Chen">胚胎師 Chen</option>
+                <option value="胚胎師 Wang">胚胎師 Wang</option>
+              </select>
             </div>
 
             <!-- Pandian info card -->
@@ -843,6 +864,8 @@
 
   // State A → B：只預覽，不寫入 localStorage
   function previewOrder() {
+    const orderedBy = document.getElementById('order-staff')?.value || '';
+    if (!orderedBy) { showToast('請先選擇訂貨人', 'warn'); return; }
     const orders = _collectOrders();
     if (orders.length === 0) {
       showToast('尚未填寫任何訂購數量，請至少填寫一項。', 'warn');
@@ -851,7 +874,7 @@
     const now = new Date();
     const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    _pendingOrderResult = { date: dateStr, completedAt: timeStr, pandianDate: pandianMeta?.date || null, status: 'pending', orders };
+    _pendingOrderResult = { date: dateStr, completedAt: timeStr, pandianDate: pandianMeta?.date || null, status: 'pending', orderedBy, orders };
     showOrderResult(_pendingOrderResult, 'preview');
   }
 
@@ -878,7 +901,8 @@
           lotNumber: null,
           qty: o.orderQty, qtyDelta: o.orderQty,
           unit: o.unit, vendor: o.vendor,
-          note: `訂貨 ${o.orderQty} ${o.unit}，廠商：${o.vendor}`,
+          operator: result.orderedBy || '',
+          note: `訂貨 ${o.orderQty} ${o.unit}，廠商：${o.vendor}（${result.orderedBy || '—'}）`,
         });
       }
     } catch(e) {
