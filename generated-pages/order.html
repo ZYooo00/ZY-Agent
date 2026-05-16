@@ -865,7 +865,7 @@
   // State A → B：只預覽，不寫入 localStorage
   function previewOrder() {
     const orderedBy = document.getElementById('order-staff')?.value || '';
-    if (!orderedBy) { showToast('請先選擇訂貨人', 'warn'); return; }
+    if (!orderedBy) { window.scrollTo({ top:0, behavior:'smooth' }); showToast('請先選擇訂貨人', 'warn'); return; }
     const orders = _collectOrders();
     if (orders.length === 0) {
       showToast('尚未填寫任何訂購數量，請至少填寫一項。', 'warn');

@@ -204,10 +204,10 @@
       </div>
     </div>
     <div class="space-y-2 pb-2">
-      <button class="btn-primary" id="pd-transfer-btn" onclick="showTransferSuccess()">傳送至訂貨管理</button>
+      <button class="btn-primary" id="pd-transfer-btn" onclick="showTransferSuccess()">前往訂貨管理</button>
       <div id="pd-transfer-msg" class="hidden text-center text-sm py-2 rounded-xl"
         style="color:#7C6FCF; background:#F5F3FF; border:1px solid #C4B5FD;">
-        ✅ 盤點資料已成功儲存！請前往電腦版訂貨管理頁面查看。
+        ✅ 盤點已儲存，正在跳轉至訂貨管理…
       </div>
       <button class="btn-secondary" onclick="backToPandian()">修改本次盤點</button>
       <button class="btn-secondary" onclick="newPandian()">開始新盤點</button>
@@ -479,6 +479,12 @@ function newPandian() {
   });
   STOCK_GROUPS.forEach(g => updateGroupChip(g));
   updatePandianProgress();
+  // Reset UI state from previous pandian cycle
+  document.getElementById('pd-transfer-msg')?.classList.add('hidden');
+  const transferBtn = document.getElementById('pd-transfer-btn');
+  if (transferBtn) { transferBtn.disabled = false; transferBtn.classList.remove('opacity-40', 'cursor-not-allowed'); }
+  const modifyBtn = document.querySelector('button[onclick="backToPandian()"]');
+  if (modifyBtn) { modifyBtn.disabled = false; modifyBtn.classList.remove('opacity-40', 'cursor-not-allowed'); }
   showPandianInput();
 }
 
@@ -486,8 +492,11 @@ function resetPandian() { if (!confirm('確定要清除所有已填數量？')) 
 function restartPandian() { newPandian(); }
 function showTransferSuccess() {
   document.getElementById('pd-transfer-msg').classList.remove('hidden');
+  const transferBtn = document.getElementById('pd-transfer-btn');
+  if (transferBtn) { transferBtn.disabled = true; transferBtn.classList.add('opacity-40', 'cursor-not-allowed'); }
   const modifyBtn = document.querySelector('button[onclick="backToPandian()"]');
   if (modifyBtn) { modifyBtn.disabled = true; modifyBtn.classList.add('opacity-40', 'cursor-not-allowed'); }
+  setTimeout(() => { window.location.href = 'order.html'; }, 1500);
 }
 
 const PD_STORAGE_KEY = 'pandian-draft';
