@@ -510,9 +510,17 @@ function fmtDate(isoStr) {
 // ── Batch status calculation ──
 // 可用量 = 已開封剩餘 + 未開封瓶數 × 單瓶容量
 // 充足：開封瓶已夠 / 需開新瓶：總量夠但開封瓶不夠 / 批號不足：總量也不夠
+function effectiveExpiry(b) {
+  const dates = [];
+  if (b.expiry) dates.push(b.expiry);
+  if (b.openExpiry) dates.push(b.openExpiry);
+  if (!dates.length) return null;
+  return dates.reduce((min, d) => d < min ? d : min);
+}
+
 function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
-  const days = daysUntilExpiry(b.expiry);
+  const days = daysUntilExpiry(effectiveExpiry(b));
   if (days !== null) {
     if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
     if (days === 0) return { status:'todayLast',  cls:'badge-crit', text:'🔴 今天最後' };

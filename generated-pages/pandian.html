@@ -229,20 +229,54 @@ const LOCATION_ICONS = {
 };
 const LOCATION_COLLAPSED_SET = new Set(['培養箱','半年一次','需要再叫']);
 
+const FREEZER_ORDER = ['f-102-mm','f-102','f-101','f-110','f-hepes','f-oil','f-pvp','f-cum','m-aoa-ci','f-508','f-gm501','f-602'];
+
 const STOCK_GROUPS = (() => {
+  const branded = new Set();
+
+  const lgItems = PRODUCTS.filter(p => p.brand === 'LifeGlobal' && p.gupanId)
+    .map(p => { branded.add(p.id); return {id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0}; });
+
+  const vlItems = PRODUCTS.filter(p => p.brand === 'Vitrolife' && p.gupanId)
+    .map(p => { branded.add(p.id); return {id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0}; });
+
+  // aoa-ci (location:'培養箱') is overridden to appear in 冰箱 here
+  const PANDIAN_OVERRIDE = new Set(['aoa-ci']);
+
   const grouped = {};
-  PRODUCTS.forEach(p => {
-    if (!p.gupanId || !p.location) return;
+  PRODUCTS.filter(p => !branded.has(p.id) && !PANDIAN_OVERRIDE.has(p.id) && p.gupanId && p.location).forEach(p => {
     if (!grouped[p.location]) grouped[p.location] = [];
-    grouped[p.location].push({ id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0 });
+    grouped[p.location].push({id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0});
   });
-  return LOCATION_ORDER.filter(loc => grouped[loc]).map(loc => ({
+
+  // Insert aoa-ci into 冰箱
+  const aoaCi = PRODUCTS.find(p => p.id === 'aoa-ci');
+  if (aoaCi && aoaCi.gupanId) {
+    if (!grouped['冰箱']) grouped['冰箱'] = [];
+    grouped['冰箱'].push({id:aoaCi.gupanId, name:aoaCi.name, unit:aoaCi.unit, target:aoaCi.target||0});
+  }
+
+  // Sort 冰箱 group by specified order
+  if (grouped['冰箱']) {
+    grouped['冰箱'].sort((a, b) => {
+      const ai = FREEZER_ORDER.indexOf(a.id);
+      const bi = FREEZER_ORDER.indexOf(b.id);
+      return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    });
+  }
+
+  const locationGroups = LOCATION_ORDER.filter(loc => grouped[loc]).map(loc => ({
     id: loc.replace(/[^a-z0-9一-鿿]/gi, '-').toLowerCase(),
-    label: loc,
-    icon: LOCATION_ICONS[loc] || '📦',
+    label: loc, icon: LOCATION_ICONS[loc]||'📦',
     collapsed: LOCATION_COLLAPSED_SET.has(loc),
     items: grouped[loc],
   }));
+
+  const result = [];
+  if (lgItems.length) result.push({id:'life-global', label:'Life Global', icon:'🔬', collapsed:false, items:lgItems});
+  if (vlItems.length) result.push({id:'vitrolife', label:'VitroLife', icon:'🔬', collapsed:false, items:vlItems});
+  result.push(...locationGroups);
+  return result;
 })();
 
 const pdCollapsed = {};

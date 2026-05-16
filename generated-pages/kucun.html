@@ -355,6 +355,15 @@
         <button class="sort-tab" data-sort="vendor" onclick="setSort('vendor')">廠商</button>
         <button class="sort-tab" data-sort="status" onclick="setSort('status')">狀態</button>
       </div>
+      <!-- Table date range -->
+      <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2">
+        <span class="text-xs text-slate-400 mr-1">欄位：</span>
+        <select id="table-range-select" onchange="setTableRange(+this.value)" class="text-xs border-0 bg-transparent focus:outline-none text-slate-600 font-medium cursor-pointer">
+          <option value="10">近 10 天</option>
+          <option value="30" selected>近 30 天</option>
+          <option value="50">近 50 天</option>
+        </select>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -418,6 +427,13 @@
         <button class="cl-quick-btn" onclick="setCLDateRange('quarter')">近一季</button>
         <button class="cl-quick-btn" onclick="setCLDateRange('')" style="color:#94A3B8">清除</button>
         <button class="cl-quick-btn" onclick="exportChangelogCSV()" style="margin-left:8px;border-color:#9590D0;color:#7A75BB;font-weight:600">匯出區間日誌</button>
+        <span class="text-slate-300 text-xs ml-2">|</span>
+        <span class="text-xs text-slate-500 font-medium ml-2">顯示：</span>
+        <select id="cl-count-select" class="text-xs border border-slate-200 rounded-lg px-2 py-0.5 bg-white focus:outline-none text-slate-600" onchange="if(cachedData) renderChangelog(cachedData)">
+          <option value="10">10 筆</option>
+          <option value="30" selected>30 筆</option>
+          <option value="50">50 筆</option>
+        </select>
       </div>
       <div style="overflow:auto; max-height:480px;">
         <table class="cl-table" id="cl-table">
@@ -544,12 +560,13 @@ const STATUS_ORDER = { crit:0, warn:1, ok:2, none:3 };
 // ════════════════════════════════
 // STATE
 // ════════════════════════════════
-let sortMode    = 'group';
-let clFilter    = '';
-let cachedData  = null;
+let sortMode      = 'group';
+let clFilter      = '';
+let cachedData    = null;
 let productInfoCache = {};
-let kpiFilter   = null;
-let searchQuery  = '';
+let kpiFilter     = null;
+let searchQuery   = '';
+let tableRangeDays = 30;
 
 // ════════════════════════════════
 // HELPERS
@@ -807,9 +824,16 @@ function handleSearch(val) {
 // ════════════════════════════════
 // BUILD CHANGELOG COLUMNS
 // ════════════════════════════════
+function setTableRange(n) {
+  tableRangeDays = n;
+  if (cachedData) renderInventoryTable(cachedData);
+}
+
 function buildChangelogCols(changelog) {
   // 以「日期（YYYY-MM-DD）+ 來源」為 key 合併，同一天備盤 = 一欄
-  const entries = [...(changelog||[])].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - tableRangeDays);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const entries = [...(changelog||[])].filter(e => (e.ts||'').slice(0,10) >= cutoffStr).sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const groupMap = {};
   const groupOrder = [];
   entries.forEach(e => {
@@ -1136,7 +1160,8 @@ function renderChangelog(data) {
   if (from) filtered = filtered.filter(e => (e.ts||'').slice(0,10) >= from);
   if (to)   filtered = filtered.filter(e => (e.ts||'').slice(0,10) <= to);
 
-  const sorted = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+  const clCount = parseInt(document.getElementById('cl-count-select')?.value || '30', 10);
+  const sorted = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||'')).slice(0, clCount);
 
   document.getElementById('cl-count').textContent =
     cl.length > 0 ? `共 ${cl.length} 筆${filtered.length < cl.length ? `（篩選後 ${filtered.length} 筆）` : ''}` : '';
@@ -1444,6 +1469,23 @@ function openDrawer(productId) {
         <td style="color:${expClr}">${lot.expiry || '—'}${dLabel}</td>
         <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code></td>
         ${qcCell}
+      </tr>`;
+    });
+
+    // Show voided lots
+    const jinhuoAll = cachedData?.jinhuo || [];
+    const voidedMap = {};
+    jinhuoAll.filter(r => r.productId === productId && r.isVoided && r.lotNumber)
+      .forEach(r => { voidedMap[r.lotNumber] = r; });
+    Object.values(voidedMap).forEach(r => {
+      lotRows += `<tr>
+        <td style="color:#CBD5E1;font-weight:600;width:36px">—</td>
+        <td style="color:#CBD5E1">${r.expiryDate || '—'}</td>
+        <td>
+          <code style="background:#F8FAFC;color:#CBD5E1;padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${r.lotNumber}</code>
+          <span style="margin-left:4px;font-size:10px;color:#94A3B8;background:#F1F5F9;border-radius:3px;padding:1px 4px">廢</span>
+        </td>
+        <td></td>
       </tr>`;
     });
   }
