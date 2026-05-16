@@ -260,6 +260,7 @@
         <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         明日估盤
         <span class="text-[11px] font-normal text-slate-400 font-mono tracking-widest bg-slate-100 px-1.5 py-0.5 rounded">v1.0.0</span>
+        <span id="tomorrow-date-label" class="text-sm font-normal text-slate-400"></span>
       </h1>
       <p class="text-sm text-slate-500 mt-1">輸入明日手術案例數，自動估算各培養液耗用量</p>
     </div>
@@ -500,6 +501,9 @@ let taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
   if (todayEl) todayEl.textContent = d;
   const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   document.getElementById('autosave-time').textContent = t;
+  const tm = new Date(); tm.setDate(tm.getDate() + 1);
+  const tmLabel = document.getElementById('tomorrow-date-label');
+  if (tmLabel) tmLabel.textContent = `${tm.getMonth()+1}/${tm.getDate()}（${days[tm.getDay()]}）`;
 })();
 
 // ══════════════════════════════════════════
@@ -794,7 +798,8 @@ function switchState(state) {
 
 function submitGupan() {
   const staffA = document.getElementById('staff-a').value;
-  if (!staffA) { showToast('請先選擇估盤人', 'warn'); return; }
+  if (!staffA) { window.scrollTo({ top:0, behavior:'smooth' }); showToast('請先選擇估盤人', 'warn'); return; }
+  window.scrollTo({ top:0, behavior:'smooth' });
   switchState('B');
 }
 

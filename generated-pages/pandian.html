@@ -450,7 +450,11 @@ function newPandian() {
 
 function resetPandian() { if (!confirm('確定要清除所有已填數量？')) return; newPandian(); }
 function restartPandian() { newPandian(); }
-function showTransferSuccess() { document.getElementById('pd-transfer-msg').classList.remove('hidden'); }
+function showTransferSuccess() {
+  document.getElementById('pd-transfer-msg').classList.remove('hidden');
+  const modifyBtn = document.querySelector('button[onclick="backToPandian()"]');
+  if (modifyBtn) { modifyBtn.disabled = true; modifyBtn.classList.add('opacity-40', 'cursor-not-allowed'); }
+}
 
 const PD_STORAGE_KEY = 'pandian-draft';
 

@@ -1054,16 +1054,12 @@
 
   function buildLineText(vendor, cfg, orders, date) {
     const contact = cfg ? cfg.contact : '';
-    const leadtime = cfg ? cfg.leadtime : '';
-    let text = `【訂貨通知】台北胚胎室\n`;
-    text += `日期：${date}\n\n`;
-    text += `廠商：${vendor}`;
-    if (contact) text += `（聯絡人：${contact}）`;
-    text += `\n`;
-    if (leadtime && leadtime !== '—') text += `交期：${leadtime}\n`;
-    text += `\n`;
+    let text = `${date}\n`;
+    text += `【訂貨通知】送子鳥台北胚胎室\n\n`;
+    if (contact) text += `${contact} 您好\n`;
+    text += `本次想訂購\n\n`;
     orders.forEach(o => { text += `${o.name} × ${o.orderQty} ${o.unit}\n`; });
-    text += `\n請確認收到，謝謝 🙏`;
+    text += `\n再請確認收到，感謝 🙏`;
     return text;
   }
 
