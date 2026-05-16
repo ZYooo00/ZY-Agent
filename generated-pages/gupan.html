@@ -805,7 +805,7 @@ function submitGupan() {
 
 async function confirmGupan() {
   const staffB = document.getElementById('staff-b').value;
-  if (!staffB) { showToast('請先選擇核對人', 'warn'); return; }
+  if (!staffB) { window.scrollTo({ top:0, behavior:'smooth' }); showToast('請先選擇核對人', 'warn'); return; }
   const now = new Date();
   const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const staffA = document.getElementById('staff-a').value || '—';
