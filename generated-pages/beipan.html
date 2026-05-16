@@ -15,9 +15,9 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog } from './firebase-service.js';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js';
   initFirebaseApp();
-  window._fb = { saveBeipanSnapshot, fsLog };
+  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan };
 </script>
 <style>
   /* beipan 專屬 */
@@ -163,12 +163,12 @@
     <div id="state-a" class="hidden p-8">
       <div class="max-w-lg mx-auto mt-16">
         <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
-          <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
+          <div id="state-a-icon" class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
             <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           </div>
-          <h2 class="font-heading text-xl font-semibold text-slate-700 mb-2">備盤尚未解鎖</h2>
-          <p class="text-slate-500 text-sm">估盤確認後才能開始備盤。</p>
-          <div class="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm text-amber-700">
+          <h2 id="state-a-title" class="font-heading text-xl font-semibold text-slate-700 mb-2">備盤尚未解鎖</h2>
+          <p id="state-a-desc" class="text-slate-500 text-sm">估盤確認後才能開始備盤。</p>
+          <div id="state-a-badge" class="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm text-amber-700">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             高任佑已送出估盤，等待第二人核對確認
           </div>
@@ -358,7 +358,7 @@
       <!-- Submit -->
       <div class="flex justify-end gap-3 pt-2 pb-8">
         <button class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">儲存草稿</button>
-        <button onclick="switchState('c')" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
+        <button onclick="previewBeipan()" class="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
           備盤完成
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
@@ -379,13 +379,7 @@
       </div>
       <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
         <div class="text-sm font-medium text-slate-700 mb-3">批號使用摘要（唯讀）</div>
-        <div class="grid grid-cols-3 gap-3 text-sm">
-          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">G-IVF</span><span class="font-mono font-semibold text-slate-800">53651</span></div>
-          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">AOA CI</span><span class="font-mono font-semibold text-slate-800">AA1023</span></div>
-          <div class="bg-purple-50 rounded-lg p-3 border border-purple-100"><span class="text-purple-400 text-xs block">H5GT</span><span class="font-mono font-semibold text-slate-800">88392</span></div>
-          <div class="bg-blue-50 rounded-lg p-3 border border-blue-100"><span class="text-blue-400 text-xs block">GxTL</span><span class="font-mono font-semibold text-slate-800">44201</span></div>
-          <div class="bg-slate-50 rounded-lg p-3"><span class="text-slate-500 text-xs block">EmbryoGlue</span><span class="font-mono font-semibold text-slate-800">EG501</span></div>
-        </div>
+        <div class="grid grid-cols-3 gap-3 text-sm"></div>
       </div>
       <div class="flex justify-end gap-3 pb-8">
         <button onclick="switchState('b')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
@@ -442,6 +436,54 @@
 <script src="shared.js"></script>
 <script>
 // ── State switching ──
+function previewBeipan() {
+  const cards = [];
+
+  reagentConfig.forEach(cfg => {
+    if (cfg.needed <= 0) return;
+    const primaryLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || '—';
+
+    // 讀取第二批次（若展開）
+    const secondPanel = document.getElementById(cfg.id + '-second');
+    let lots = [primaryLot];
+    if (secondPanel && !secondPanel.classList.contains('hidden')) {
+      const sel = secondPanel.querySelectorAll('select');
+      const extra = [sel[0]?.value, sel[1]?.value].filter(Boolean);
+      if (extra.length) lots = extra;
+    }
+
+    const bgCls  = cfg.id === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
+                   cfg.id === 'gxtl' ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50';
+    const lblCls = cfg.id === 'h5gt' ? 'text-purple-400' :
+                   cfg.id === 'gxtl' ? 'text-blue-400' : 'text-slate-500';
+
+    cards.push(`<div class="${bgCls} rounded-lg p-3">
+      <span class="${lblCls} text-xs block">${cfg.name}</span>
+      <span class="font-mono font-semibold text-slate-800">${lots.join(' + ')}</span>
+    </div>`);
+  });
+
+  // GM508（only when needed > 0 and has batches）
+  if (gm508Config.needed > 0 && gm508Config.batches.length > 0) {
+    const gm508Lot = document.querySelector('input[name="r-gm508"]:checked')?.value || '—';
+    const gm508Second = document.getElementById('gm508-second');
+    let gm508Lots = [gm508Lot];
+    if (gm508Second && !gm508Second.classList.contains('hidden')) {
+      const sel = gm508Second.querySelectorAll('select');
+      const extra = [sel[0]?.value, sel[1]?.value].filter(Boolean);
+      if (extra.length) gm508Lots = extra;
+    }
+    cards.push(`<div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+      <span class="text-amber-500 text-xs block">AOA GM508</span>
+      <span class="font-mono font-semibold text-slate-800">${gm508Lots.join(' + ')}</span>
+    </div>`);
+  }
+
+  const grid = document.querySelector('#state-c .grid');
+  if (grid) grid.innerHTML = cards.join('');
+  switchState('c');
+}
+
 function switchState(s) {
   ['a','b','c'].forEach(id => {
     document.getElementById('state-'+id).classList.toggle('hidden', id !== s);
@@ -469,9 +511,6 @@ function fmtDate(isoStr) {
 // 充足：開封瓶已夠 / 需開新瓶：總量夠但開封瓶不夠 / 批號不足：總量也不夠
 function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
-  const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
-  if (total < needed)          return { status:'insufficient', cls:'badge-warn',   text:'⚠️ 批號不足' };
-  if ((b.remaining||0) < needed) return { status:'needOpen',   cls:'badge-info',   text:'🔄 需開新瓶' };
   const days = daysUntilExpiry(b.expiry);
   if (days !== null) {
     if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
@@ -479,6 +518,9 @@ function calcBadge(b, needed) {
     if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
+  const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
+  if (total < needed)            return { status:'insufficient', cls:'badge-warn', text:'⚠️ 批號不足' };
+  if ((b.remaining||0) < needed) return { status:'needOpen',    cls:'badge-info', text:'🔄 需開新瓶' };
   return { status:'ok', cls:'badge-ok', text:'✅ 充足' };
 }
 
@@ -509,54 +551,94 @@ const reagentConfig = [
     id: 'givf', name: 'G-IVF', label: '卵子培養液',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 11.5, baseNeeded: 9.5,
-    batches: [
-      { lot:'53189', expiry:'2026-05-01', openExpiry:'2026-05-02', openDate:'04/25', remaining:3.2,  unopened:2, bottleVol:60 },
-      { lot:'53651', expiry:'2026-05-04', openExpiry:'2026-05-05', openDate:'04/28', remaining:47.0, unopened:0, bottleVol:60 },
-      { lot:'52100', expiry:'2026-04-01', openExpiry:null,          openDate:null,    remaining:0,    unopened:0, bottleVol:60, blocked:true },
-    ]
+    bottleVol: 60, batches: []
   },
   {
     id: 'aoa-ci', name: 'AOA 弘優 CI', label: '卵子添加劑',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 2.0,
-    batches: [
-      { lot:'AA1023', expiry:'2026-05-04', openExpiry:'2026-05-04', openDate:'04/20', remaining:8.5, unopened:1, bottleVol:10 },
-    ],
+    bottleVol: 10, batches: [],
     extra: 'gm508'
   },
   {
     id: 'h5gt', name: 'H5GT', label: '胚胎培養液',
     labelCls: 'text-purple-500 bg-purple-50 border border-purple-100',
     border: 'border-2 border-purple-200', headerBg: 'background:#faf8ff', needed: 8.0, baseNeeded: 6.0,
-    batches: [
-      { lot:'88392', expiry:'2026-05-01', openExpiry:'2026-05-02', openDate:'04/25', remaining:6.0, unopened:1, bottleVol:30 },
-      { lot:'88511', expiry:'2026-05-08', openExpiry:null,          openDate:null,    remaining:0,   unopened:3, bottleVol:30 },
-    ]
+    bottleVol: 30, batches: []
   },
   {
     id: 'gxtl', name: 'GxTL', label: '胚胎培養液',
     labelCls: 'text-blue-500 bg-blue-50 border border-blue-100',
     border: 'border-2 border-blue-200', headerBg: 'background:#f5f8ff', needed: 12.0, baseNeeded: 10.0,
-    batches: [
-      { lot:'44201', expiry:'2026-05-03', openExpiry:'2026-05-04', openDate:'04/27', remaining:38.0, unopened:1, bottleVol:30 },
-    ]
+    bottleVol: 30, batches: []
   },
   {
     id: 'glue', name: 'EmbryoGlue', label: '植入培養液',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 1.6,
-    batches: [
-      { lot:'EG501', expiry:'2026-04-30', openExpiry:'2026-04-29', openDate:'04/15', remaining:12.0, unopened:0, bottleVol:10 },
-    ]
+    bottleVol: 10, batches: []
   }
 ];
 
 const gm508Config = {
   id: 'gm508', name: 'AOA 明美 GM508', needed: 2.0,
-  batches: [
-    { lot:'GM0801', expiry:'2026-04-30', openExpiry:'2026-04-29', openDate:'04/22', remaining:5.0, unopened:0, bottleVol:1 },
-  ]
+  bottleVol: 1, batches: []
 };
+
+// ── 從 Firebase 動態載入進貨批號，注入各 reagentConfig ──
+async function initBatchesFromFirebase() {
+  try {
+    const [jinhuoRecords, latestBeipan] = await Promise.all([
+      window._fb.getJinhuoRecords(),
+      window._fb.getLatestBeipan()
+    ]);
+
+    // 建立 beipan 快照查找表（key: reagentId_lotNumber）
+    const beipanMap = {};
+    if (latestBeipan?.batches) {
+      latestBeipan.batches.forEach(b => {
+        beipanMap[b.reagentId + '_' + b.selectedLot] = b;
+      });
+    }
+
+    // 過濾有效紀錄（排除作廢 & QC 未完成）
+    const valid = jinhuoRecords.filter(r => !r.isVoided && r.qcStatus !== 'pending');
+
+    // 依 productId + lotNumber 分組加總收到瓶數
+    const lotMap = {};
+    valid.forEach(r => {
+      if (!r.productId || !r.lotNumber) return;
+      const key = r.productId + '_' + r.lotNumber;
+      if (!lotMap[key]) {
+        lotMap[key] = { productId: r.productId, lot: r.lotNumber, expiry: r.expiryDate || null, totalReceived: 0 };
+      }
+      lotMap[key].totalReceived += (r.receivedQty || 0);
+    });
+
+    // 注入各 config（beipan 快照有資料時，以快照的 remaining/unopened 為準）
+    [...reagentConfig, gm508Config].forEach(cfg => {
+      const lots = Object.values(lotMap).filter(l => l.productId === cfg.id);
+      cfg.batches = lots.map(l => {
+        const snap = beipanMap[cfg.id + '_' + l.lot];
+        return {
+          lot: l.lot,
+          expiry: l.expiry,
+          openExpiry: snap?.openExpiryDate || null,
+          openDate: null,
+          remaining: snap != null ? snap.remaining : 0,
+          unopened: snap != null ? snap.unopened : l.totalReceived,
+          bottleVol: cfg.bottleVol || 0,
+        };
+      }).sort((a, b) => {
+        const da = a.expiry ? new Date(a.expiry) : new Date('9999-12-31');
+        const db = b.expiry ? new Date(b.expiry) : new Date('9999-12-31');
+        return da - db;
+      });
+    });
+  } catch (e) {
+    console.warn('[beipan] Firebase 批號載入失敗', e);
+  }
+}
 
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
@@ -604,6 +686,16 @@ function buildBatchRow(b, needed, cardId, checked) {
 // ── Build GM508 expandable section HTML ──
 function buildGM508HTML() {
   const gm  = gm508Config;
+  if (!gm.batches.length) return `
+  <div class="px-5 py-2.5 border-t border-dashed border-slate-200">
+    <button onclick="toggleGM508()" id="btn-gm508" class="text-xs font-medium flex items-center gap-1.5 transition-colors text-primary hover:text-primary-dark">
+      <svg id="gm508-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <span id="gm508-btn-label">AOA 明美 GM508</span>
+    </button>
+  </div>
+  <div id="gm508-section" class="hidden border-t border-amber-100">
+    <div class="px-5 py-3 text-sm text-slate-400">尚無批號資料</div>
+  </div>`;
   const b   = gm.batches[0];
   const badge    = calcBadge(b, gm.needed);
   const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
@@ -720,7 +812,7 @@ function buildBatchCardHTML(cfg) {
           <th class="py-2.5 px-3 text-left font-medium">狀態</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-50">${rows}</tbody>
+      <tbody class="divide-y divide-slate-50">${rows || `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`}</tbody>
     </table>
   </div>
   <div id="${cfg.id}-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
@@ -1215,6 +1307,16 @@ async function submitBeipan() {
     })));
   } catch(e) { console.error('[beipan] Firebase 儲存失敗', e); }
   showToast('備盤結果已儲存 ✓', 'ok');
+  // 送出後切換到完成狀態（不顯示「鎖定」訊息）
+  const icon  = document.getElementById('state-a-icon');
+  const title = document.getElementById('state-a-title');
+  const desc  = document.getElementById('state-a-desc');
+  const badge = document.getElementById('state-a-badge');
+  if (icon)  icon.innerHTML  = `<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+  if (icon)  icon.className  = 'w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5';
+  if (title) title.textContent = '今日備盤已完成';
+  if (desc)  desc.textContent  = '備盤結果已儲存至雲端，今日任務結束。';
+  if (badge) { badge.className = 'mt-5 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-700'; badge.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 批號與用量已記錄`; }
   switchState('a');
 }
 
@@ -1308,11 +1410,14 @@ function loadGupanData() {
 loadGupanData();
 buildGivfTable();
 buildMatrixTable();
-buildAllBatchCards();
 buildAllBulkCards();
-
-// 初始化「今日需用」（以計畫值全算）
 recalcAllNeeded();
+// 批號卡片先渲染空白佔位，等 Firebase bridge ready 後再填入真實資料
+buildAllBatchCards();
+document.addEventListener('DOMContentLoaded', async function() {
+  await initBatchesFromFirebase();
+  buildAllBatchCards();
+}, { once: true });
 
 function refreshGupanData() {
   loadGupanData();

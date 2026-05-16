@@ -1,6 +1,9 @@
 // shared.js — 品項主檔、共用函數
+// v2.4.0 — 新增 APP_VERSION 版本機制
 // v2.1.0 — 新增 brand 欄位（Vitrolife/LifeGlobal/null）；101 needQC 改為 false
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
+
+const APP_VERSION = 'v2.4.0';
 
 const PRODUCTS = [
   // ── 培養液（8 項）──
@@ -81,3 +84,17 @@ function appendKucunLog(entries) {
     localStorage.setItem('kucun-changelog', JSON.stringify(cl));
   } catch(err) { console.warn('kucun-changelog write failed', err); }
 }
+
+(function checkVersion() {
+  window.addEventListener('DOMContentLoaded', function() {
+    const stored = localStorage.getItem('app-version');
+    if (stored === APP_VERSION) return;
+    const bar = document.createElement('div');
+    bar.id = 'version-update-bar';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#FEF08A;color:#713F12;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
+    bar.innerHTML = `<span>🚀 系統已更新至 ${APP_VERSION}，建議重新載入以確保資料正確</span>
+      <button onclick="localStorage.setItem('app-version','${APP_VERSION}');location.reload()" style="background:#92400E;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;white-space:nowrap">立即更新</button>
+      <button onclick="localStorage.setItem('app-version','${APP_VERSION}');this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0 4px" title="暫時忽略">✕</button>`;
+    document.body.prepend(bar);
+  });
+})();

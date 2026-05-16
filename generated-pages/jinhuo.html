@@ -697,7 +697,7 @@ async function updateOrderStatus(orderId, qty) {
 }
 
 function getMaxExpiry(productId) {
-  const match = records.filter(r => r.productId === productId && r.expiryDate);
+  const match = records.filter(r => r.productId === productId && r.expiryDate && !r.isVoided);
   if (!match.length) return null;
   return match.reduce((max, r) => r.expiryDate > max ? r.expiryDate : max, '');
 }
