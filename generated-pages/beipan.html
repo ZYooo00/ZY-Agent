@@ -16,8 +16,26 @@
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
   import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js?v=4';
+  import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   initFirebaseApp();
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan };
+
+  // Dev-only: 清除今日備盤（用於測試重置），在 DevTools console 呼叫 devResetBeipan()
+  window.devResetBeipan = async function() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    localStorage.removeItem('beipan-result');
+    console.log('[devReset] localStorage beipan-result 已清除');
+    try {
+      const db = getFirestore(getApp());
+      await deleteDoc(doc(db, 'beipan_snapshots', todayStr));
+      console.log(`[devReset] Firestore beipan_snapshots/${todayStr} 已刪除`);
+    } catch(e) {
+      console.warn('[devReset] Firestore 刪除失敗（可能需手動到 Console 刪除）', e);
+    }
+    console.log('[devReset] 完成！請重新整理頁面。');
+    alert('重置完成！請按 F5 重新整理頁面。');
+  };
 </script>
 <style>
   /* beipan 專屬 */
@@ -173,6 +191,10 @@
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             高任佑已送出估盤，等待第二人核對確認
           </div>
+          <div id="state-a-hint" class="hidden mt-4 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left">
+            <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>若實際用量與備盤不符，請至 <strong>庫存總覽 → 手動補登</strong> 進行修正。</span>
+          </div>
         </div>
       </div>
     </div>
@@ -215,12 +237,12 @@
 
       <!-- 備盤人員 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-3.5 flex items-center gap-4 flex-wrap">
-        <span class="text-sm font-medium text-slate-700">明日備盤人員</span>
+        <span class="text-sm font-medium text-slate-700">備盤人員</span>
         <select id="beipan-staff-1" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">（選擇備盤人）</option><option>高任佑</option><option>林OO</option><option>曾OO</option>
         </select>
         <select id="beipan-staff-2" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
-          <option>林OO</option><option>高任佑</option><option>曾OO</option>
+          <option value="">（選擇備盤人）</option><option>高任佑</option><option>林OO</option><option>曾OO</option>
         </select>
         <span class="text-xs text-slate-400">兩人皆可操作，任一人可送出</span>
       </div>
@@ -248,7 +270,7 @@
       <div class="flex flex-col md:grid md:grid-cols-[minmax(0,430px)_1fr] gap-6">
 
         <!-- ██ LEFT：盤子計數 ██ -->
-        <div class="space-y-4">
+        <div class="space-y-4 min-w-0">
           <div class="section-divider"><span class="section-label">盤子數量</span></div>
 
           <!-- 卵子 (GIVF) -->
@@ -280,7 +302,7 @@
               </div>
             </div>
             <div class="overflow-x-auto">
-              <table class="w-full text-sm min-w-[480px]">
+              <table class="w-full text-sm min-w-[320px]">
                 <thead class="border-b border-slate-100">
                   <tr class="text-xs">
                     <th class="py-2 pl-4 text-left font-medium text-slate-400 w-28">盤子</th>
@@ -353,7 +375,7 @@
       <!-- 備盤備註 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-4">
         <label class="block text-sm font-medium text-slate-700 mb-2">備盤備註（選填）</label>
-        <textarea rows="2" placeholder="例：G-IVF 53189 瓶底有沉澱，提前開新瓶；Geri-FBT 多備 1 盤備用"
+        <textarea id="beipan-note-input" rows="2" placeholder="例：G-IVF 53189 瓶底有沉澱，提前開新瓶；Geri-FBT 多備 1 盤備用"
           class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300"></textarea>
       </div>
 
@@ -376,12 +398,16 @@
         <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <div>
           <div class="font-medium text-amber-800 text-sm">確認備盤結果</div>
-          <div class="text-xs text-amber-600 mt-0.5">備盤人員：高任佑 · 林OO　·　請核對盤子數量（批號與開封日由備盤人員負責）</div>
+          <div class="text-xs text-amber-600 mt-0.5" id="state-c-staff-display">備盤人員：—　·　請核對盤子數量（批號與開封日由備盤人員負責）</div>
         </div>
       </div>
       <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
         <div class="text-sm font-medium text-slate-700 mb-3">批號使用摘要（唯讀）</div>
         <div class="grid grid-cols-3 gap-3 text-sm"></div>
+      </div>
+      <div class="mt-4 mb-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+        <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>送出後今日備盤將<strong>鎖定</strong>，無法重新填寫。若實際用量與備盤不符，請送出後至 <strong>庫存總覽 → 手動補登</strong> 進行修正。</span>
       </div>
       <div class="flex justify-end gap-3 pb-8">
         <button onclick="switchState('b')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
@@ -439,6 +465,14 @@
 <script>
 // ── State switching ──
 function previewBeipan() {
+  const s1 = document.getElementById('beipan-staff-1')?.value || '';
+  const s2 = document.getElementById('beipan-staff-2')?.value || '';
+  if (!s1 || !s2) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('請選擇兩位備盤人員', 'warn');
+    return;
+  }
+
   const cards = [];
 
   reagentConfig.forEach(cfg => {
@@ -483,6 +517,11 @@ function previewBeipan() {
 
   const grid = document.querySelector('#state-c .grid');
   if (grid) grid.innerHTML = cards.join('');
+
+  const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
+  const staffEl = document.getElementById('state-c-staff-display');
+  if (staffEl) staffEl.textContent = `備盤人員：${staffStr}　·　請核對盤子數量（批號與開封日由備盤人員負責）`;
+
   switchState('c');
 }
 
@@ -1232,9 +1271,9 @@ function recalcAllNeeded() {
 async function submitBeipan() {
   const staff1 = document.getElementById('beipan-staff-1')?.value || '';
   const staff2 = document.getElementById('beipan-staff-2')?.value || '';
-  if (!staff1) {
+  if (!staff1 || !staff2) {
     window.scrollTo({ top:0, behavior:'smooth' });
-    showToast('請先選擇備盤人', 'warn');
+    showToast('請選擇兩位備盤人員', 'warn');
     return;
   }
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
@@ -1307,19 +1346,29 @@ async function submitBeipan() {
     }
   });
 
+  const userNote = document.getElementById('beipan-note-input')?.value.trim() || '';
   const payload = {
     date: dateStr, operator, batches: updatedBatches,
     threshold: { orange_days: 3, red_days: 1 },
+    note: userNote || null,
   };
   try {
     await window._fb.saveBeipanSnapshot(payload);
     const now = new Date().toISOString();
-    await Promise.all(logEntries.map((e, i) => window._fb.fsLog({
+    const allLogs = logEntries.map((e, i) => window._fb.fsLog({
       id: `${Date.now()}-${i}-beipan`,
-      ts: now,
-      qty: e.qtyDelta,
-      ...e,
-    })));
+      ts: now, qty: e.qtyDelta, ...e,
+    }));
+    if (userNote) {
+      allLogs.push(window._fb.fsLog({
+        id: `${Date.now()}-note-beipan`,
+        ts: now, source: 'beipan', action: 'note',
+        productId: null, productName: null, lotNumber: null,
+        qty: null, unit: null, operator,
+        note: `【備盤備註】${userNote}`,
+      }));
+    }
+    await Promise.all(allLogs);
   } catch(e) { console.error('[beipan] Firebase 儲存失敗', e); }
   showToast('備盤結果已儲存 ✓', 'ok');
   // 送出後切換到完成狀態（不顯示「鎖定」訊息）
@@ -1334,6 +1383,8 @@ async function submitBeipan() {
   if (title) title.textContent = '明日備盤已完成';
   if (desc)  desc.textContent  = `明日（${tmStr}）備盤結果已儲存至雲端，今日任務結束。`;
   if (badge) { badge.className = 'mt-5 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-700'; badge.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 批號與用量已記錄`; }
+  const hint = document.getElementById('state-a-hint');
+  if (hint) hint.classList.remove('hidden');
   switchState('a');
 }
 
@@ -1424,7 +1475,7 @@ function loadGupanData() {
   if (el) el.textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
   const tm = new Date(); tm.setDate(tm.getDate() + 1);
   const tmLabel = document.getElementById('tomorrow-date-label');
-  if (tmLabel) tmLabel.textContent = `${tm.getMonth()+1}/${tm.getDate()}（${days[tm.getDay()]}）`;
+  if (tmLabel) tmLabel.textContent = `備用日期：${tm.getMonth()+1}/${tm.getDate()}（${days[tm.getDay()]}）`;
 })();
 
 loadGupanData();
@@ -1435,6 +1486,37 @@ recalcAllNeeded();
 // 批號卡片先渲染空白佔位，等 Firebase bridge ready 後再填入真實資料
 buildAllBatchCards();
 document.addEventListener('DOMContentLoaded', async function() {
+  // 先確認今日備盤是否已送出（防止重複送出造成庫存雙重扣除）
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let todayBeipan = null;
+  try { todayBeipan = await window._fb.getLatestBeipan(); } catch(e) {}
+  if (!todayBeipan) {
+    try { todayBeipan = JSON.parse(localStorage.getItem('beipan-result') || 'null'); } catch(e) {}
+  }
+
+  if (todayBeipan?.date === todayStr) {
+    const icon  = document.getElementById('state-a-icon');
+    const title = document.getElementById('state-a-title');
+    const desc  = document.getElementById('state-a-desc');
+    const badge2 = document.getElementById('state-a-badge');
+    const tm = new Date(); tm.setDate(tm.getDate() + 1);
+    const tmStr = `${tm.getMonth()+1}/${tm.getDate()}`;
+    if (icon) {
+      icon.innerHTML = `<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+      icon.className = 'w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5';
+    }
+    if (title) title.textContent = '今日備盤已完成';
+    if (desc) desc.textContent = `明日（${tmStr}）備盤結果已儲存，備盤人員：${todayBeipan.operator || '—'}。`;
+    if (badge2) {
+      badge2.className = 'mt-5 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-700';
+      badge2.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 批號與用量已記錄`;
+    }
+    const hint2 = document.getElementById('state-a-hint');
+    if (hint2) hint2.classList.remove('hidden');
+    switchState('a');
+    return; // 不進行後續初始化，防止進入可填寫狀態
+  }
+
   await initBatchesFromFirebase();
   buildAllBatchCards();
   const badge = document.getElementById('fetch-time-badge');

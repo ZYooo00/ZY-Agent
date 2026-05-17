@@ -302,6 +302,15 @@
     <!-- Meta chips -->
     <div class="flex flex-wrap gap-2 mb-4" id="meta-row"></div>
 
+    <!-- ══ 今日備盤備註 banner（有備註時才顯示）══ -->
+    <div id="beipan-note-banner" class="hidden mb-4 px-5 py-3.5 rounded-xl border-2 border-violet-300 bg-violet-50 flex items-start gap-3">
+      <svg class="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      <div>
+        <div class="text-xs font-bold text-violet-500 uppercase tracking-wider mb-1">今日備盤備註</div>
+        <div id="beipan-note-content" class="text-sm font-medium text-violet-900" style="white-space:pre-wrap"></div>
+      </div>
+    </div>
+
     <!-- ══ KPI CARDS ══ -->
     <div id="kpi-section" class="hidden mb-5">
       <div class="flex flex-wrap gap-3">
@@ -1605,6 +1614,20 @@ async function render() {
 
   document.getElementById('empty-state').classList.toggle('hidden', hasAny);
   document.getElementById('inv-wrap-outer').classList.toggle('hidden', !hasAny);
+
+  // 今日備盤備註 banner
+  const today = new Date().toISOString().slice(0, 10);
+  const beipanNote = beipan?.note;
+  const bannerEl = document.getElementById('beipan-note-banner');
+  const noteContentEl = document.getElementById('beipan-note-content');
+  if (bannerEl && noteContentEl) {
+    if (beipanNote && beipan?.date === today) {
+      noteContentEl.textContent = beipanNote;
+      bannerEl.classList.remove('hidden');
+    } else {
+      bannerEl.classList.add('hidden');
+    }
+  }
 
   renderMeta(cachedData);
 
