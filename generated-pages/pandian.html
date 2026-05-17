@@ -154,10 +154,6 @@
     <div class="card-title">盤點人</div>
     <select class="staff-select w-full" id="pd-staff" onchange="savePandianDraft()">
       <option value="">（選擇）</option>
-      <option>胚胎師 ZY</option>
-      <option>胚胎師 Lin</option>
-      <option>胚胎師 Chen</option>
-      <option>胚胎師 Wang</option>
     </select>
   </div>
 
@@ -223,6 +219,14 @@
 <script src="shared.js"></script>
 <script>
 
+// 填充盤點人選單
+(function() {
+  const el = document.getElementById('pd-staff');
+  if (el && typeof STAFF_LIST !== 'undefined') {
+    el.innerHTML = '<option value="">（選擇）</option>' + STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+  }
+})();
+
 const LOCATION_ORDER = ['培養箱','冰箱','櫃1','櫃2','櫃3','精蟲室','半年一次','需要再叫'];
 const LOCATION_ICONS = {
   '培養箱':'🧪', '冰箱':'🧊', '櫃1':'🗄️', '櫃2':'🗄️', '櫃3':'🗄️',
@@ -245,7 +249,7 @@ const STOCK_GROUPS = (() => {
   const PANDIAN_OVERRIDE = new Set(['aoa-ci']);
 
   const grouped = {};
-  PRODUCTS.filter(p => !branded.has(p.id) && !PANDIAN_OVERRIDE.has(p.id) && p.gupanId && p.location).forEach(p => {
+  PRODUCTS.filter(p => !branded.has(p.id) && !PANDIAN_OVERRIDE.has(p.id) && p.gupanId && p.location && !p.hidden).forEach(p => {
     if (!grouped[p.location]) grouped[p.location] = [];
     grouped[p.location].push({id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0});
   });

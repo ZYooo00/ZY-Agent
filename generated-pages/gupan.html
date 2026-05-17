@@ -282,20 +282,12 @@
           <div class="text-xs text-slate-400 mb-1.5">估盤人</div>
           <select class="staff-select" id="staff-a">
             <option value="">（選擇）</option>
-            <option>胚胎師 ZY</option>
-            <option>胚胎師 Lin</option>
-            <option>胚胎師 Chen</option>
-            <option>胚胎師 Wang</option>
           </select>
         </div>
         <div class="flex-1 hidden" id="staff-b-wrapper">
           <div class="text-xs text-slate-400 mb-1.5">核對人</div>
           <select class="staff-select" id="staff-b">
             <option value="">（選擇）</option>
-            <option>胚胎師 ZY</option>
-            <option>胚胎師 Lin</option>
-            <option>胚胎師 Chen</option>
-            <option>胚胎師 Wang</option>
           </select>
         </div>
       </div>
@@ -489,6 +481,15 @@ const matrixDishes = [
   { key:'ph',       name:'pH 盤',     h5: t => 0,     gx: t => 0,     manual: true },
   { key:'multi',    name:'多配',      h5: t => 2.0,   gx: t => 2.0,   isMl: true  },
 ];
+
+// ── 填充人員選單 ──
+(function() {
+  const opts = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option>${n}</option>`).join('');
+  ['staff-a','staff-b'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">（選擇）</option>' + opts;
+  });
+})();
 
 // ── 全局狀態 ──
 let currentState = 'A';

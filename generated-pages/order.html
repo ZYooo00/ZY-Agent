@@ -210,10 +210,6 @@
               <label class="text-sm font-semibold text-slate-600 whitespace-nowrap">訂貨人</label>
               <select class="staff-select" id="order-staff">
                 <option value="">（選擇）</option>
-                <option value="胚胎師 ZY">胚胎師 ZY</option>
-                <option value="胚胎師 Lin">胚胎師 Lin</option>
-                <option value="胚胎師 Chen">胚胎師 Chen</option>
-                <option value="胚胎師 Wang">胚胎師 Wang</option>
               </select>
             </div>
 
@@ -344,7 +340,7 @@
   const MEDIUM_CONFIG = (() => {
     const brandMap = {};
     PRODUCTS.forEach(p => {
-      if (!p.gupanId || !p.brand) return;
+      if (!p.gupanId || !p.brand || p.hidden) return;
       if (!brandMap[p.brand]) brandMap[p.brand] = {
         brand:   p.brand,
         vendor:  p.vendor,
@@ -371,7 +367,7 @@
   const ORDER_CONFIG = (() => {
     const vendorMap = {};
     PRODUCTS.forEach(p => {
-      if (!p.gupanId || p.brand !== null) return; // 跳過有品牌的品項
+      if (!p.gupanId || p.brand !== null || p.hidden) return; // 跳過有品牌或隱藏的品項
       const v = p.vendor;
       if (!VENDOR_META[v]) return;
       if (!vendorMap[v]) vendorMap[v] = [];
@@ -391,6 +387,14 @@
       leadtime: VENDOR_META[vendor].leadtime,
       items,
     }));
+  })();
+
+  // 填充訂貨人選單
+  (function() {
+    const el = document.getElementById('order-staff');
+    if (el && typeof STAFF_LIST !== 'undefined') {
+      el.innerHTML = '<option value="">（選擇）</option>' + STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+    }
   })();
 
   // ═══════════════════════════════════════════════════════════════
