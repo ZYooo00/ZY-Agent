@@ -15,8 +15,8 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge：module 是 deferred，DOMContentLoaded 之前執行完畢 -->
 <script type="module">
-  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog } from './firebase-service.js?v=4';
-  initFirebaseApp();
+  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog } from './firebase-service.js?v=5';
+  await initFirebaseApp();
   window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, fsLog };
 </script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>

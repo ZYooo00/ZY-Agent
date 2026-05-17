@@ -15,10 +15,10 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js?v=4';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js?v=5';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  initFirebaseApp();
+  await initFirebaseApp();
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan };
 
   // Dev-only: 清除今日備盤（用於測試重置），在 DevTools console 呼叫 devResetBeipan()

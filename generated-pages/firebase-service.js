@@ -15,6 +15,9 @@ import {
   query, orderBy, limit, where,
   serverTimestamp, Timestamp, arrayUnion, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, signInAnonymously
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ─── Firebase Config（從 Console 複製貼上）─────────────────────
 // 步驟：https://console.firebase.google.com → 專案設定 → Your apps → Web App → firebaseConfig
@@ -31,12 +34,14 @@ const FIREBASE_CONFIG = {
 let _db = null;
 let _fsReady = false;
 
-export function initFirebaseApp() {
+export async function initFirebaseApp() {
   try {
     const app = initializeApp(FIREBASE_CONFIG);
     _db = getFirestore(app);
+    const auth = getAuth(app);
+    await signInAnonymously(auth);  // 確保 auth token 就位後才開放 Firestore 讀寫
     _fsReady = true;
-    console.log("[Firebase] Firestore 連線成功");
+    console.log("[Firebase] Firestore + 匿名登入 成功");
   } catch (err) {
     _fsReady = false;
     console.warn("[Firebase] 初始化失敗，降級至 localStorage", err);

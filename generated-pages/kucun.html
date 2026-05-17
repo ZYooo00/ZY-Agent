@@ -17,8 +17,8 @@
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders } from './firebase-service.js?v=4';
-  initFirebaseApp();
+           getLatestBeipan, getOrders } from './firebase-service.js?v=5';
+  await initFirebaseApp();
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
                  getLatestBeipan, getOrders };

@@ -15,8 +15,8 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=4';
-  initFirebaseApp();
+  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=5';
+  await initFirebaseApp();
   window._fb = { savePandianSnapshot, fsLog, getOrders };
 </script>
 <style>
