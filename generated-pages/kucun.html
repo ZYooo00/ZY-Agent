@@ -262,12 +262,6 @@
   <!-- MAIN -->
   <main class="flex-1 min-w-0 md:ml-52 px-4 md:px-6 py-5 pb-28 md:pb-10">
 
-    <!-- Beta notice -->
-    <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-sm text-amber-700">
-      <svg class="w-4 h-4 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-      <span>庫存歷史整合中，目前顯示為系統測試資料，正式上線後將顯示真實異動紀錄。</span>
-    </div>
-
     <!-- Title + controls -->
     <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
       <div>
@@ -287,10 +281,6 @@
         <button onclick="exportChangelogCSV()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium hover:bg-violet-100 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
           匯出異動日誌
-        </button>
-        <!-- Load demo -->
-        <button onclick="loadDemoData()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>載入測試資料
         </button>
         <!-- Refresh -->
         <button onclick="refresh()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
@@ -1705,89 +1695,6 @@ function refresh() {
   showToast('資料已更新');
 }
 
-function loadDemoData() {
-  localStorage.setItem('jinhuo-records', JSON.stringify([
-    {id:'r1',productId:'givf',productName:'G-IVF',receivedQty:12,receivedAt:'2026-03-10',lotNumber:'53189',expiryDate:'2026-05-09',isVoided:false},
-    {id:'r2',productId:'givf',productName:'G-IVF',receivedQty:12,receivedAt:'2026-05-03',lotNumber:'53651',expiryDate:'2026-06-30',isVoided:false},
-    {id:'r3',productId:'gxtl',productName:'GxTL',receivedQty:6,receivedAt:'2026-03-15',lotNumber:'4421',expiryDate:'2026-04-30',isVoided:false},
-    {id:'r4',productId:'gxtl',productName:'GxTL',receivedQty:6,receivedAt:'2026-04-20',lotNumber:'6666',expiryDate:'2026-06-30',isVoided:false},
-    {id:'r5',productId:'h5gt',productName:'H5GT',receivedQty:4,receivedAt:'2026-04-10',lotNumber:'A2041',expiryDate:'2026-04-27',isVoided:false},
-    {id:'r6',productId:'aoa-ci',productName:'AOA 弘優 CI',receivedQty:2,receivedAt:'2026-03-20',lotNumber:'AA1023',expiryDate:'2026-07-15',isVoided:false},
-    {id:'r7',productId:'101',productName:'101（磊柏）',receivedQty:3,receivedAt:'2026-04-05',lotNumber:'L-2604',expiryDate:'2027-04-05',isVoided:false},
-    {id:'r8',productId:'102',productName:'102（磊柏）',receivedQty:5,receivedAt:'2026-04-20',lotNumber:'LB-OLD-001',expiryDate:'2027-01-31',isVoided:false,qcStatus:'passed'},
-    {id:'r9',productId:'102',productName:'102（磊柏）',receivedQty:5,receivedAt:'2026-05-08',lotNumber:'LB-NEW-002',expiryDate:'2027-06-30',isVoided:false,qcStatus:'pending'},
-    {id:'r10',productId:'102-mm',productName:'102（明美）',receivedQty:3,receivedAt:'2026-05-09',lotNumber:'MM-NEW-999',expiryDate:'2027-08-15',isVoided:false,qcStatus:'pending'},
-  ]));
-  localStorage.setItem('pandian-history', JSON.stringify([
-    {date:'2026-03-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:5,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:3,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:4,target:4}]},
-    {date:'2026-04-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:3,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:2,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:2,target:4}]},
-    {date:'2026-05-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:2,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:1,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:1,target:4},{id:'m-aoa-ci',name:'AOA 弘優 CI',unit:'瓶',actual:1,target:2}]},
-  ]));
-  localStorage.setItem('pandian-result', JSON.stringify({date:'2026-05-01',allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:2,target:5},{id:'m-gxtl',name:'GxTL',unit:'瓶',actual:1,target:4},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:1,target:4},{id:'m-aoa-ci',name:'AOA 弘優 CI',unit:'瓶',actual:1,target:2}]}));
-  localStorage.setItem('beipan-result', JSON.stringify({date:'2026-05-06',batches:[
-    {reagentId:'givf',reagentName:'G-IVF',selectedLot:'53651',remaining:47,unopened:1,usedQty:0,bottleVol:60},
-    {reagentId:'gxtl',reagentName:'GxTL',selectedLot:'6666',remaining:38,unopened:1,usedQty:0,bottleVol:50},
-    {reagentId:'h5gt',reagentName:'H5GT',selectedLot:'A2041',remaining:6,unopened:1,usedQty:0,bottleVol:30},
-    {reagentId:'aoa-ci',reagentName:'AOA 弘優 CI',selectedLot:'AA1023',remaining:9.5,unopened:1,usedQty:0,bottleVol:15},
-  ],threshold:{orange_days:7,red_days:3}}));
-  localStorage.setItem('order-result', JSON.stringify({orders:[{itemId:'m-givf',orderQty:12,receivedQty:0},{itemId:'m-h5gt',orderQty:6,receivedQty:0}]}));
-  localStorage.setItem('order-history', JSON.stringify([{
-    id: 'demo-order-1',
-    confirmedAt: new Date(Date.now() - 5*86400000).toISOString(),
-    date: new Date(Date.now() - 5*86400000).toISOString().slice(0,10),
-    status: 'pending',
-    orders: [
-      { orderId:'m-givf', name:'G-IVF',  vendor:'亞樸', unit:'瓶', orderQty:12, receivedQty:0 },
-      { orderId:'m-h5gt', name:'H5GT',   vendor:'弘優', unit:'瓶', orderQty:6,  receivedQty:0 },
-    ]
-  }]));
-  localStorage.setItem('kucun-changelog', JSON.stringify([
-    // 2026-03-01 盤點（2筆，同 ts）
-    {id:'c01',ts:'2026-03-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:5,qty:5,unit:'瓶',operator:'高任佑',note:'盤點：高任佑（2026-03-01）'},
-    {id:'c02',ts:'2026-03-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:3,qty:3,unit:'瓶',operator:'高任佑',note:'盤點：高任佑（2026-03-01）'},
-    // 2026-03-10 進貨（3筆，同 ts）
-    {id:'c03',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
-    {id:'c04',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'gxtl',productName:'GxTL',lotNumber:'4421',expiryDate:'2026-05-03',qtyDelta:6,qty:6,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
-    {id:'c05',ts:'2026-03-10T09:00:00Z',source:'jinhuo',action:'receive',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',qtyDelta:2,qty:2,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-03-10）'},
-    // 2026-04-01 盤點
-    {id:'c06',ts:'2026-04-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:3,qty:3,unit:'瓶',operator:'林OO',note:'盤點：林OO（2026-04-01）'},
-    {id:'c07',ts:'2026-04-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:2,qty:2,unit:'瓶',operator:'林OO',note:'盤點：林OO（2026-04-01）'},
-    // 2026-04-05 進貨（單筆）
-    {id:'c08',ts:'2026-04-05T11:00:00Z',source:'jinhuo',action:'receive',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',qtyDelta:4,qty:4,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-04-05）'},
-    // 2026-04-10 訂貨
-    {id:'c09',ts:'2026-04-10T14:00:00Z',source:'order',action:'order',productId:'givf',productName:'G-IVF',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'訂貨 12 瓶，廠商：弘優（2026-04-10）'},
-    {id:'c10',ts:'2026-04-10T14:00:00Z',source:'order',action:'order',productId:'gxtl',productName:'GxTL',qtyDelta:6,qty:6,unit:'瓶',operator:'高任佑',note:'訂貨 6 瓶，廠商：弘優（2026-04-10）'},
-    // 2026-04-25 備盤（4筆，同 ts，跨批號示範）
-    {id:'c11',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',openExpiryDate:'2026-05-02',qtyDelta:-18.3,qty:-18.3,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 18.3mL；剩餘 41.7mL，未開 2 瓶'},
-    {id:'c12',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'gxtl',productName:'GxTL',lotNumber:'4421',expiryDate:'2026-05-03',openExpiryDate:'2026-05-04',qtyDelta:-12.0,qty:-12.0,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 12.0mL；剩餘 26.0mL，未開 0 瓶'},
-    {id:'c13',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',openExpiryDate:'2026-05-09',qtyDelta:-8.0,qty:-8.0,unit:'mL',bottlesOpened:1,operator:'高任佑+林OO',note:'扣除 8.0mL（開 1 瓶新）；剩餘 22.0mL，未開 2 瓶'},
-    {id:'c14',ts:'2026-04-25T07:30:00Z',source:'beipan',action:'beipan',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',openExpiryDate:'2026-05-04',qtyDelta:-0.6,qty:-0.6,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 0.6mL；剩餘 8.5mL，未開 1 瓶'},
-    // 2026-04-28 手動
-    {id:'c15',ts:'2026-04-28T10:00:00Z',source:'manual',action:'use',productId:'givf',productName:'G-IVF',lotNumber:'53189',qtyDelta:-1,qty:-1,unit:'瓶',note:'打破/損毀'},
-    // 2026-05-01 盤點
-    {id:'c16',ts:'2026-05-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',qtyDelta:2,qty:2,unit:'瓶',operator:'曾OO',note:'盤點：曾OO（2026-05-01）'},
-    {id:'c17',ts:'2026-05-01T08:00:00Z',source:'pandian',action:'pandian',productId:'gxtl',productName:'GxTL',qtyDelta:1,qty:1,unit:'瓶',operator:'曾OO',note:'盤點：曾OO（2026-05-01）'},
-    // 2026-05-03 進貨
-    {id:'c18',ts:'2026-05-03T09:00:00Z',source:'jinhuo',action:'receive',productId:'givf',productName:'G-IVF',lotNumber:'53651',expiryDate:'2026-06-30',qtyDelta:12,qty:12,unit:'瓶',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-05-03）'},
-    // 2026-05-06 備盤（跨批號：G-IVF 先把 53189 用完，剩下從 53651 扣）
-    {id:'c19a',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53189',expiryDate:'2026-05-01',openExpiryDate:'2026-05-02',qtyDelta:-3.2,qty:-3.2,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 3.2mL（批號用完）；剩餘 0mL，未開 2 瓶'},
-    {id:'c19b',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'givf',productName:'G-IVF',lotNumber:'53651',expiryDate:'2026-06-30',openExpiryDate:'2026-07-01',qtyDelta:-15.1,qty:-15.1,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 15.1mL；剩餘 31.9mL，未開 0 瓶'},
-    {id:'c20',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'gxtl',productName:'GxTL',lotNumber:'6666',expiryDate:'2026-08-15',qtyDelta:-12.0,qty:-12.0,unit:'mL',bottlesOpened:1,operator:'高任佑+林OO',note:'扣除 12.0mL（開 1 瓶新）；剩餘 18.0mL，未開 0 瓶'},
-    {id:'c21',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'h5gt',productName:'H5GT',lotNumber:'A2041',expiryDate:'2026-05-08',openExpiryDate:'2026-05-09',qtyDelta:-8.0,qty:-8.0,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 8.0mL；剩餘 6.0mL，未開 1 瓶'},
-    {id:'c22',ts:'2026-05-06T07:30:00Z',source:'beipan',action:'beipan',productId:'aoa-ci',productName:'AOA 弘優 CI',lotNumber:'AA1023',expiryDate:'2026-05-04',qtyDelta:-0.6,qty:-0.6,unit:'mL',bottlesOpened:0,operator:'高任佑+林OO',note:'扣除 0.6mL；剩餘 9.5mL，未開 1 瓶'},
-    // 2026-05-08 手動使用
-    {id:'c23',ts:'2026-05-08T10:00:00Z',source:'manual',action:'use',productId:'givf',productName:'G-IVF',lotNumber:'53651',qtyDelta:-1,qty:-1,unit:'瓶',note:'正常消耗'},
-    // 2026-04-20 進貨 102（磊柏）LB-OLD-001（QC 已通過）
-    {id:'c24',ts:'2026-04-20T10:00:00Z',source:'jinhuo',action:'receive',productId:'102',productName:'102（磊柏）',lotNumber:'LB-OLD-001',expiryDate:'2027-01-31',qtyDelta:5,qty:5,unit:'盒',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-04-20）'},
-    {id:'c25',ts:'2026-04-22T09:00:00Z',source:'manual',action:'qc_pass',productId:'102',productName:'102（磊柏）',lotNumber:'LB-OLD-001',operator:'高任佑',note:'批號 LB-OLD-001 QC 確認通過'},
-    // 2026-05-08 進貨 102（磊柏）LB-NEW-002（QC 待確認）
-    {id:'c26',ts:'2026-05-08T14:00:00Z',source:'jinhuo',action:'receive',productId:'102',productName:'102（磊柏）',lotNumber:'LB-NEW-002',expiryDate:'2027-06-30',qtyDelta:5,qty:5,unit:'盒',operator:'高任佑',note:'全數到貨；簽收：高任佑（2026-05-08）'},
-    // 2026-05-09 進貨 102（明美）MM-NEW-999（QC 待確認）
-    {id:'c27',ts:'2026-05-09T09:00:00Z',source:'jinhuo',action:'receive',productId:'102-mm',productName:'102（明美）',lotNumber:'MM-NEW-999',expiryDate:'2027-08-15',qtyDelta:3,qty:3,unit:'盒',operator:'林OO',note:'全數到貨；簽收：林OO（2026-05-09）'},
-  ]));
-  render();
-  showToast('測試資料已載入（28 筆）');
-}
 
 // ════════════════════════════════
 // SORT & TOGGLE
