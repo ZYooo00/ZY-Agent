@@ -560,19 +560,26 @@ function fmtDate(isoStr) {
 // 可用量 = 已開封剩餘 + 未開封瓶數 × 單瓶容量
 // 充足：開封瓶已夠 / 需開新瓶：總量夠但開封瓶不夠 / 批號不足：總量也不夠
 function effectiveExpiry(b) {
+  // 開封瓶已不存在（remaining=0）時，只看廠商效期，讓未開封瓶得以解鎖
+  const hasOpenBottle = (b.remaining || 0) > 0;
   const dates = [];
   if (b.expiry) dates.push(b.expiry);
-  if (b.openExpiry) dates.push(b.openExpiry);
+  if (hasOpenBottle && b.openExpiry) dates.push(b.openExpiry);
   if (!dates.length) return null;
   return dates.reduce((min, d) => d < min ? d : min);
 }
 
 function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
+  // open_expired: 開封瓶逾期，但廠商效期未到且同批號仍有未開封瓶可替換
+  if ((b.remaining || 0) > 0 && b.openExpiry && daysUntilExpiry(b.openExpiry) <= 0 &&
+      b.expiry && daysUntilExpiry(b.expiry) > 0 && (b.unopened || 0) > 0) {
+    return { status:'open_expired', cls:'badge-crit', text:'🔴 開封逾期' };
+  }
   const days = daysUntilExpiry(effectiveExpiry(b));
   if (days !== null) {
     if (days <= 0)  return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
-    if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期（今日最後）' };
+    if (days === 1) return { status:'expire1',    cls:'badge-warn', text:'🟠 明天到期（今日最後）' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
   const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
@@ -733,12 +740,13 @@ async function initBatchesFromFirebase() {
 
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
-  const badge     = calcBadge(b, needed);
-  const isExpired = b.blocked || badge.status === 'expired';
-  const days      = daysUntilExpiry(effectiveExpiry(b));
-  const expCls    = isExpired
+  const badge        = calcBadge(b, needed);
+  const isExpired    = b.blocked || badge.status === 'expired';
+  const isOpenExpired = badge.status === 'open_expired';
+  const days         = daysUntilExpiry(effectiveExpiry(b));
+  const expCls       = isExpired
     ? 'text-slate-300 line-through'
-    : (days !== null && days <= 1) ? 'text-red-600 font-semibold'
+    : (days !== null && days <= 1) ? 'text-amber-600 font-semibold'
     : (days !== null && days <= 3) ? 'text-amber-600 font-semibold'
     : 'text-slate-700';
   const openLine  = b.openExpiry
@@ -746,7 +754,36 @@ function buildBatchRow(b, needed, cardId, checked) {
     : `<div class="text-xs ${isExpired ? 'text-slate-300' : 'text-slate-400'}">未開封</div>`;
   const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
 
+  if (isOpenExpired) {
+    // 開封逾期：開封瓶已過期，廠商效期未到且仍有未開封瓶 → 顯示可操作按鈕
+    return `<tr class="bg-red-50 transition-colors">
+      <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
+      <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
+      <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
+      <td class="px-3 py-3 tabular">
+        <div class="text-slate-700">${fmtDate(b.expiry)}</div>
+        <div class="text-xs text-red-500 font-medium">開封逾期 → ${fmtDate(b.openExpiry)}</div>
+      </td>
+      <td class="px-3 py-3 text-right tabular">
+        <div class="font-semibold text-red-600">${b.remaining > 0 ? b.remaining.toFixed(1) + ' mL' : '—'}</div>
+        <div class="text-xs text-slate-500">+${b.unopened || 0} 瓶未開封</div>
+      </td>
+      <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
+      <td class="px-3 py-3">
+        <button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 開封逾期 點此開新品</button>
+      </td>
+    </tr>`;
+  }
+
   if (isExpired) {
+    // 開封瓶有殘液時，保留「已耗盡」按鈕讓胚胎師歸零以解鎖未開封瓶
+    const expExhaustBtn = (b._exhaustedVol > 0 || b.remaining > 0)
+      ? (b.markedExhausted && !b._exhaustedByExpiry
+          ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-amber-600 font-medium transition-colors">↺ 復原</button>`
+          : !b.markedExhausted
+          ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-red-400 hover:text-red-600 transition-colors">🗑️ 已耗盡</button>`
+          : '')
+      : '';
     return `<tr class="opacity-50 bg-slate-50">
       <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
       <td class="px-3 py-3 font-mono font-semibold text-slate-400 line-through">${b.lot}</td>
@@ -756,11 +793,11 @@ function buildBatchRow(b, needed, cardId, checked) {
         ${openLine}
       </td>
       <td class="px-3 py-3 text-right tabular">
-        <div class="text-slate-400">${b.remaining > 0 ? b.remaining.toFixed(1) + ' mL' : '—'}</div>
+        <div class="text-slate-400">${(b._exhaustedVol || b.remaining) > 0 ? (b._exhaustedVol || b.remaining).toFixed(1) + ' mL' : '—'}</div>
         <div class="text-xs text-slate-300">+${b.unopened || 0} 瓶未開封</div>
       </td>
       <td class="px-3 py-3 text-right tabular text-slate-300 text-xs">—</td>
-      <td class="px-3 py-3">${badgeHtml}</td>
+      <td class="px-3 py-3">${badgeHtml}${expExhaustBtn}</td>
     </tr>`;
   }
 
@@ -769,9 +806,24 @@ function buildBatchRow(b, needed, cardId, checked) {
   const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
   const exhaustBtn = b.remaining > 0
-    ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs ${b.markedExhausted ? 'text-amber-600 font-medium' : 'text-slate-400 hover:text-red-500'} transition-colors">${b.markedExhausted ? '↺ 復原' : '🗑️ 已耗盡'}</button>`
+    ? (b.markedExhausted && !b._exhaustedByExpiry
+        ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-amber-600 font-medium transition-colors">↺ 復原</button>`
+        : !b.markedExhausted
+        ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">🗑️ 已耗盡</button>`
+        : '')
     : '';
   const rowBg = b.markedExhausted ? 'row-ok bg-amber-50' : 'row-ok hover:bg-slate-50';
+
+  // 效期類 badge 會蓋掉數量狀態，在效期 badge 下方補顯示數量次要 badge
+  let quantityBadgeHtml = '';
+  if (badge.status === 'expire1' || badge.status === 'expireWarn') {
+    const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
+    if (total < needed) {
+      quantityBadgeHtml = `<div class="mt-1"><span class="badge-warn text-xs px-2 py-0.5 rounded-full font-medium">⚠️ 批號不足</span></div>`;
+    } else if ((b.remaining || 0) < needed) {
+      quantityBadgeHtml = `<div class="mt-1"><span class="badge-info text-xs px-2 py-0.5 rounded-full font-medium">🔄 需開新瓶</span></div>`;
+    }
+  }
 
   return `<tr class="${rowBg} transition-colors">
     <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
@@ -786,7 +838,7 @@ function buildBatchRow(b, needed, cardId, checked) {
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
     <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
-    <td class="px-3 py-3">${badgeHtml}${exhaustBtn}</td>
+    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${exhaustBtn}</td>
   </tr>`;
 }
 
@@ -884,14 +936,43 @@ function buildGM508HTML() {
 
 // ── Build a full batch card HTML ──
 function buildBatchCardHTML(cfg) {
+  // open_expired 批號：開封逾期但廠商效期未到且仍有未開封瓶（中間層）
+  const openExpiredBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'open_expired');
+
+  // 有效批號（未過期、非 open_expired）依 effectiveExpiry 升冪排列
+  const validBatches = cfg.batches
+    .filter(b => {
+      if (b.blocked) return false;
+      const s = calcBadge(b, cfg.needed).status;
+      return s !== 'expired' && s !== 'open_expired';
+    })
+    .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
+
+  // 完全過期批號：優先選有殘液的（需要丟棄），其餘只取最近一筆
+  const expiredBatches = cfg.batches.filter(b => b.blocked || calcBadge(b, cfg.needed).status === 'expired');
+  const shownExpired   = expiredBatches.length === 0 ? [] : (() => {
+    const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
+    if (withRem.length > 0) return [withRem[0]];
+    return [expiredBatches[expiredBatches.length - 1]];
+  })();
+
+  // 排序結果：有效 → 開封逾期（可替換）→ 完全過期（最多一筆）
+  const orderedForDisplay = [...validBatches, ...openExpiredBatches, ...shownExpired];
   let firstActive = true;
-  const rows = cfg.batches.map(b => {
-    const isChecked = !b.blocked && firstActive;
-    if (!b.blocked) firstActive = false;
+  const rows = orderedForDisplay.map(b => {
+    const bs = calcBadge(b, cfg.needed).status;
+    const isExpiredRow  = b.blocked || bs === 'expired';
+    const isOpenExpRow  = bs === 'open_expired';
+    const isChecked     = !isExpiredRow && !isOpenExpRow && firstActive;
+    if (!isExpiredRow && !isOpenExpRow) firstActive = false;
     return buildBatchRow(b, cfg.needed, cfg.id, isChecked);
   }).join('');
 
-  const activeLots = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status !== 'expired');
+  const activeLots = cfg.batches.filter(b => {
+    if (b.blocked) return false;
+    const s = calcBadge(b, cfg.needed).status;
+    return s !== 'expired' && s !== 'open_expired';
+  });
   const lotOpts    = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
   const hdrStyle   = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
   const extraHTML  = cfg.extra === 'gm508' ? buildGM508HTML() : '';
@@ -995,13 +1076,14 @@ function toggleGM508() {
 // ── Modal ──
 let _modalCardId = null;
 
-function openModal(r, cardId) {
+function openModal(r, cardId, preSelectLot) {
   _modalCardId = cardId || null;
   document.getElementById('modal-reagent').textContent = r;
   const cfg = (cardId === 'gm508') ? gm508Config :
               reagentConfig.find(c => c.id === cardId) ||
               reagentConfig.find(c => c.name === r) || null;
   const needed  = cfg?.needed || 0;
+  // 包含 open_expired 批號（開封逾期但廠商效期未到），讓用戶可選同批號開新瓶
   const batches = cfg ? cfg.batches.filter(b => !b.blocked && calcBadge(b, needed).status !== 'expired') : [];
   // 預設選「最近到期但仍有效」的批號
   const defaultBatch = batches.slice().sort((a, b) => {
@@ -1014,9 +1096,12 @@ function openModal(r, cardId) {
   ).join('') + '<option value="__new__">＋ 輸入新批號…</option>';
   document.getElementById('modal-new-lot-wrap').classList.add('hidden');
   const _expiryInp = document.getElementById('modal-expiry-date');
-  if (defaultBatch) {
-    sel.value = defaultBatch.lot;
-    _expiryInp.value = defaultBatch.expiry || '';
+  // 若有預選批號（replaceExpiredBottle 呼叫）優先套用，否則用預設
+  const targetLot = preSelectLot || defaultBatch?.lot || null;
+  const targetBatch = batches.find(b => b.lot === targetLot) || defaultBatch;
+  if (targetBatch) {
+    sel.value = targetBatch.lot;
+    _expiryInp.value = targetBatch.expiry || '';
     _expiryInp.setAttribute('readonly', 'readonly');
     _expiryInp.classList.add('bg-slate-100');
   } else {
@@ -1040,7 +1125,7 @@ function confirmOpenBottle() {
       const batch = cfg.batches.find(b => b.lot === lotVal);
       if (batch && (batch.unopened || 0) > 0) {
         batch.unopened  -= 1;
-        batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || 0)).toFixed(1));
+        batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || cfg.bottleVol || 0)).toFixed(1));
         const _today = new Date();
         const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         batch.openDate = _fmt(_today);
@@ -1074,11 +1159,40 @@ function toggleExhausted(cardId, lot) {
   if (!cfg) return;
   const batch = cfg.batches.find(b => b.lot === lot);
   if (!batch) return;
-  batch.markedExhausted = !batch.markedExhausted;
+  if (!batch.markedExhausted) {
+    // 標記耗盡：保存原始 remaining，立刻歸零讓批號解鎖
+    batch._exhaustedVol  = batch.remaining;
+    batch.remaining      = 0;
+    batch.markedExhausted = true;
+  } else {
+    // 復原：把 remaining 還回去，解除標記
+    batch.remaining       = batch._exhaustedVol || 0;
+    batch._exhaustedVol   = undefined;
+    batch.markedExhausted = false;
+  }
   const renderId = (cardId === 'gm508') ? 'aoa-ci' : cardId;
   const renderCfg = reagentConfig.find(c => c.id === renderId);
   const el = document.getElementById('card-' + renderId);
   if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+}
+
+function replaceExpiredBottle(cardId, lot) {
+  // 開封逾期需開新品：標記開封瓶耗盡，重新渲染卡片，再開啟 Modal 預選同批號開新瓶
+  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  if (!cfg) return;
+  const batch = cfg.batches.find(b => b.lot === lot);
+  if (!batch) return;
+  if (!batch.markedExhausted) {
+    batch._exhaustedVol     = batch.remaining;
+    batch.remaining         = 0;
+    batch.markedExhausted   = true;
+    batch._exhaustedByExpiry = true;  // 效期觸發，不顯示復原按鈕
+  }
+  const renderId = (cardId === 'gm508') ? 'aoa-ci' : cardId;
+  const renderCfg = reagentConfig.find(c => c.id === renderId);
+  const el = document.getElementById('card-' + renderId);
+  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  openModal(cfg.name, cardId, lot);
 }
 
 function injectTestBatches() {
@@ -1086,11 +1200,13 @@ function injectTestBatches() {
   const _add = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return _fmt(d); };
   const givf = reagentConfig.find(c => c.id === 'givf');
   if (givf) {
+    givf.needed = 80;          // 測試用：調高需用量觀察警示邏輯
+    givf._testNeeded = true;   // 防止 recalcAllNeeded 覆蓋
     givf.batches = [
-      { lot:'A-今天到期',  expiry:_add(0),   remaining:30, unopened:0, blocked:false },
-      { lot:'B-明天到期',  expiry:_add(1),   remaining:30, unopened:0, blocked:false },
-      { lot:'C-開封過期',  expiry:_add(180), openDate:_add(-8), openExpiry:_add(-1), remaining:45, unopened:0, blocked:false },
-      { lot:'D-正常批號',  expiry:_add(180), remaining:30, unopened:1, blocked:false },
+      { lot:'A-今天到期',  expiry:_add(0),   remaining:30, unopened:0, bottleVol:60, blocked:false },
+      { lot:'B-明天到期',  expiry:_add(1),   remaining:30, unopened:0, bottleVol:60, blocked:false },
+      { lot:'C-開封過期',  expiry:_add(180), openDate:_add(-8), openExpiry:_add(-1), remaining:45, unopened:5, bottleVol:60, blocked:false },
+      { lot:'D-正常批號',  expiry:_add(180), remaining:30, unopened:1, bottleVol:60, blocked:false },
     ];
   }
   // 在頁面頂端插入測試模式 banner
@@ -1366,6 +1482,7 @@ function recalcAllNeeded() {
   function setNeeded(cfgId, val) {
     const cfg = reagentConfig.find(c => c.id === cfgId);
     if (!cfg) return;
+    if (cfg._testNeeded) return;  // 測試模式鎖定，跳過覆蓋
     cfg.needed = parseFloat(Math.max(0, val).toFixed(1));
     const el = document.getElementById('card-' + cfgId);
     if (el) el.innerHTML = buildBatchCardHTML(cfg);
@@ -1423,10 +1540,10 @@ async function submitBeipan() {
     // 排序：選取批號優先，其次依原始順序（非 blocked、非 expired）
     const orderedBatches = [];
     if (selectedLot) {
-      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked && calcBadge(b, needed).status !== 'expired');
+      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked && calcBadge(b, needed).status !== 'expired' && calcBadge(b, needed).status !== 'open_expired');
       if (sel) orderedBatches.push(sel);
     }
-    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot && calcBadge(b, needed).status !== 'expired').forEach(b => orderedBatches.push(b));
+    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot && calcBadge(b, needed).status !== 'expired' && calcBadge(b, needed).status !== 'open_expired').forEach(b => orderedBatches.push(b));
 
     // 讀取混批備註（若面板展開且有填寫）
     const _secondPanel = document.getElementById(cfg.id + '-second');
@@ -1473,16 +1590,18 @@ async function submitBeipan() {
         note: _fullNote,
       });
 
-      if (batch.markedExhausted && newRem > 0) {
+      // _exhaustedVol 是點擊「已耗盡」時預先保存的原始殘液量
+      const discardVol = batch.markedExhausted ? (batch._exhaustedVol || 0) : 0;
+      if (discardVol > 0) {
         logEntries.push({
           source: 'beipan', action: 'discard',
           productId: cfg.id, productName: cfg.name,
           lotNumber: batch.lot,
           expiryDate: batch.expiry || null,
           openExpiryDate: batch.openExpiry || null,
-          qtyDelta: -newRem, unit: 'mL',
+          qtyDelta: -discardVol, unit: 'mL',
           bottlesOpened: 0, operator,
-          note: `標記耗盡：殘液 ${newRem} mL 報廢`,
+          note: `標記耗盡：殘液 ${discardVol} mL 報廢`,
         });
         newRem = 0;
       }
