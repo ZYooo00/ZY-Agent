@@ -16,8 +16,10 @@
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
   import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=5';
-  await initFirebaseApp();
+  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { savePandianSnapshot, fsLog, getOrders };
+  window.__fbDone = true;
+  window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
 <style>
   /* ── 人員選擇 ── */
@@ -635,8 +637,16 @@ function closeNav() { document.getElementById('nav-overlay').classList.remove('o
   }
 })();
 
-// DOMContentLoaded 保證 module script（Firebase bridge）已執行完畢，window._fb 已就緒
-window.addEventListener('DOMContentLoaded', function() {
+function onReady(fn) {
+  var domOk = document.readyState !== 'loading';
+  var fbOk = !!window.__fbDone;
+  if (domOk && fbOk) { fn(); return; }
+  var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
+  var tick = function() { if (--cnt <= 0) fn(); };
+  if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
+  if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
+}
+onReady(function() {
   updatePandianInTransit();
 });
 

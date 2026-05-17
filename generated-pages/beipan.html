@@ -18,8 +18,10 @@
   import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js?v=5';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  await initFirebaseApp();
+  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan };
+  window.__fbDone = true;
+  window.dispatchEvent(new CustomEvent('fb-ready'));
 
   // Dev-only: 清除今日備盤（用於測試重置），在 DevTools console 呼叫 devResetBeipan()
   window.devResetBeipan = async function() {
@@ -1494,7 +1496,16 @@ buildAllBulkCards();
 recalcAllNeeded();
 // 批號卡片先渲染空白佔位，等 Firebase bridge ready 後再填入真實資料
 buildAllBatchCards();
-document.addEventListener('DOMContentLoaded', async function() {
+function onReady(fn) {
+  var domOk = document.readyState !== 'loading';
+  var fbOk = !!window.__fbDone;
+  if (domOk && fbOk) { fn(); return; }
+  var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
+  var tick = function() { if (--cnt <= 0) fn(); };
+  if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
+  if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
+}
+onReady(async function() {
   // 先確認今日備盤是否已送出（防止重複送出造成庫存雙重扣除）
   const todayStr = new Date().toISOString().slice(0, 10);
   let todayBeipan = null;

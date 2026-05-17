@@ -18,10 +18,12 @@
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
            getLatestBeipan, getOrders } from './firebase-service.js?v=5';
-  await initFirebaseApp();
+  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
                  getLatestBeipan, getOrders };
+  window.__fbDone = true;
+  window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
 <style>
   /* ── Sort tabs ── */
@@ -1846,7 +1848,16 @@ document.querySelectorAll('.cl-filter-btn').forEach(b => clObserver.observe(b, {
 // ════════════════════════════════
 // INIT
 // ════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
+function onReady(fn) {
+  var domOk = document.readyState !== 'loading';
+  var fbOk = !!window.__fbDone;
+  if (domOk && fbOk) { fn(); return; }
+  var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
+  var tick = function() { if (--cnt <= 0) fn(); };
+  if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
+  if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
+}
+onReady(() => {
   const d = new Date();
   const days = ['日','一','二','三','四','五','六'];
   document.getElementById('today-display').textContent =

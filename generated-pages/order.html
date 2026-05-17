@@ -13,11 +13,13 @@
   <script src="tailwind-config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="design.js" defer></script>
-  <!-- Firebase Phase 9b bridge：module 是 deferred，DOMContentLoaded 之前執行完畢 -->
+  <!-- Firebase bridge -->
   <script type="module">
     import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=5';
-    await initFirebaseApp();
+    try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
     window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog };
+    window.__fbDone = true;
+    window.dispatchEvent(new CustomEvent('fb-ready'));
   </script>
   <style>
     /* ── 訂貨管理頁面專屬樣式 ── */
@@ -1097,7 +1099,16 @@
   // ═══════════════════════════════════════════════════════════════
   // Init
   // ═══════════════════════════════════════════════════════════════
-  window.addEventListener('DOMContentLoaded', async function() {
+  function onReady(fn) {
+    var domOk = document.readyState !== 'loading';
+    var fbOk = !!window.__fbDone;
+    if (domOk && fbOk) { fn(); return; }
+    var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
+    var tick = function() { if (--cnt <= 0) fn(); };
+    if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
+    if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
+  }
+  onReady(async function() {
     const now = new Date();
     const el = document.getElementById('today-display');
     if (el) {

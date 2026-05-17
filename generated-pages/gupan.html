@@ -16,9 +16,10 @@
 <!-- Firebase bridge -->
 <script type="module">
   import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft } from './firebase-service.js?v=5';
-  await initFirebaseApp();
+  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft };
-  window.dispatchEvent(new Event('fb-ready'));
+  window.__fbDone = true;
+  window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
 <style>
   body { -webkit-tap-highlight-color: transparent; }
