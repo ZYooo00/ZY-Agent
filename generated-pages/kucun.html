@@ -15,9 +15,13 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog } from './firebase-service.js';
+  import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
+           getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
+           getLatestBeipan, getOrders } from './firebase-service.js?v=4';
   initFirebaseApp();
-  window._fb = { saveJinhuoRecord, appendLog };
+  window._fb = { saveJinhuoRecord, appendLog,
+                 getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
+                 getLatestBeipan, getOrders };
 </script>
 <style>
   /* ── Sort tabs ── */
@@ -232,6 +236,7 @@
   </div>
   <div class="flex items-center gap-3">
     <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
+    <span id="fetch-time-badge" class="hidden items-center gap-1 text-xs text-slate-400 md:flex"></span>
     <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
   </div>
 </header>
@@ -613,15 +618,32 @@ function beipanToBottles(entry) {
 // ════════════════════════════════
 // DATA LOADING
 // ════════════════════════════════
-function loadData() {
+async function loadData() {
+  const ls = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } };
+  const [jinhuo, pandian, pandianHistory, beipan, orderHistory, changelog] = await Promise.all([
+    window._fb.getJinhuoRecords().catch(() => ls('jinhuo-records') || []),
+    window._fb.getLatestPandian().catch(() => ls('pandian-result')),
+    window._fb.getPandianHistory().catch(() => ls('pandian-history') || []),
+    window._fb.getLatestBeipan().catch(() => ls('beipan-result')),
+    window._fb.getOrders().catch(() => ls('order-history') || []),
+    window._fb.getKucunChangelog().catch(() => ls('kucun-changelog') || []),
+  ]);
+  try {
+    localStorage.setItem('jinhuo-records',  JSON.stringify(jinhuo       || []));
+    localStorage.setItem('pandian-history', JSON.stringify(pandianHistory|| []));
+    localStorage.setItem('order-history',   JSON.stringify(orderHistory  || []));
+    localStorage.setItem('kucun-changelog', JSON.stringify(changelog     || []));
+    if (pandian) localStorage.setItem('pandian-result', JSON.stringify(pandian));
+    if (beipan)  localStorage.setItem('beipan-result',  JSON.stringify(beipan));
+  } catch(e) {}
   return {
-    jinhuo:        JSON.parse(localStorage.getItem('jinhuo-records')   || '[]'),
-    pandian:       JSON.parse(localStorage.getItem('pandian-result')   || 'null'),
-    pandianHistory:JSON.parse(localStorage.getItem('pandian-history')  || '[]'),
-    beipan:        JSON.parse(localStorage.getItem('beipan-result')    || 'null'),
-    order:         JSON.parse(localStorage.getItem('order-result')     || 'null'),
-    orderHistory:  JSON.parse(localStorage.getItem('order-history')    || '[]'),
-    changelog:     JSON.parse(localStorage.getItem('kucun-changelog')  || '[]'),
+    jinhuo:        jinhuo        || [],
+    pandian:       pandian       || null,
+    pandianHistory:pandianHistory|| [],
+    beipan:        beipan        || null,
+    order:         orderHistory?.[0] || null,
+    orderHistory:  orderHistory  || [],
+    changelog:     changelog     || [],
   };
 }
 
@@ -933,7 +955,7 @@ function renderInventoryTable(data) {
       const g = col.group;
       const d = new Date(g.ts);
       const M = d.getMonth()+1, D = d.getDate();
-      const srcShort = { jinhuo:'進', beipan:'備', pandian:'盤', order:'訂', manual:'手' };
+      const srcShort = { jinhuo:'進', beipan:'備', pandian:'盤', order:'訂', manual:'手', void:'廢' };
       const srcCls = `src-${g.source}`;
       const srcLbl = srcShort[g.source] || '?';
       const colDate2 = g.ts.slice(0, 10);
@@ -1112,7 +1134,7 @@ function exportChangelogCSV() {
   if (!filtered.length) { showToast('篩選範圍內無資料'); return; }
   const sorted = [...filtered].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const header = ['日期','時間','來源','操作','品項','批號','效期','數量','單位','操作人','備註'];
-  const SRC_ZH = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+  const SRC_ZH = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
   const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
   const rows = sorted.map(e => {
     const d = new Date(e.ts);
@@ -1147,9 +1169,9 @@ function exportChangelogCSV() {
 // ════════════════════════════════
 // RENDER: CHANGELOG (Accordion)
 // ════════════════════════════════
-const SRC_LABEL  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+const SRC_LABEL  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
 const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
-const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄' };
+const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄', void:'作廢記錄' };
 
 function renderChangelog(data) {
   const cl = data.changelog || [];
@@ -1492,7 +1514,7 @@ function openDrawer(productId) {
   document.getElementById('drawer-lot-tbody').innerHTML = lotRows;
 
   // Recent changelog
-  const SRC_ZH2 = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動' };
+  const SRC_ZH2 = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
   const ACT_ZH2 = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'調整', note:'備註', order:'訂貨' };
   const cl = (cachedData.changelog || [])
     .filter(e => e.productId === productId)
@@ -1569,8 +1591,15 @@ async function markQcPassed(productId, lotNumber) {
 // ════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════
-function render() {
-  cachedData = loadData();
+async function render() {
+  cachedData = await loadData();
+  const badge = document.getElementById('fetch-time-badge');
+  if (badge) {
+    const now = new Date();
+    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block flex-shrink-0"></span>資料更新 ${t}`;
+    badge.classList.remove('hidden');
+  }
   const { pandian, beipan, jinhuo } = cachedData;
   const hasAny = pandian || beipan || jinhuo.length > 0;
 
@@ -1580,10 +1609,20 @@ function render() {
   renderMeta(cachedData);
 
   if (hasAny) {
-    renderInventoryTable(cachedData);
-    renderKPIs();
+    try {
+      renderInventoryTable(cachedData);
+      renderKPIs();
+    } catch(e) {
+      console.error('[kucun] renderInventoryTable 崩潰：', e);
+      document.getElementById('inv-tbody').innerHTML =
+        `<tr><td colspan="99" style="text-align:center;padding:24px;color:#EF4444">表格載入失敗：${e.message}</td></tr>`;
+    }
   }
-  renderChangelog(cachedData);
+  try {
+    renderChangelog(cachedData);
+  } catch(e) {
+    console.error('[kucun] renderChangelog 崩潰：', e);
+  }
 }
 
 function initScrollSync() {
@@ -1839,7 +1878,7 @@ async function submitLog() {
   catch(e) { console.error('[kucun] submitLog Firebase 寫入失敗', e); }
 
   closeLogModal();
-  cachedData = loadData();
+  cachedData = await loadData();
   renderInventoryTable(cachedData);
   renderChangelog(cachedData);
   showToast(`已記錄：${p?.name} ${ACTION_LABEL[action]}`);

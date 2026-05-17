@@ -13,7 +13,7 @@ import {
   getFirestore, collection, doc,
   setDoc, getDoc, getDocs, updateDoc,
   query, orderBy, limit, where,
-  serverTimestamp, Timestamp, arrayUnion
+  serverTimestamp, Timestamp, arrayUnion, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ─── Firebase Config（從 Console 複製貼上）─────────────────────
@@ -198,7 +198,14 @@ export async function getKucunChangelog(productId = null, limitCount = 200) {
     if (productId) q = query(collection(db, "kucun_changelog"),
       where("productId", "==", productId), orderBy("ts", "desc"), limit(limitCount));
     const snap = await getDocs(q);
-    return snap.docs.map(d => d.data());
+    return snap.docs.map(d => {
+      const data = d.data();
+      // ts 存成 Firestore Timestamp，讀回時轉成 ISO string
+      if (data.ts && typeof data.ts !== 'string') {
+        data.ts = data.tsRaw || data.ts.toDate().toISOString();
+      }
+      return data;
+    });
   });
 }
 
@@ -272,4 +279,39 @@ export async function getGupanHistory(limitCount = 30) {
     const snap = await getDocs(query(collection(db, "gupan_snapshots"), orderBy("date", "desc"), limit(limitCount)));
     return snap.docs.map(d => d.data());
   }, []);
+}
+
+// ─── gupan_drafts（跨裝置草稿同步）───────────────────────────
+export async function saveGupanDraft(dateStr, payload) {
+  try {
+    localStorage.setItem("gupan-draft", JSON.stringify(payload));
+  } catch(e) {}
+  if (isFirestoreAvailable()) {
+    // 不 catch：讓 Firestore 錯誤傳回給呼叫方，才能顯示正確的 UI 反饋
+    await setDoc(doc(_db, "gupan_drafts", dateStr), {
+      ...payload,
+      savedAt: new Date().toISOString(),
+    });
+  }
+}
+
+export async function getGupanDraft(dateStr) {
+  if (isFirestoreAvailable()) {
+    try {
+      const snap = await getDoc(doc(_db, "gupan_drafts", dateStr));
+      if (snap.exists()) return snap.data();
+    } catch(e) { console.warn("[getGupanDraft] Firestore 失敗", e); }
+  }
+  const local = JSON.parse(localStorage.getItem("gupan-draft") || "null");
+  if (local?.date === dateStr) return local;
+  return null;
+}
+
+export function subscribeGupanDraft(dateStr, callback) {
+  if (!isFirestoreAvailable()) return null;
+  return onSnapshot(
+    doc(_db, "gupan_drafts", dateStr),
+    (snap) => callback(snap.exists() ? snap.data() : null),
+    (err) => console.warn("[subscribeGupanDraft] 訂閱失敗", err)
+  );
 }

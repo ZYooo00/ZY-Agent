@@ -13,11 +13,12 @@
 <script src="tailwind-config.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="design.js" defer></script>
-<!-- Firebase Phase 9b bridge -->
+<!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, saveGupanSnapshot } from './firebase-service.js';
+  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft } from './firebase-service.js?v=4';
   initFirebaseApp();
-  window._fb = { saveGupanSnapshot };
+  window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft };
+  window.dispatchEvent(new Event('fb-ready'));
 </script>
 <style>
   body { -webkit-tap-highlight-color: transparent; }
@@ -216,8 +217,9 @@
   </div>
   <div class="flex items-center gap-3">
     <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
-    <span class="flex items-center gap-1 text-xs text-slate-400 tabular">
-      <span class="autosave-dot"></span>自動儲存 <span id="autosave-time">--:--</span>
+    <span id="fetch-time-badge" class="hidden items-center gap-1 text-xs text-slate-400 md:flex"></span>
+    <span id="autosave-badge" class="flex items-center gap-1 text-xs text-slate-400 tabular">
+      <span class="autosave-dot"></span><span id="autosave-label">--</span>
     </span>
     <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-xs font-bold text-primary-dark">ZY</div>
   </div>
@@ -499,8 +501,6 @@ let taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
   const d = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
   const todayEl = document.getElementById('today-display');
   if (todayEl) todayEl.textContent = d;
-  const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  document.getElementById('autosave-time').textContent = t;
   const tm = new Date(); tm.setDate(tm.getDate() + 1);
   const tmLabel = document.getElementById('tomorrow-date-label');
   if (tmLabel) tmLabel.textContent = `${tm.getMonth()+1}/${tm.getDate()}（${days[tm.getDay()]}）`;
@@ -676,21 +676,22 @@ function calcHepes() {
 }
 
 // ══════════════════════════════════════════
-// LOCAL STORAGE 自動儲存
+// 草稿自動儲存（localStorage 即時 + Firebase debounce 2s）
 // ══════════════════════════════════════════
 const STORAGE_KEY = 'gupan-draft';
+let _draftDebounceTimer = null;
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function saveToStorage() {
+function buildDraftPayload() {
   const fields = {};
   document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => {
     if (el.id) fields[el.id] = el.value;
   });
-  const data = {
+  return {
     date: todayStr(),
     state: currentState,
     taiVals: { ...taiVals },
@@ -702,31 +703,74 @@ function saveToStorage() {
       infoText: document.getElementById('confirm-info-text')?.textContent,
     }
   };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
-  const now = new Date();
-  document.getElementById('autosave-time').textContent =
-    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-function loadFromStorage() {
-  let data;
-  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
-  if (!data) return;
+let isInitializing = true;
+let isLocalSaving = false;
+let _draftUnsubscribe = null;
 
-  if (!data.date || data.date !== todayStr()) {
-    localStorage.removeItem(STORAGE_KEY);
-    return;
-  }
+function hhmm(date) {
+  return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+function setAutosaveBadge(text) {
+  const el = document.getElementById('autosave-label');
+  if (el) el.textContent = text;
+}
+function setFetchBadge(text) {
+  const badge = document.getElementById('fetch-time-badge');
+  if (!badge) return;
+  badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block flex-shrink-0"></span>${text}`;
+  badge.classList.remove('hidden');
+  badge.style.display = 'flex';
+}
 
+function saveToStorage() {
+  if (isInitializing) return;
+  const data = buildDraftPayload();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  // debounce 2 秒後才寫 Firebase
+  clearTimeout(_draftDebounceTimer);
+  _draftDebounceTimer = setTimeout(async () => {
+    isLocalSaving = true;
+    try {
+      await window._fb.saveGupanDraft(data.date, data);
+      console.log('[gupan] ✅ Firebase 草稿寫入成功 opu=', data.taiVals?.opu, 'te=', data.taiVals?.te);
+      setAutosaveBadge(`自動儲存 ${hhmm(new Date())}`);
+    } catch(e) {
+      console.error('[gupan] ❌ Firebase 草稿寫入失敗：', e);
+      showToast('雲端儲存失敗，資料僅存本機', 'warn');
+    } finally {
+      setTimeout(() => { isLocalSaving = false; }, 500);
+    }
+  }, 2000);
+}
+
+function startRealtimeSync() {
+  const today = todayStr();
+  if (_draftUnsubscribe) { _draftUnsubscribe(); _draftUnsubscribe = null; }
+  if (!window._fb?.subscribeGupanDraft) return;
+  _draftUnsubscribe = window._fb.subscribeGupanDraft(today, (data) => {
+    if (isInitializing || isLocalSaving) return;
+    if (!data) return;
+    console.log('[gupan] 📡 onSnapshot 遠端更新 opu=', data.taiVals?.opu);
+    applyDraftData(data);
+    setFetchBadge(`即時更新 ${hhmm(new Date())}`);
+  });
+}
+
+function applyDraftData(data) {
+  if (!data) { console.log('[gupan] applyDraftData: data 為 null，略過'); return; }
+  if (!data.date) { console.log('[gupan] applyDraftData: 無 date 欄位', data); return; }
+  if (data.date !== todayStr()) { console.log('[gupan] applyDraftData: 日期不符，略過', data.date, '≠', todayStr()); return; }
+  if (data._cleared) { console.log('[gupan] applyDraftData: _cleared=true，略過'); return; }
+  console.log('[gupan] applyDraftData: 開始套用，taiVals=', JSON.stringify(data.taiVals), 'fields keys=', Object.keys(data.fields||{}));
   if (data.taiVals) Object.assign(taiVals, data.taiVals);
-
   if (data.fields) {
     Object.entries(data.fields).forEach(([id, val]) => {
       const el = document.getElementById(id);
       if (el && val !== undefined) el.value = val;
     });
   }
-
   if (data.confirm && data.state === 'C') {
     const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
     set('confirm-staff-a',    data.confirm.staffA);
@@ -734,15 +778,43 @@ function loadFromStorage() {
     set('confirm-time-display', data.confirm.timeDisp);
     set('confirm-info-text',  data.confirm.infoText);
   }
-
   if (data.state) switchState(data.state);
   updateAllSuggestions();
   calcOil();
   calcHepes();
 }
 
-function resetToday() {
+async function loadFromCloud() {
+  const today = todayStr();
+  let data = null;
+  let fromCloud = false;
+  try { data = await window._fb.getGupanDraft(today); if (data) fromCloud = true; } catch(e) {}
+  if (!data) {
+    try { data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch(e) {}
+  }
+  console.log('[gupan] loadFromCloud 結果：', data ? `date=${data.date} opu=${data.taiVals?.opu} fromCloud=${fromCloud}` : 'null（無草稿）');
+  applyDraftData(data);
+  // 設定 badge
+  if (data) {
+    setFetchBadge(`資料更新 ${hhmm(new Date())}`);
+    if (data.savedAt) {
+      const saved = new Date(data.savedAt);
+      setAutosaveBadge(`雲端進度 ${hhmm(saved)}`);
+    }
+  } else {
+    setFetchBadge(`資料更新 ${hhmm(new Date())}`);
+    setAutosaveBadge('尚無雲端進度');
+  }
+}
+
+// ══════════════════════════════════════════
+// 在庫參考數字（盤點 + 進貨 - 備盤公式）
+// ══════════════════════════════════════════
+
+async function resetToday() {
   localStorage.removeItem(STORAGE_KEY);
+  // 同步清除 Firebase 草稿
+  try { await window._fb.saveGupanDraft(todayStr(), { date: todayStr(), _cleared: true }); } catch(e) {}
   taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
   document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => { el.value = ''; });
   switchState('A');
@@ -870,12 +942,24 @@ function closeNav() {
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
-(function init() {
+(async function init() {
   buildTaiGrid();
   buildGivfTable();
   buildMatrixTable();
   switchState('A');
-  loadFromStorage();
+
+  // 等 Firebase bridge（module script）設定完 window._fb 再繼續
+  await new Promise(r => {
+    if (window._fb?.subscribeGupanDraft) { r(); return; }
+    window.addEventListener('fb-ready', r, { once: true });
+  });
+
+  try {
+    await loadFromCloud();
+  } finally {
+    isInitializing = false;
+  }
+  startRealtimeSync();
 
   const formEl = document.getElementById('page-gupan');
   formEl.addEventListener('input',  saveToStorage);
