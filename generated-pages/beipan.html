@@ -490,13 +490,12 @@ function previewBeipan() {
     if (cfg.needed <= 0) return;
     const primaryLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || '—';
 
-    // 讀取第二批次（若展開）
+    // 讀取接續批號（若展開且與主批號不同）
     const secondPanel = document.getElementById(cfg.id + '-second');
     let lots = [primaryLot];
     if (secondPanel && !secondPanel.classList.contains('hidden')) {
-      const sel = secondPanel.querySelectorAll('select');
-      const extra = [sel[0]?.value, sel[1]?.value].filter(Boolean);
-      if (extra.length) lots = extra;
+      const secondLot = document.getElementById(cfg.id + '-second-lot')?.value;
+      if (secondLot && secondLot !== primaryLot) lots.push(secondLot);
     }
 
     const bgCls  = cfg.id === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
@@ -516,9 +515,8 @@ function previewBeipan() {
     const gm508Second = document.getElementById('gm508-second');
     let gm508Lots = [gm508Lot];
     if (gm508Second && !gm508Second.classList.contains('hidden')) {
-      const sel = gm508Second.querySelectorAll('select');
-      const extra = [sel[0]?.value, sel[1]?.value].filter(Boolean);
-      if (extra.length) gm508Lots = extra;
+      const secondLot = document.getElementById('gm508-second-lot')?.value;
+      if (secondLot && secondLot !== gm508Lot) gm508Lots.push(secondLot);
     }
     cards.push(`<div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
       <span class="text-amber-500 text-xs block">AOA GM508</span>
@@ -573,9 +571,8 @@ function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
   const days = daysUntilExpiry(effectiveExpiry(b));
   if (days !== null) {
-    if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
-    if (days === 0) return { status:'todayLast',  cls:'badge-crit', text:'🔴 今天最後' };
-    if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期' };
+    if (days <= 0)  return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
+    if (days === 1) return { status:'expire1',    cls:'badge-crit', text:'🔴 明天到期（今日最後）' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
   const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
@@ -640,6 +637,40 @@ const reagentConfig = [
   }
 ];
 
+/*
+ * ══════════════════════════════════════════════════
+ *  Phase 13 測試腳本 — 複製貼到瀏覽器 Console 執行
+ *  F5 重整後資料還原，Firebase 完全不受影響
+ * ══════════════════════════════════════════════════
+ *
+ * const _today = new Date();
+ * const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ * const _addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+ * const todayStr     = _fmt(_today);
+ * const tomorrowStr  = _fmt(_addDays(_today,  1));
+ * const farFutureStr = _fmt(_addDays(_today, 180));
+ *
+ * const givf = reagentConfig.find(c => c.id === 'givf');
+ * givf.batches = [
+ *   // ❌ A：今天到期 → days=0 → 應鎖死（radio disabled）
+ *   { lot:'TEST-A-今天到期', expiry:todayStr, remaining:30, unopened:0, blocked:false },
+ *   // 🔴 B：明天到期 → days=1 → 可選，顯示「🔴 明天到期（今日最後）」
+ *   { lot:'TEST-B-明天到期', expiry:tomorrowStr, remaining:30, unopened:0, blocked:false },
+ *   // ❌ C：開封 8 天前（G-IVF 開封期 7 天）→ openExpiry 昨天 → 應鎖死
+ *   { lot:'TEST-C-開封過期', expiry:farFutureStr,
+ *     openDate:_fmt(_addDays(_today,-8)), openExpiry:_fmt(_addDays(_today,-1)),
+ *     remaining:45, unopened:0, blocked:false },
+ *   // ✅ D：正常批號，remaining=30 → 可選，顯示「🗑️ 已耗盡」按鈕
+ *   { lot:'TEST-D-正常批號', expiry:farFutureStr, remaining:30, unopened:1, blocked:false }
+ * ];
+ *
+ * const el = document.getElementById('card-givf');
+ * if (el) {
+ *   el.innerHTML = buildBatchCardHTML(givf);
+ *   console.log('✅ 注射完成 | A→鎖死 | B→警示可選 | C→開封過期鎖死 | D→已耗盡按鈕');
+ * }
+ */
+
 const gm508Config = {
   id: 'gm508', name: 'AOA 明美 GM508', needed: 2.0,
   bottleVol: 1, batches: []
@@ -702,31 +733,47 @@ async function initBatchesFromFirebase() {
 
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
-  if (b.blocked) {
-    return `<tr class="row-none">
+  const badge     = calcBadge(b, needed);
+  const isExpired = b.blocked || badge.status === 'expired';
+  const days      = daysUntilExpiry(effectiveExpiry(b));
+  const expCls    = isExpired
+    ? 'text-slate-300 line-through'
+    : (days !== null && days <= 1) ? 'text-red-600 font-semibold'
+    : (days !== null && days <= 3) ? 'text-amber-600 font-semibold'
+    : 'text-slate-700';
+  const openLine  = b.openExpiry
+    ? `<div class="text-xs ${isExpired ? 'text-slate-300' : 'text-slate-400'}">開封 → ${fmtDate(b.openExpiry)}</div>`
+    : `<div class="text-xs ${isExpired ? 'text-slate-300' : 'text-slate-400'}">未開封</div>`;
+  const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
+
+  if (isExpired) {
+    return `<tr class="opacity-50 bg-slate-50">
       <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
-      <td class="px-3 py-3 font-mono line-through text-slate-300">${b.lot}</td>
-      <td class="px-3 py-3 tabular text-slate-300">—</td>
-      <td class="px-3 py-3 tabular text-slate-300">—</td>
-      <td class="px-3 py-3 text-right tabular text-slate-300">—</td>
+      <td class="px-3 py-3 font-mono font-semibold text-slate-400 line-through">${b.lot}</td>
+      <td class="px-3 py-3 text-slate-400 tabular">${b.openDate || '—'}</td>
+      <td class="px-3 py-3 tabular">
+        <div class="${expCls}">${fmtDate(b.expiry)}</div>
+        ${openLine}
+      </td>
+      <td class="px-3 py-3 text-right tabular">
+        <div class="text-slate-400">${b.remaining > 0 ? b.remaining.toFixed(1) + ' mL' : '—'}</div>
+        <div class="text-xs text-slate-300">+${b.unopened || 0} 瓶未開封</div>
+      </td>
       <td class="px-3 py-3 text-right tabular text-slate-300 text-xs">—</td>
-      <td class="px-3 py-3"><span class="badge-none text-xs px-2 py-0.5 rounded-full font-medium">❌ 已過期</span></td>
+      <td class="px-3 py-3">${badgeHtml}</td>
     </tr>`;
   }
-  const badge    = calcBadge(b, needed);
-  const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
-  const days     = daysUntilExpiry(b.expiry);
-  const expCls   = (days !== null && days <= 1) ? 'text-red-600 font-semibold' :
-                   (days !== null && days <= 3) ? 'text-amber-600 font-semibold' : 'text-slate-700';
-  const openLine = b.openExpiry
-    ? `<div class="text-xs text-slate-400">開封 → ${fmtDate(b.openExpiry)}</div>`
-    : `<div class="text-xs text-slate-400">未開封</div>`;
+
   const remCls   = badge.status === 'insufficient' ? 'text-red-600' :
                    badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
   const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
+  const exhaustBtn = b.remaining > 0
+    ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs ${b.markedExhausted ? 'text-amber-600 font-medium' : 'text-slate-400 hover:text-red-500'} transition-colors">${b.markedExhausted ? '↺ 復原' : '🗑️ 已耗盡'}</button>`
+    : '';
+  const rowBg = b.markedExhausted ? 'row-ok bg-amber-50' : 'row-ok hover:bg-slate-50';
 
-  return `<tr class="row-ok hover:bg-slate-50 transition-colors">
+  return `<tr class="${rowBg} transition-colors">
     <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
     <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
     <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
@@ -739,7 +786,7 @@ function buildBatchRow(b, needed, cardId, checked) {
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
     <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
-    <td class="px-3 py-3">${badgeHtml}</td>
+    <td class="px-3 py-3">${badgeHtml}${exhaustBtn}</td>
   </tr>`;
 }
 
@@ -759,7 +806,7 @@ function buildGM508HTML() {
   const b   = gm.batches[0];
   const badge    = calcBadge(b, gm.needed);
   const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
-  const days = daysUntilExpiry(b.expiry);
+  const days = daysUntilExpiry(effectiveExpiry(b));
   const expCls = (days !== null && days <= 1) ? 'text-red-600 font-semibold' :
                  (days !== null && days <= 3) ? 'text-amber-600 font-semibold' : 'text-slate-700';
   return `
@@ -817,7 +864,7 @@ function buildGM508HTML() {
     </div>
     <div class="px-5 py-2.5 border-t border-amber-100 flex items-center gap-4">
       <button onclick="toggleSecondBatch('gm508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>加入第二批號
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
       </button>
       <span class="text-slate-200">|</span>
       <button onclick="openModal('AOA 明美 GM508','gm508')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
@@ -825,13 +872,12 @@ function buildGM508HTML() {
       </button>
     </div>
     <div id="gm508-second" class="hidden px-5 py-4 bg-slate-50 border-t border-amber-100">
-      <div class="text-xs text-slate-500 mb-3 font-medium">第二批次</div>
+      <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs text-slate-400 w-10">批次 2</span>
-        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary"><option>GM0801</option></select>
-        <input type="text" placeholder="用途備註" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+        <select id="gm508-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary"><option>GM0801</option></select>
+        <input type="text" id="gm508-second-note" placeholder="備註（選填）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
       </div>
-      <button onclick="toggleSecondBatch('gm508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除第二批次</button>
+      <button onclick="toggleSecondBatch('gm508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
     </div>
   </div>`;
 }
@@ -845,7 +891,7 @@ function buildBatchCardHTML(cfg) {
     return buildBatchRow(b, cfg.needed, cfg.id, isChecked);
   }).join('');
 
-  const activeLots = cfg.batches.filter(b => !b.blocked);
+  const activeLots = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status !== 'expired');
   const lotOpts    = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
   const hdrStyle   = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
   const extraHTML  = cfg.extra === 'gm508' ? buildGM508HTML() : '';
@@ -881,7 +927,7 @@ function buildBatchCardHTML(cfg) {
   </div>
   <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
     <button onclick="toggleSecondBatch('${cfg.id}')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>加入第二批號
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
     </button>
     <span class="text-slate-200">|</span>
     <button onclick="openModal('${cfg.name}','${cfg.id}')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
@@ -889,24 +935,16 @@ function buildBatchCardHTML(cfg) {
     </button>
   </div>
   <div id="${cfg.id}-second" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
-    <div class="text-xs text-slate-500 mb-3 font-medium">第二批次</div>
-    <div class="space-y-2">
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs text-slate-400 w-10">批次 1</span>
-        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
-        <input type="text" placeholder="用途備註（例：De 盤用完）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
-      </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs text-slate-400 w-10">批次 2</span>
-        <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
-        <input type="text" placeholder="用途備註（例：其餘盤）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
-      </div>
+    <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <select id="${cfg.id}-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
+      <input type="text" id="${cfg.id}-second-note" placeholder="混批原因（必填）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
     <div id="${cfg.id}-mix-note" class="hidden mt-3">
       <input type="text" placeholder="混批備註（必填）：說明為何需要混批"
         class="w-full text-sm border border-amber-300 rounded-lg px-3 py-1.5 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
     </div>
-    <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除第二批次</button>
+    <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
   </div>
   ${extraHTML}
 </div>`;
@@ -963,17 +1001,28 @@ function openModal(r, cardId) {
   const cfg = (cardId === 'gm508') ? gm508Config :
               reagentConfig.find(c => c.id === cardId) ||
               reagentConfig.find(c => c.name === r) || null;
-  const batches = cfg ? cfg.batches.filter(b => !b.blocked) : [];
+  const needed  = cfg?.needed || 0;
+  const batches = cfg ? cfg.batches.filter(b => !b.blocked && calcBadge(b, needed).status !== 'expired') : [];
+  // 預設選「最近到期但仍有效」的批號
+  const defaultBatch = batches.slice().sort((a, b) => {
+    const da = effectiveExpiry(a), db = effectiveExpiry(b);
+    return (da || '9999') < (db || '9999') ? -1 : 1;
+  })[0] || null;
   const sel = document.getElementById('modal-lot-select');
   sel.innerHTML = batches.map(b =>
     `<option value="${b.lot}" data-expiry="${b.expiry||''}" data-vol="${b.bottleVol||0}">${b.lot}</option>`
   ).join('') + '<option value="__new__">＋ 輸入新批號…</option>';
   document.getElementById('modal-new-lot-wrap').classList.add('hidden');
-  if (batches.length > 0) {
-    sel.value = batches[0].lot;
-    document.getElementById('modal-expiry-date').value = batches[0].expiry || '';
+  const _expiryInp = document.getElementById('modal-expiry-date');
+  if (defaultBatch) {
+    sel.value = defaultBatch.lot;
+    _expiryInp.value = defaultBatch.expiry || '';
+    _expiryInp.setAttribute('readonly', 'readonly');
+    _expiryInp.classList.add('bg-slate-100');
   } else {
-    document.getElementById('modal-expiry-date').value = '';
+    _expiryInp.value = '';
+    _expiryInp.removeAttribute('readonly');
+    _expiryInp.classList.remove('bg-slate-100');
   }
   const _d = new Date();
   const todayStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
@@ -992,7 +1041,16 @@ function confirmOpenBottle() {
       if (batch && (batch.unopened || 0) > 0) {
         batch.unopened  -= 1;
         batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || 0)).toFixed(1));
-        batch.openDate = '今日';
+        const _today = new Date();
+        const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        batch.openDate = _fmt(_today);
+        const _prod = PRODUCTS.find(p => p.id === cfg.id);
+        const _openDays = _prod?.openExpiryDays || 0;
+        if (_openDays > 0) {
+          const _openExp = new Date(_today);
+          _openExp.setDate(_openExp.getDate() + _openDays);
+          batch.openExpiry = _fmt(_openExp);
+        }
       } else if (batch) {
         showToast('此批號已無未開封瓶可供開啟', 'warn');
         closeModal();
@@ -1010,16 +1068,61 @@ function confirmOpenBottle() {
 function closeModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
 }
+
+function toggleExhausted(cardId, lot) {
+  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  if (!cfg) return;
+  const batch = cfg.batches.find(b => b.lot === lot);
+  if (!batch) return;
+  batch.markedExhausted = !batch.markedExhausted;
+  const renderId = (cardId === 'gm508') ? 'aoa-ci' : cardId;
+  const renderCfg = reagentConfig.find(c => c.id === renderId);
+  const el = document.getElementById('card-' + renderId);
+  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+}
+
+function injectTestBatches() {
+  const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _add = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return _fmt(d); };
+  const givf = reagentConfig.find(c => c.id === 'givf');
+  if (givf) {
+    givf.batches = [
+      { lot:'A-今天到期',  expiry:_add(0),   remaining:30, unopened:0, blocked:false },
+      { lot:'B-明天到期',  expiry:_add(1),   remaining:30, unopened:0, blocked:false },
+      { lot:'C-開封過期',  expiry:_add(180), openDate:_add(-8), openExpiry:_add(-1), remaining:45, unopened:0, blocked:false },
+      { lot:'D-正常批號',  expiry:_add(180), remaining:30, unopened:1, blocked:false },
+    ];
+  }
+  // 在頁面頂端插入測試模式 banner
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#fff;text-align:center;padding:6px;font-size:13px;font-weight:600;';
+  banner.textContent = '🧪 測試模式 — 資料為假批號，F5 可清除';
+  document.body.prepend(banner);
+}
+
+// 測試模式專用：繞過 Firebase，DOMContentLoaded 就直接注射
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('__beipan_test__') !== '1') return;
+  localStorage.removeItem('__beipan_test__');
+  injectTestBatches();
+  buildAllBatchCards();
+});
+
 function onLotChange() {
-  const sel     = document.getElementById('modal-lot-select');
-  const newWrap = document.getElementById('modal-new-lot-wrap');
+  const sel       = document.getElementById('modal-lot-select');
+  const newWrap   = document.getElementById('modal-new-lot-wrap');
+  const expiryInp = document.getElementById('modal-expiry-date');
   if (sel.value === '__new__') {
     newWrap.classList.remove('hidden');
-    document.getElementById('modal-expiry-date').value = '';
+    expiryInp.value = '';
+    expiryInp.removeAttribute('readonly');
+    expiryInp.classList.remove('bg-slate-100');
   } else {
     newWrap.classList.add('hidden');
     const opt = sel.options[sel.selectedIndex];
-    document.getElementById('modal-expiry-date').value = opt.dataset.expiry || '';
+    expiryInp.value = opt.dataset.expiry || '';
+    expiryInp.setAttribute('readonly', 'readonly');
+    expiryInp.classList.add('bg-slate-100');
   }
 }
 
@@ -1288,6 +1391,22 @@ async function submitBeipan() {
     return;
   }
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
+
+  // 混批備註必填驗證
+  for (const cfg of reagentConfig) {
+    const panel = document.getElementById(cfg.id + '-second');
+    if (panel && !panel.classList.contains('hidden')) {
+      const noteEl = document.getElementById(cfg.id + '-second-note');
+      if (!noteEl?.value?.trim()) {
+        noteEl.classList.add('border-red-400', 'ring-2', 'ring-red-300');
+        noteEl.focus();
+        showToast(`${cfg.name} 混批備註為必填`, 'warn');
+        return;
+      }
+      noteEl.classList.remove('border-red-400', 'ring-2', 'ring-red-300');
+    }
+  }
+
   const now = new Date().toISOString();
   const dateStr = now.slice(0, 10);
 
@@ -1301,13 +1420,20 @@ async function submitBeipan() {
     // 找出使用者選取的主要批號（via radio value）
     const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
 
-    // 排序：選取批號優先，其次依原始順序（非 blocked）
+    // 排序：選取批號優先，其次依原始順序（非 blocked、非 expired）
     const orderedBatches = [];
     if (selectedLot) {
-      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked);
+      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked && calcBadge(b, needed).status !== 'expired');
       if (sel) orderedBatches.push(sel);
     }
-    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot).forEach(b => orderedBatches.push(b));
+    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot && calcBadge(b, needed).status !== 'expired').forEach(b => orderedBatches.push(b));
+
+    // 讀取混批備註（若面板展開且有填寫）
+    const _secondPanel = document.getElementById(cfg.id + '-second');
+    const _mixNote = (_secondPanel && !_secondPanel.classList.contains('hidden'))
+      ? (document.getElementById(cfg.id + '-second-note')?.value?.trim() || '')
+      : '';
+    let _isFirstBatch = true;
 
     for (const batch of orderedBatches) {
       if (needed <= 0) break;
@@ -1324,8 +1450,16 @@ async function submitBeipan() {
       }
 
       const deduct = parseFloat(Math.min(needed, rem).toFixed(1));
-      const newRem  = parseFloat((rem - deduct).toFixed(1));
+      let newRem    = parseFloat((rem - deduct).toFixed(1));
       needed = parseFloat((needed - deduct).toFixed(1));
+
+      const _baseNote = opened > 0
+        ? `扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
+        : `扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+      const _fullNote = (_isFirstBatch && _mixNote)
+        ? `${_baseNote}；混批備註：${_mixNote}`
+        : _baseNote;
+      _isFirstBatch = false;
 
       logEntries.push({
         source: 'beipan', action: 'beipan',
@@ -1336,10 +1470,22 @@ async function submitBeipan() {
         qtyDelta: -deduct, unit: 'mL',
         bottlesOpened: opened,
         operator,
-        note: opened > 0
-          ? `扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
-          : `扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`,
+        note: _fullNote,
       });
+
+      if (batch.markedExhausted && newRem > 0) {
+        logEntries.push({
+          source: 'beipan', action: 'discard',
+          productId: cfg.id, productName: cfg.name,
+          lotNumber: batch.lot,
+          expiryDate: batch.expiry || null,
+          openExpiryDate: batch.openExpiry || null,
+          qtyDelta: -newRem, unit: 'mL',
+          bottlesOpened: 0, operator,
+          note: `標記耗盡：殘液 ${newRem} mL 報廢`,
+        });
+        newRem = 0;
+      }
 
       updatedBatches.push({
         reagentId: cfg.id, reagentName: cfg.name,
@@ -1537,7 +1683,12 @@ onReady(async function() {
     return; // 不進行後續初始化，防止進入可填寫狀態
   }
 
-  await initBatchesFromFirebase();
+  if (localStorage.getItem('__beipan_test__') === '1') {
+    localStorage.removeItem('__beipan_test__');
+    injectTestBatches();
+  } else {
+    await initBatchesFromFirebase();
+  }
   buildAllBatchCards();
   const badge = document.getElementById('fetch-time-badge');
   if (badge) {
