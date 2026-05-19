@@ -656,7 +656,7 @@ function saveChangelog(cl) { localStorage.setItem('kucun-changelog', JSON.string
 function calcProductInfo(product, data) {
   const { jinhuo, pandian, beipan, order } = data;
   const th = beipan?.threshold || {};
-  const orangeDays = th.orange_days ?? 3;
+  const orangeDays = product.expiryWarnDays ?? (th.orange_days ?? 3);
   const redDays    = th.red_days    ?? 1;
 
   // ── Stock ──
