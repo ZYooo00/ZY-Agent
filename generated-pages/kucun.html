@@ -1064,8 +1064,10 @@ function renderInventoryTable(data) {
       ? `<div class="font-semibold text-slate-700 text-sm tabular">≈ ${doi} 天</div>`
       : `<span class="text-slate-300 text-sm">—</span>`;
 
-    tbodyRows.push(`<tr onmousedown="this._downX=event.pageX" onclick="if(Math.abs(event.pageX-this._downX)<5)openDrawer('${p.id}')">
-      <td class="sl sl-0"><div class="font-semibold text-slate-800 text-sm">${p.name}</div></td>
+    const pausedStyle = p.paused ? 'background:#F8F8F8;opacity:0.6;' : '';
+    const pausedName  = p.paused ? `${p.name}<span style="margin-left:6px;font-size:10px;color:#94A3B8;font-weight:400">暫停進貨</span>` : p.name;
+    tbodyRows.push(`<tr style="${pausedStyle}" onmousedown="this._downX=event.pageX" onclick="if(Math.abs(event.pageX-this._downX)<5)openDrawer('${p.id}')">
+      <td class="sl sl-0"><div class="font-semibold text-slate-800 text-sm">${pausedName}</div></td>
       <td class="sl sl-1">${stockCell}</td>
       <td class="sl sl-2">${badgeHtml(info.status)}</td>
       <td class="sl sl-3">${pendingCell}</td>
