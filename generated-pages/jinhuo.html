@@ -1218,7 +1218,16 @@ function stopScan() {
 
 function onScanSuccess(text) {
   const parsed = parseBarcode(text);
-  const matched = matchProductByGtin(parsed.gtin);
+  const matches = matchProductsByGtin(parsed.gtin);
+
+  // 多重比對 → 顯示分流選單，讓使用者選廠商
+  if (matches.length > 1) {
+    try { if (html5QrCode) html5QrCode.pause(true); } catch {}
+    showDisambiguation(matches, parsed, text);
+    return;
+  }
+
+  const matched = matches[0] || null;
   scanResult = { raw: text, parsed, matchedProduct: matched };
 
   // 防重複：此條碼已在暫存區 → 黃色提示 + 1.5s 後恢復掃描
@@ -1233,6 +1242,47 @@ function onScanSuccess(text) {
 
   // 無論是否識別，都彈出 Step 2 讓使用者確認數量
   renderScanConfirm(matched, parsed, text);
+}
+
+function showDisambiguation(matches, parsed, rawText) {
+  window._disambigRaw    = rawText;
+  window._disambigParsed = parsed;
+  const btnHtml = matches.map(p =>
+    `<button onclick="selectDisambiguated('${p.id}')"
+      style="flex:1;padding:10px 8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-size:13px;font-weight:500;cursor:pointer;line-height:1.4">
+      ${escHtml(p.name)}<br><span style="font-size:11px;opacity:0.6">${escHtml(p.vendor)}</span>
+    </button>`
+  ).join('');
+  document.getElementById('scan-status').innerHTML = `
+    <p style="color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;margin-bottom:10px">此條碼對應多個廠商，請選擇：</p>
+    <div style="display:flex;gap:8px">${btnHtml}</div>
+    <button onclick="cancelDisambiguation()" style="margin-top:8px;background:none;border:none;color:rgba(255,255,255,0.45);font-size:12px;text-decoration:underline;cursor:pointer">取消，重新掃描</button>
+  `;
+}
+
+function selectDisambiguated(productId) {
+  const rawText = window._disambigRaw;
+  const parsed  = window._disambigParsed;
+  delete window._disambigRaw;
+  delete window._disambigParsed;
+  const product = PRODUCTS.find(p => p.id === productId);
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>';
+  scanResult = { raw: rawText, parsed, matchedProduct: product };
+  // 防重複（以 productId 比對）
+  if (sessionTray.some(i => i.productId === productId)) {
+    showToast('⚠ 此品項已在暫存區，請至抽屜修改數量', 'warn');
+    setTimeout(() => { try { if (html5QrCode) html5QrCode.resume(); } catch {} scanResult = null; }, 1500);
+    return;
+  }
+  renderScanConfirm(product, parsed, rawText);
+}
+
+function cancelDisambiguation() {
+  delete window._disambigRaw;
+  delete window._disambigParsed;
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">對準包裝上的 QR Code 或條碼</p>';
+  try { if (html5QrCode) html5QrCode.resume(); } catch {}
+  scanResult = null;
 }
 
 function retryScan() {
@@ -2084,6 +2134,12 @@ function matchProductByGtin(gtin) {
   if (!gtin) return null;
   const norm = gtin.padStart(14, '0');
   return PRODUCTS.find(p => p.gtin && p.gtin.padStart(14, '0') === norm) || null;
+}
+
+function matchProductsByGtin(gtin) {
+  if (!gtin) return [];
+  const norm = gtin.padStart(14, '0');
+  return PRODUCTS.filter(p => p.gtin && p.gtin.padStart(14, '0') === norm);
 }
 
 function parseBarcode(text) {
