@@ -894,7 +894,7 @@ function badgeHtml(status) {
 }
 
 function getSortedProducts(data) {
-  const products = [...PRODUCTS];
+  const products = PRODUCTS.filter(p => !p.hidden);
   if (sortMode === 'vendor') {
     return products.sort((a,b) => a.vendor.localeCompare(b.vendor,'zh-TW') || a.name.localeCompare(b.name,'zh-TW'));
   }
