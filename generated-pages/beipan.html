@@ -369,7 +369,7 @@
           <div id="card-aoa-ci"></div>
           <div id="card-h5gt"></div>
           <div id="card-gxtl"></div>
-          <div id="card-embryoglue"></div>
+          <div id="card-glue"></div>
         </div>
 
       </div><!-- end two-col grid -->
@@ -1702,7 +1702,7 @@ function recalcAllNeeded() {
   setNeeded('aoa-ci', aoaCiNeeded);
   setNeeded('h5gt', h5gtNeeded);
   setNeeded('gxtl', gxTLNeeded);
-  setNeeded('embryoglue', glueNeeded);
+  setNeeded('glue', glueNeeded);
 }
 
 // ── submitBeipan：儲存備盤結果到 localStorage ──
@@ -1778,8 +1778,8 @@ async function submitBeipan() {
       needed = parseFloat((needed - deduct).toFixed(1));
 
       const _baseNote = opened > 0
-        ? `扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
-        : `扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
+        : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
       const _fullNote = (_isFirstBatch && _mixNote)
         ? `${_baseNote}；混批備註：${_mixNote}`
         : _baseNote;

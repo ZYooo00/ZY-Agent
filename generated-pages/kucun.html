@@ -1275,7 +1275,10 @@ function buildExpandRows(entries, src) {
       const openExpStr = e.openExpiryDate ? `開封後到期 ${e.openExpiryDate}` : '';
       let noteClean = baseNote.replace(/扣除[\d.]+mL[^；]*[；;]\s*/g, '').trim();
       const col4 = [noteClean, openExpStr].filter(Boolean).join(' ｜ ') || '—';
-      return expandRow4(name, lot, col3, col4);
+      const lotBadge = lot
+        ? `<code style="background:#EDE9FF;color:#7A75BB;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600">${lot}</code>`
+        : '—';
+      return expandRow4(name, lotBadge, col3, col4);
     }
 
     if (src === 'jinhuo' && e.action === 'receive') {
