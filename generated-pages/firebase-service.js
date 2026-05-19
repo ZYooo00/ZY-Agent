@@ -260,6 +260,15 @@ export async function getLatestBeipan() {
   return JSON.parse(localStorage.getItem("beipan-result") || "null");
 }
 
+export async function getBeipanHistory(limitCount = 5) {
+  return fsGetOrFallback("beipan-result", async (db) => {
+    const snap = await getDocs(query(
+      collection(db, "beipan_snapshots"), orderBy("date", "desc"), limit(limitCount)
+    ));
+    return snap.docs.map(d => d.data());
+  }, []);
+}
+
 // ─── gupan_snapshots ──────────────────────────────────────────
 export async function saveGupanSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");

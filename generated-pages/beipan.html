@@ -15,11 +15,11 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan } from './firebase-service.js?v=5';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory } from './firebase-service.js?v=6';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan };
+  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -463,6 +463,21 @@
   </div>
 </div>
 
+<!-- ════ MODAL：歷史備盤快照 ════ -->
+<div id="history-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeHistoryModal()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between p-5 border-b border-slate-100">
+      <h3 class="font-heading text-lg font-bold text-slate-800">歷史備盤紀錄</h3>
+      <button onclick="closeHistoryModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="history-modal-list" class="overflow-y-auto p-5 flex-1">
+      <p class="text-slate-400 text-sm text-center py-6">載入中…</p>
+    </div>
+  </div>
+</div>
+
 <script src="shared.js"></script>
 <script>
 // ── 填充備盤人員選單 ──
@@ -532,6 +547,198 @@ function previewBeipan() {
   if (staffEl) staffEl.textContent = `備盤人員：${staffStr}　·　請核對盤子數量（批號與開封日由備盤人員負責）`;
 
   switchState('c');
+}
+
+// ── 歷史備盤 Modal ──
+function closeHistoryModal() {
+  document.getElementById('history-modal')?.classList.add('hidden');
+}
+
+async function openHistoryModal() {
+  const modal = document.getElementById('history-modal');
+  const listEl = document.getElementById('history-modal-list');
+  if (!modal) return;
+  if (listEl) listEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">載入中…</p>';
+  modal.classList.remove('hidden');
+
+  let history = [];
+  try { history = await window._fb.getBeipanHistory(8); } catch(e) {}
+  if (!history.length) {
+    const local = JSON.parse(localStorage.getItem('beipan-result') || 'null');
+    if (local) history = [local];
+  }
+
+  const startIdx = window._beipanLocked ? 1 : 0;
+  const list = history.slice(startIdx, startIdx + 7);
+
+  if (!list.length) {
+    if (listEl) listEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">尚無歷史紀錄</p>';
+    return;
+  }
+
+  if (listEl) listEl.innerHTML = list.map(snap => {
+    // ── 批號區塊 ──
+    const batchMap = {};
+    (snap.batches || []).forEach(b => {
+      if (!batchMap[b.reagentId]) batchMap[b.reagentId] = { name: b.reagentName, lots: [] };
+      if (b.selectedLot && !batchMap[b.reagentId].lots.includes(b.selectedLot))
+        batchMap[b.reagentId].lots.push(b.selectedLot);
+    });
+    const batchRows = Object.values(batchMap).map(g => {
+      const lotText = g.lots.join(' + ') || '—';
+      return `<tr>
+        <td class="py-1 pr-3 text-xs text-slate-500 whitespace-nowrap">${g.name}</td>
+        <td class="py-1 font-mono text-xs font-semibold text-slate-800">${lotText}</td>
+      </tr>`;
+    }).join('');
+
+    // ── GIVF 盤數區塊（使用 givfDishes 取標籤）──
+    const givfRows = (snap.givf || []).map((d, i) => {
+      const label = givfDishes[i]?.name || `列${i+1}`;
+      const unit  = givfDishes[i]?.unit === 'mL' ? ' mL' : '';
+      const val   = d.plan ?? '—';
+      return `<tr>
+        <td class="py-0.5 pr-3 text-xs text-slate-500">${label}</td>
+        <td class="py-0.5 text-xs font-semibold text-slate-800 tabular text-right">${val}${unit}</td>
+      </tr>`;
+    }).join('');
+
+    // ── Matrix 盤數區塊 ──
+    const matrixRows = (snap.matrix || []).map((d, i) => {
+      const label = matrixDishes[i]?.name || `列${i+1}`;
+      const isMl  = matrixDishes[i]?.isMl;
+      const fmtVal = v => v === null || v === undefined ? '—' : (isMl ? parseFloat(v).toFixed(1) : v);
+      return `<tr>
+        <td class="py-0.5 pr-3 text-xs text-slate-500">${label}</td>
+        <td class="py-0.5 text-xs font-semibold text-purple-700 tabular text-right w-10">${fmtVal(d.h5gt)}</td>
+        <td class="py-0.5 text-xs font-semibold text-blue-700 tabular text-right w-10">${fmtVal(d.gxtl)}</td>
+      </tr>`;
+    }).join('');
+
+    const glueVal = snap.glue != null ? `EmbryoGlue：${snap.glue} 瓶` : '';
+
+    return `<div class="border border-slate-200 rounded-xl p-4 mb-4 last:mb-0">
+      <!-- 日期 + 備盤人 -->
+      <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100">
+        <span class="text-sm font-bold text-slate-800">${snap.date || '—'}</span>
+        <span class="text-xs text-slate-400">備盤人：${snap.operator || '—'}</span>
+      </div>
+      <div class="flex gap-4">
+        <!-- 左：盤子數量 -->
+        <div class="flex-1 min-w-0">
+          <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">卵子 GIVF 盤數</div>
+          <table class="w-full"><tbody>${givfRows || '<tr><td class="text-xs text-slate-300 py-1">無資料</td></tr>'}</tbody></table>
+          <div class="mt-2 pt-2 border-t border-slate-100">
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">矩陣盤數</div>
+            <table class="w-full">
+              <thead><tr>
+                <th class="text-left text-[10px] text-slate-400 font-normal pb-0.5"></th>
+                <th class="text-right text-[10px] text-purple-400 font-semibold pb-0.5 w-10">H5GT</th>
+                <th class="text-right text-[10px] text-blue-400 font-semibold pb-0.5 w-10">GxTL</th>
+              </tr></thead>
+              <tbody>${matrixRows || '<tr><td colspan="3" class="text-xs text-slate-300 py-1">無資料</td></tr>'}</tbody>
+            </table>
+            ${glueVal ? `<div class="text-xs text-slate-500 mt-1.5">${glueVal}</div>` : ''}
+          </div>
+        </div>
+        <!-- 右：試劑批號 -->
+        <div class="w-48 flex-shrink-0 border-l border-slate-100 pl-4">
+          <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">試劑批號</div>
+          <table class="w-full"><tbody>${batchRows || '<tr><td class="text-xs text-slate-300 py-1">無資料</td></tr>'}</tbody></table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 唯讀版 State B（備盤送出後鎖定） ──
+async function lockStateB(snapshot) {
+  // 1. 還原 givf 盤數
+  if (snapshot.givf) {
+    snapshot.givf.forEach((d, i) => { if (givfDishes[i]) givfDishes[i].plan = d.plan; });
+    const tbody = document.getElementById('givf-dish-body');
+    if (tbody) tbody.innerHTML = '';
+    buildGivfTable();
+  }
+  // 2. 還原 matrix 盤數
+  if (snapshot.matrix) {
+    snapshot.matrix.forEach((d, i) => {
+      if (!matrixDishes[i]) return;
+      if (d.h5gt !== null) matrixDishes[i].h5gt = d.h5gt;
+      if (d.gxtl !== null) matrixDishes[i].gxtl = d.gxtl;
+    });
+    const tbody = document.getElementById('matrix-dish-body');
+    if (tbody) tbody.innerHTML = '';
+    buildMatrixTable();
+  }
+  // 3. 還原 glue
+  if (snapshot.glue != null) {
+    gluePlan = snapshot.glue;
+    const cell = document.getElementById('glue-plan-cell');
+    const inp  = document.getElementById('glue-plan-input');
+    if (cell) cell.textContent = gluePlan;
+    if (inp)  inp.value = gluePlan;
+  }
+  recalcAllNeeded();
+
+  // 4. 還原批號 radio 選取
+  if (snapshot.batches) {
+    snapshot.batches.forEach(b => {
+      const radio = document.querySelector(`input[name="r-${b.reagentId}"][value="${b.selectedLot}"]`);
+      if (radio) radio.checked = true;
+    });
+  }
+
+  // 5. 插入鎖定 Banner（只插一次）
+  if (!document.getElementById('state-b-locked-banner')) {
+    const titleRow = document.querySelector('#state-b .flex.items-start.justify-between');
+    // 綠色完成徽章
+    const banner = document.createElement('div');
+    banner.id = 'state-b-locked-banner';
+    banner.className = 'flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3';
+    banner.innerHTML = `<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="text-sm font-semibold text-green-700">今日備盤已完成並鎖定</span>
+      <span class="text-green-300 mx-1">·</span>
+      <span class="text-sm text-green-600">備盤人：${snapshot.operator || '—'}</span>`;
+    // 橘色警示區塊
+    const warning = document.createElement('div');
+    warning.className = 'flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3';
+    warning.innerHTML = `<svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>備盤已鎖定，無法重新填寫。若實際用量與備盤不符，請至 <strong>庫存總覽 → 手動補登</strong> 修正。</span>`;
+    if (titleRow) {
+      titleRow.after(warning);
+      titleRow.after(banner);
+    }
+  }
+
+  // 6. 歷史備盤按鈕（插入 header-action-area）
+  if (!document.getElementById('history-btn-b')) {
+    const headerArea = document.getElementById('header-action-area');
+    if (headerArea) {
+      const histBtn = document.createElement('button');
+      histBtn.id = 'history-btn-b';
+      histBtn.setAttribute('onclick', 'openHistoryModal()');
+      histBtn.className = 'flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 transition-colors';
+      histBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>歷史備盤`;
+      headerArea.prepend(histBtn);
+    }
+  }
+
+  // 7. 禁用所有 input / select / textarea
+  document.querySelectorAll('#state-b input, #state-b select, #state-b textarea').forEach(el => {
+    el.disabled = true;
+  });
+
+  // 8. 隱藏操作性按鈕
+  ['previewBeipan','openModal','toggleSecondBatch','toggleExhausted','replaceExpiredBottle','refreshGupanData'].forEach(fn => {
+    document.querySelectorAll(`#state-b button[onclick*="${fn}"]`).forEach(b => b.classList.add('hidden'));
+  });
+  // 隱藏底部送出區
+  const submitArea = document.querySelector('#state-b .flex.justify-end.gap-3');
+  if (submitArea) submitArea.classList.add('hidden');
+
+  window._beipanLocked = true;
+  switchState('b');
 }
 
 function switchState(s) {
@@ -1623,10 +1830,26 @@ async function submitBeipan() {
   });
 
   const userNote = document.getElementById('beipan-note-input')?.value.trim() || '';
+  // 存入當時的盤數快照，讓隔天重載時能完整還原 State B
+  const givfSnap = givfDishes.map((d, i) => {
+    const inp = document.querySelector('#givf-row-' + i + ' input[type="number"]');
+    return { plan: inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : d.plan };
+  });
+  const matrixSnap = matrixDishes.map((d, i) => {
+    const inpH5 = document.querySelector('#mrow-' + i + ' .cell-h5gt input');
+    const inpGx = document.querySelector('#mrow-' + i + ' .cell-gxtl input');
+    return {
+      h5gt: inpH5 && inpH5.value !== '' ? (parseFloat(inpH5.value) || 0) : (d.h5gt ?? null),
+      gxtl: inpGx && inpGx.value !== '' ? (parseFloat(inpGx.value) || 0) : (d.gxtl ?? null),
+    };
+  });
   const payload = {
     date: dateStr, operator, batches: updatedBatches,
     threshold: { orange_days: 3, red_days: 1 },
     note: userNote || null,
+    givf: givfSnap,
+    matrix: matrixSnap,
+    glue: gluePlan,
   };
   try {
     await window._fb.saveBeipanSnapshot(payload);
@@ -1647,21 +1870,7 @@ async function submitBeipan() {
     await Promise.all(allLogs);
   } catch(e) { console.error('[beipan] Firebase 儲存失敗', e); }
   showToast('備盤結果已儲存 ✓', 'ok');
-  // 送出後切換到完成狀態（不顯示「鎖定」訊息）
-  const icon  = document.getElementById('state-a-icon');
-  const title = document.getElementById('state-a-title');
-  const desc  = document.getElementById('state-a-desc');
-  const badge = document.getElementById('state-a-badge');
-  if (icon)  icon.innerHTML  = `<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
-  if (icon)  icon.className  = 'w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5';
-  const tmNow = new Date(); tmNow.setDate(tmNow.getDate() + 1);
-  const tmStr = `${tmNow.getMonth()+1}/${tmNow.getDate()}`;
-  if (title) title.textContent = '明日備盤已完成';
-  if (desc)  desc.textContent  = `明日（${tmStr}）備盤結果已儲存至雲端，今日任務結束。`;
-  if (badge) { badge.className = 'mt-5 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-700'; badge.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 批號與用量已記錄`; }
-  const hint = document.getElementById('state-a-hint');
-  if (hint) hint.classList.remove('hidden');
-  switchState('a');
+  await lockStateB(payload);
 }
 
 // ── Glue 計畫值（可由 gupan 覆蓋）──
@@ -1780,25 +1989,10 @@ onReady(async function() {
   }
 
   if (todayBeipan?.date === todayStr) {
-    const icon  = document.getElementById('state-a-icon');
-    const title = document.getElementById('state-a-title');
-    const desc  = document.getElementById('state-a-desc');
-    const badge2 = document.getElementById('state-a-badge');
-    const tm = new Date(); tm.setDate(tm.getDate() + 1);
-    const tmStr = `${tm.getMonth()+1}/${tm.getDate()}`;
-    if (icon) {
-      icon.innerHTML = `<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
-      icon.className = 'w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5';
-    }
-    if (title) title.textContent = '今日備盤已完成';
-    if (desc) desc.textContent = `明日（${tmStr}）備盤結果已儲存，備盤人員：${todayBeipan.operator || '—'}。`;
-    if (badge2) {
-      badge2.className = 'mt-5 inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-sm text-green-700';
-      badge2.innerHTML = `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 批號與用量已記錄`;
-    }
-    const hint2 = document.getElementById('state-a-hint');
-    if (hint2) hint2.classList.remove('hidden');
-    switchState('a');
+    // 需先載入批號資料，才能建立卡片並還原 radio 選取
+    await initBatchesFromFirebase();
+    buildAllBatchCards();
+    await lockStateB(todayBeipan);
     return; // 不進行後續初始化，防止進入可填寫狀態
   }
 
