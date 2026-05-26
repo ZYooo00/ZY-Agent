@@ -255,22 +255,22 @@
         <span class="text-xs text-slate-400">兩人皆可操作，任一人可送出</span>
       </div>
 
-      <!-- 估盤摘要 -->
-      <div class="bg-secondary border border-primary-light rounded-xl px-5 py-3">
+      <!-- 估盤摘要（由 loadGupanData 動態填入，未估盤時隱藏） -->
+      <div id="gupan-summary-bar" class="hidden bg-secondary border border-primary-light rounded-xl px-5 py-3">
         <div class="flex items-center gap-3 flex-wrap">
           <span class="text-xs font-heading font-semibold text-primary-dark uppercase tracking-wide whitespace-nowrap">明日估盤摘要</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">OPU <span class="font-bold text-primary-dark tabular">3</span> 台</span>
+          <span class="text-sm text-slate-700">OPU <span class="font-bold text-primary-dark tabular" id="sum-opu">0</span> 台</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">TE <span class="font-bold text-primary-dark tabular">2</span> 台</span>
+          <span class="text-sm text-slate-700">TE <span class="font-bold text-primary-dark tabular" id="sum-te">0</span> 台</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">受精 <span class="font-bold text-primary-dark tabular">5</span> 台</span>
+          <span class="text-sm text-slate-700">受精 <span class="font-bold text-primary-dark tabular" id="sum-szu">0</span> 台</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">FBT <span class="font-bold text-primary-dark tabular">2</span> 台</span>
+          <span class="text-sm text-slate-700">FBT <span class="font-bold text-primary-dark tabular" id="sum-fbt">0</span> 台</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">BT <span class="font-bold text-primary-dark tabular">1</span> 台</span>
+          <span class="text-sm text-slate-700">BT <span class="font-bold text-primary-dark tabular" id="sum-bt">0</span> 台</span>
           <span class="text-slate-300">·</span>
-          <span class="text-sm text-slate-700">TBx <span class="font-bold text-primary-dark tabular">1</span> 台</span>
+          <span class="text-sm text-slate-700">TBx <span class="font-bold text-primary-dark tabular" id="sum-tbx">0</span> 台</span>
         </div>
       </div>
 
@@ -1457,14 +1457,14 @@ function onLotChange() {
 
 // ── GIVF 盤子表格 ──
 const givfDishes = [
-  { name:'OPU',       plan:3,   unit:'盤' },
-  { name:'De',        plan:5,   unit:'盤' },
-  { name:'TE',        plan:2,   unit:'盤' },
-  { name:'AOA 弘優',  plan:2,   unit:'盤' },
+  { name:'OPU',       plan:0,   unit:'盤' },
+  { name:'De',        plan:0,   unit:'盤' },
+  { name:'TE',        plan:0,   unit:'盤' },
+  { name:'AOA 弘優',  plan:0,   unit:'盤' },
   { name:'AOA 508',   plan:0,   unit:'盤' },
-  { name:'精蟲',      plan:4,   unit:'盤' },
+  { name:'精蟲',      plan:0,   unit:'盤' },
   { name:'G-IVF pH', plan:0,   unit:'盤', key:'givf_ph' },
-  { name:'多配 (mL)', plan:2.0, unit:'mL', calc:true, extraTarget:'givf' },
+  { name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
 ];
 
 function buildGivfTable() {
@@ -1511,13 +1511,13 @@ function checkGivfDiff(input, plan, i) {
 
 // ── 胚胎矩陣（H5GT 左、GxTL 右） ──
 const matrixDishes = [
-  { name:'D0',          h5gt:2,   gxtl:3   },
-  { name:'Bx',          h5gt:1,   gxtl:1,  note:'*不PGS者 ≥5# 須備' },
-  { name:'TB',          h5gt:1,   gxtl:0   },
-  { name:'Geri-受精',   h5gt:2,   gxtl:3   },
-  { name:'Geri-FBT',    h5gt:1,   gxtl:0   },
+  { name:'D0',          h5gt:0,   gxtl:0   },
+  { name:'Bx',          h5gt:0,   gxtl:0,  note:'*不PGS者 ≥5# 須備' },
+  { name:'TB',          h5gt:0,   gxtl:0   },
+  { name:'Geri-受精',   h5gt:0,   gxtl:0   },
+  { name:'Geri-FBT',    h5gt:0,   gxtl:0   },
   { name:'pH 盤',       h5gt:0,   gxtl:0,   key:'ph'  },
-  { name:'多配 (mL)',   h5gt:2.0, gxtl:2.0, isMl:true },
+  { name:'多配 (mL)',   h5gt:0,   gxtl:0,   isMl:true },
 ];
 
 function cellCls(val, side) {
@@ -1907,6 +1907,16 @@ async function loadGupanData() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
   if (data.date !== todayStr) return;
+
+  // 更新估盤摘要 bar（台數）
+  if (data.taiVals) {
+    const tv = data.taiVals;
+    ['opu','te','szu','fbt','bt','tbx'].forEach(k => {
+      const el = document.getElementById(`sum-${k}`);
+      if (el) el.textContent = tv[k] ?? 0;
+    });
+    document.getElementById('gupan-summary-bar')?.classList.remove('hidden');
+  }
 
   const { givf, matrix } = data;
 
