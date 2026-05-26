@@ -15,11 +15,11 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=6';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=6';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory, getLatestGupan };
+  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -35,8 +35,33 @@
     } catch(e) {
       console.warn('[devReset] Firestore 刪除失敗（可能需手動到 Console 刪除）', e);
     }
+    window._beipanLocked = false;
+    window._beipanSubmitting = false;
     console.log('[devReset] 完成！請重新整理頁面。');
     alert('重置完成！請按 F5 重新整理頁面。');
+  };
+
+  // Dev-only: 清除今日備盤產生的 kucun_changelog 條目，在 DevTools console 呼叫 devCleanTodayChangelog()
+  window.devCleanTodayChangelog = async function() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    // localStorage
+    try {
+      const logs = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+      const filtered = logs.filter(l => !(l.ts || '').startsWith(todayStr) || l.source !== 'beipan');
+      localStorage.setItem('kucun-changelog', JSON.stringify(filtered));
+      console.log(`[devClean] localStorage 已移除今日 beipan 條目（剩 ${filtered.length} 筆）`);
+    } catch(e) { console.warn('[devClean] localStorage 失敗', e); }
+    // Firestore
+    try {
+      const { getFirestore, collection, query, where, getDocs, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const db = getFirestore(getApp());
+      const snap = await getDocs(query(collection(db, 'kucun_changelog'), where('source', '==', 'beipan')));
+      const toDelete = snap.docs.filter(d => (d.data().tsRaw || d.data().ts?.toDate?.()?.toISOString() || '').startsWith(todayStr));
+      await Promise.all(toDelete.map(d => deleteDoc(d.ref)));
+      console.log(`[devClean] Firestore 已刪除 ${toDelete.length} 筆今日 beipan changelog`);
+    } catch(e) { console.warn('[devClean] Firestore 失敗', e); }
+    alert('清除完成！請按 F5 重新整理頁面。');
   };
 </script>
 <style>
@@ -496,6 +521,8 @@
 })();
 
 // ── State switching ──
+let _forceOverride = false;
+
 function previewBeipan() {
   const s1 = document.getElementById('beipan-staff-1')?.value || '';
   const s2 = document.getElementById('beipan-staff-2')?.value || '';
@@ -503,6 +530,29 @@ function previewBeipan() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast('請選擇兩位備盤人員', 'warn');
     return;
+  }
+
+  // ── 庫存充足性軟性檢查 ──
+  const insufficient = [];
+  reagentConfig.forEach(cfg => {
+    const needed = parseFloat(cfg.needed) || 0;
+    if (needed <= 0) return;
+    const totalAvail = cfg.batches
+      .filter(b => !b.blocked && !['expired', 'open_expired'].includes(calcBadge(b, needed).status))
+      .reduce((sum, b) => sum + (b.remaining || 0), 0);
+    if (parseFloat(totalAvail.toFixed(1)) < needed) {
+      insufficient.push(`${cfg.name}（需 ${needed.toFixed(1)} mL，帳面合計 ${totalAvail.toFixed(1)} mL）`);
+    }
+  });
+  if (insufficient.length > 0) {
+    const msg = `以下品項帳面剩餘量不足今日需用量：\n${insufficient.map(s => '• ' + s).join('\n')}\n\n` +
+      `若瓶內實際液量已足夠（帳面是估算誤差），請點「確定」強制送出。\n` +
+      `（系統將以今日需用量直接扣除，帳面剩餘歸零吸收誤差）\n\n` +
+      `若尚未開立新瓶，請點「取消」後先點「登記新開瓶」補充。`;
+    if (!window.confirm(msg)) return;
+    _forceOverride = true;
+  } else {
+    _forceOverride = false;
   }
 
   const cards = [];
@@ -658,6 +708,38 @@ async function openHistoryModal() {
 }
 
 // ── 唯讀版 State B（備盤送出後鎖定） ──
+function restoreStateC(snapshot) {
+  // 從 snapshot.batches 重建 State C 批號卡片
+  const cards = [];
+  const seen = new Set();
+  (snapshot.batches || []).forEach(b => {
+    if (seen.has(b.reagentId)) return;  // 同品項多批次只顯示一張卡
+    seen.add(b.reagentId);
+    const bgCls  = b.reagentId === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
+                   b.reagentId === 'gxtl' ? 'bg-blue-50 border border-blue-100' :
+                   b.reagentId === 'gm508' ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50';
+    const lblCls = b.reagentId === 'h5gt' ? 'text-purple-400' :
+                   b.reagentId === 'gxtl' ? 'text-blue-400' :
+                   b.reagentId === 'gm508' ? 'text-amber-500' : 'text-slate-500';
+    // 同品項若有多個批次（混批），收集所有 lot
+    const lots = (snapshot.batches || [])
+      .filter(x => x.reagentId === b.reagentId)
+      .map(x => x.selectedLot);
+    cards.push(`<div class="${bgCls} rounded-lg p-3">
+      <span class="${lblCls} text-xs block">${b.reagentName}</span>
+      <span class="font-mono font-semibold text-slate-800">${lots.join(' + ')}</span>
+    </div>`);
+  });
+
+  const grid = document.querySelector('#state-c .grid');
+  if (grid) grid.innerHTML = cards.join('');
+
+  const staffEl = document.getElementById('state-c-staff-display');
+  if (staffEl) staffEl.textContent = `備盤人員：${snapshot.operator || '—'}　·　今日備盤已完成，批號與開封日由備盤人員負責`;
+
+  switchState('c');
+}
+
 async function lockStateB(snapshot) {
   // 1. 還原 givf 盤數
   if (snapshot.givf) {
@@ -744,6 +826,7 @@ async function lockStateB(snapshot) {
   if (submitArea) submitArea.classList.add('hidden');
 
   window._beipanLocked = true;
+  window._stateCUnsubmitted = false;
   switchState('b');
 }
 
@@ -753,7 +836,20 @@ function switchState(s) {
     const btn = document.getElementById('btn-'+id);
     if (btn) btn.classList.toggle('active', id === s);
   });
+  // 進入 State C 預覽（尚未送出）→ 攔截離頁，避免靜默丟失
+  if (s === 'c' && !window._beipanLocked) {
+    window._stateCUnsubmitted = true;
+  } else {
+    window._stateCUnsubmitted = false;
+  }
 }
+
+window.addEventListener('beforeunload', function(e) {
+  if (window._stateCUnsubmitted) {
+    e.preventDefault();
+    e.returnValue = '備盤尚未送出，離開後需重新填寫。確定要離開嗎？';
+  }
+});
 
 // ── Date utilities ──
 const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
@@ -1331,35 +1427,82 @@ function openModal(r, cardId, preSelectLot) {
 function confirmOpenBottle() {
   const sel    = document.getElementById('modal-lot-select');
   const lotVal = sel.value;
-  if (lotVal !== '__new__' && _modalCardId) {
-    const cfg = (_modalCardId === 'gm508') ? gm508Config :
-                reagentConfig.find(c => c.id === _modalCardId);
-    if (cfg) {
-      const batch = cfg.batches.find(b => b.lot === lotVal);
-      if (batch && (batch.unopened || 0) > 0) {
-        batch.unopened  -= 1;
-        batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || cfg.bottleVol || 0)).toFixed(1));
-        const _today = new Date();
-        const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        batch.openDate = _fmt(_today);
-        const _prod = PRODUCTS.find(p => p.id === cfg.id);
-        const _openDays = _prod?.openExpiryDays || 0;
-        if (_openDays > 0) {
-          const _openExp = new Date(_today);
-          _openExp.setDate(_openExp.getDate() + _openDays);
-          batch.openExpiry = _fmt(_openExp);
-        }
-      } else if (batch) {
-        showToast('此批號已無未開封瓶可供開啟', 'warn');
-        closeModal();
-        return;
-      }
+  if (!_modalCardId) { closeModal(); return; }
+
+  const cfg = (_modalCardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === _modalCardId);
+  if (!cfg) { closeModal(); return; }
+
+  const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _today = new Date();
+  const _prod = PRODUCTS.find(p => p.id === cfg.id);
+  const _openDays = _prod?.openExpiryDays || 0;
+
+  if (lotVal === '__new__') {
+    // ── 新批號路徑 ──
+    const newLot    = document.getElementById('modal-new-lot-input')?.value.trim();
+    const expiryVal = document.getElementById('modal-expiry-date')?.value;
+    const openDateVal = document.getElementById('modal-open-date')?.value || _fmt(_today);
+    if (!newLot) { showToast('請輸入批號', 'warn'); return; }
+    if (!expiryVal) { showToast('請輸入效期', 'warn'); return; }
+    if (cfg.batches.find(b => b.lot === newLot)) { showToast('此批號已存在', 'warn'); return; }
+
+    let openExpiry = null;
+    if (_openDays > 0) {
+      const _exp = new Date(openDateVal);
+      _exp.setDate(_exp.getDate() + _openDays);
+      openExpiry = _fmt(_exp);
     }
-    const renderId  = (_modalCardId === 'gm508') ? 'aoa-ci' : _modalCardId;
-    const renderCfg = reagentConfig.find(c => c.id === renderId);
-    const el = document.getElementById('card-' + renderId);
-    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+    const bottleVol = cfg.bottleVol || 0;
+    const newBatch = {
+      lot: newLot, expiry: expiryVal, openDate: openDateVal, openExpiry,
+      remaining: bottleVol, unopened: 0, bottleVol, blocked: false,
+      _manuallyOpened: 1,
+    };
+    cfg.batches.unshift(newBatch);
+
+    // 自動補建進貨記錄（確保 F5 後不消失）
+    const jinhuoId = `beipan-newlot-${cfg.id}-${newLot}-${Date.now()}`;
+    const autoJinhuo = {
+      id: jinhuoId, productId: cfg.id, productName: cfg.name,
+      lotNumber: newLot, expiryDate: expiryVal,
+      receivedQty: 1, unit: '瓶',
+      receivedAt: new Date().toISOString(), qcStatus: 'approved', isVoided: false,
+      note: '備盤時手動開新批號，系統自動補登',
+    };
+    // 更新 localStorage 快取（供 F5 重建用）
+    try {
+      const cached = JSON.parse(localStorage.getItem('jinhuo-records') || '[]');
+      cached.unshift(autoJinhuo);
+      localStorage.setItem('jinhuo-records', JSON.stringify(cached));
+    } catch(e) {}
+    // 非同步寫入 Firestore（不卡 UI）
+    window._fb?.saveJinhuoRecord?.(autoJinhuo).catch(e => console.warn('[autoJinhuo]', e));
+
+  } else {
+    // ── 現有批號路徑 ──
+    const batch = cfg.batches.find(b => b.lot === lotVal);
+    if (!batch) { closeModal(); return; }
+    if ((batch.unopened || 0) <= 0) {
+      showToast('此批號已無未開封瓶可供開啟', 'warn');
+      closeModal(); return;
+    }
+    batch.unopened  -= 1;
+    batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || cfg.bottleVol || 0)).toFixed(1));
+    batch._manuallyOpened = (batch._manuallyOpened || 0) + 1;
+    batch.openDate = _fmt(_today);
+    if (_openDays > 0) {
+      const _exp = new Date(_today);
+      _exp.setDate(_exp.getDate() + _openDays);
+      batch.openExpiry = _fmt(_exp);
+    }
   }
+
+  // 重新渲染卡片
+  const renderId  = (_modalCardId === 'gm508') ? 'aoa-ci' : _modalCardId;
+  const renderCfg = (_modalCardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === renderId);
+  const el = document.getElementById('card-' + renderId);
+  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+
   closeModal();
 }
 
@@ -1716,14 +1859,25 @@ function recalcAllNeeded() {
 
 // ── submitBeipan：儲存備盤結果到 localStorage ──
 async function submitBeipan() {
+  // 防止重複送出（今日已鎖定 或 正在送出中）
+  if (window._beipanLocked) {
+    showToast('今日備盤已送出，無法重複送出', 'warn');
+    return;
+  }
+  if (window._beipanSubmitting) return;
+  window._beipanSubmitting = true;
+
   const staff1 = document.getElementById('beipan-staff-1')?.value || '';
   const staff2 = document.getElementById('beipan-staff-2')?.value || '';
   if (!staff1 || !staff2) {
+    window._beipanSubmitting = false;
     window.scrollTo({ top:0, behavior:'smooth' });
     showToast('請選擇兩位備盤人員', 'warn');
     return;
   }
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
+  const _wasForceOverride = _forceOverride;
+  _forceOverride = false;
 
   // 混批備註必填驗證
   for (const cfg of reagentConfig) {
@@ -1748,7 +1902,10 @@ async function submitBeipan() {
 
   reagentConfig.forEach(cfg => {
     let needed = parseFloat(cfg.needed) || 0;
-    if (needed <= 0) return;
+
+    // needed=0 時仍需檢查是否有手動開瓶或報廢動作，有的話必須寫入日誌
+    const hasManualOps = cfg.batches.some(b => (b._manuallyOpened || 0) > 0 || b.markedExhausted);
+    if (needed <= 0 && !hasManualOps) return;
 
     // 找出使用者選取的主要批號（via radio value）
     const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
@@ -1769,26 +1926,25 @@ async function submitBeipan() {
     let _isFirstBatch = true;
 
     for (const batch of orderedBatches) {
-      if (needed <= 0) break;
+      const _batchOpened = batch._manuallyOpened || 0;
+      const _batchExhausted = batch.markedExhausted;
+      // needed 已滿足，且此批號無手動開瓶也無報廢 → 跳過（continue 而非 break，讓後面批號有機會處理）
+      if (needed <= 0 && _batchOpened === 0 && !_batchExhausted) continue;
 
       let rem = batch.remaining;
       let unop = batch.unopened;
-      let opened = 0;
-
-      // 開封新瓶直到夠用或沒得開
-      while (needed > rem && unop > 0) {
-        rem += batch.bottleVol || 0;
-        unop--;
-        opened++;
-      }
+      let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
+      batch._manuallyOpened = 0;
 
       const deduct = parseFloat(Math.min(needed, rem).toFixed(1));
-      let newRem    = parseFloat((rem - deduct).toFixed(1));
+      let newRem = parseFloat((rem - deduct).toFixed(1));
       needed = parseFloat((needed - deduct).toFixed(1));
 
       const _baseNote = opened > 0
         ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
-        : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+        : (_forceOverride && newRem === 0 && needed > 0)
+          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
+          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
       const _fullNote = (_isFirstBatch && _mixNote)
         ? `${_baseNote}；混批備註：${_mixNote}`
         : _baseNote;
@@ -1877,7 +2033,13 @@ async function submitBeipan() {
       }));
     }
     await Promise.all(allLogs);
-  } catch(e) { console.error('[beipan] Firebase 儲存失敗', e); }
+  } catch(e) {
+    console.error('[beipan] Firebase 儲存失敗', e);
+    showToast('儲存失敗，請重試', 'warn');
+    window._beipanSubmitting = false;
+    return;
+  }
+  window._beipanSubmitting = false;
   showToast('備盤結果已儲存 ✓', 'ok');
   await lockStateB(payload);
 }
@@ -2037,11 +2199,11 @@ onReady(async function() {
   }
 
   if (todayBeipan?.date === todayStr) {
-    // 需先載入批號資料，才能建立卡片並還原 radio 選取
+    // 今日已送出：載入批號 → 建立卡片 → 鎖定 State B
     await initBatchesFromFirebase();
     buildAllBatchCards();
     await lockStateB(todayBeipan);
-    return; // 不進行後續初始化，防止進入可填寫狀態
+    return;
   }
 
   if (localStorage.getItem('__beipan_test__') === '1') {
