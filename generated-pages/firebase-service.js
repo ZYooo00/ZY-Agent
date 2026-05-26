@@ -11,7 +11,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, doc,
-  setDoc, getDoc, getDocs, updateDoc,
+  setDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, orderBy, limit, where,
   serverTimestamp, Timestamp, arrayUnion, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -29,6 +29,21 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "565116361227",
   appId: "1:565116361227:web:6788ae3503bf431cf3050e"
 };
+
+// ─── 環境偵測：正式站 vs 測試站 ────────────────────────────────
+const IS_PROD = location.hostname === 'stork11-embryo-lab.web.app'
+             || location.hostname === 'stork11-embryo-lab.firebaseapp.com';
+const DB_PREFIX = IS_PROD ? '' : 'test_';
+const COLLECTIONS = {
+  changelog:       DB_PREFIX + 'kucun_changelog',
+  jinhuo:          DB_PREFIX + 'jinhuo_records',
+  orders:          DB_PREFIX + 'orders',
+  pandian:         DB_PREFIX + 'pandian_snapshots',
+  beipan:          DB_PREFIX + 'beipan_snapshots',
+  gupan_snapshots: DB_PREFIX + 'gupan_snapshots',
+  gupan_drafts:    DB_PREFIX + 'gupan_drafts',
+};
+window._isTestEnv = !IS_PROD;
 
 // ─── 初始化 ────────────────────────────────────────────────────
 let _db = null;
@@ -103,14 +118,14 @@ async function buildPayloadWithTimestamps(db, collectionName, docId, data) {
 // ─── orders ───────────────────────────────────────────────────
 export async function saveOrder(orderObj) {
   await dualWrite("order-history", orderObj, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, "orders", orderObj.id, orderObj);
+    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.orders, orderObj.id, orderObj);
     await setDoc(ref, payload, { merge: true });
   });
 }
 
 export async function getOrders() {
   return fsGetOrFallback("order-history", async (db) => {
-    const snap = await getDocs(query(collection(db, "orders"), orderBy("date", "desc")));
+    const snap = await getDocs(query(collection(db, COLLECTIONS.orders), orderBy("date", "desc")));
     return snap.docs.map(d => d.data());
   });
 }
@@ -118,7 +133,7 @@ export async function getOrders() {
 export async function updateOrderStatus(orderId, status) {
   try {
     if (isFirestoreAvailable()) {
-      await updateDoc(doc(_db, "orders", orderId), { status, updatedAt: serverTimestamp() });
+      await updateDoc(doc(_db, COLLECTIONS.orders, orderId), { status, updatedAt: serverTimestamp() });
     }
     const orders = JSON.parse(localStorage.getItem("order-history") || "[]");
     const idx = orders.findIndex(o => o.id === orderId);
@@ -129,14 +144,14 @@ export async function updateOrderStatus(orderId, status) {
 // ─── jinhuo_records ───────────────────────────────────────────
 export async function saveJinhuoRecord(recordObj) {
   await dualWrite("jinhuo-records", recordObj, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, "jinhuo_records", recordObj.id, recordObj);
+    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.jinhuo, recordObj.id, recordObj);
     await setDoc(ref, payload, { merge: true });
   });
 }
 
 export async function getJinhuoRecords() {
   return fsGetOrFallback("jinhuo-records", async (db) => {
-    const snap = await getDocs(query(collection(db, "jinhuo_records"), orderBy("receivedAt", "desc")));
+    const snap = await getDocs(query(collection(db, COLLECTIONS.jinhuo), orderBy("receivedAt", "desc")));
     return snap.docs.map(d => d.data());
   });
 }
@@ -152,7 +167,7 @@ export async function voidJinhuoRecord(recordId, voidedBy, voidReason, logObj) {
   };
   try {
     if (isFirestoreAvailable()) {
-      await updateDoc(doc(_db, "jinhuo_records", recordId), {
+      await updateDoc(doc(_db, COLLECTIONS.jinhuo, recordId), {
         isVoided: true, voidedBy, voidReason,
         updatedAt: serverTimestamp(),
         history: arrayUnion(historyEntry)
@@ -187,7 +202,7 @@ export async function appendKucunLog(logObj) {
 
   if (isFirestoreAvailable()) {
     try {
-      const ref = doc(_db, "kucun_changelog", logObj.id);
+      const ref = doc(_db, COLLECTIONS.changelog, logObj.id);
       await setDoc(ref, {
         ...logObj,
         ts: Timestamp.fromDate(new Date(logObj.ts)),
@@ -197,10 +212,24 @@ export async function appendKucunLog(logObj) {
   }
 }
 
+export async function deleteKucunLogEntries(ids = []) {
+  if (!ids.length) return;
+  // localStorage 同步刪除
+  try {
+    const existing = JSON.parse(localStorage.getItem("kucun-changelog") || "[]");
+    const filtered = existing.filter(e => !ids.includes(e.id));
+    localStorage.setItem("kucun-changelog", JSON.stringify(filtered));
+  } catch (e) { console.warn("[deleteKucunLogEntries] localStorage 失敗", e); }
+  // Firestore 刪除
+  if (isFirestoreAvailable()) {
+    await Promise.all(ids.map(id => deleteDoc(doc(_db, COLLECTIONS.changelog, id)).catch(e => console.warn("[deleteKucunLogEntries] 刪除失敗", id, e))));
+  }
+}
+
 export async function getKucunChangelog(productId = null, limitCount = 200) {
   return fsGetOrFallback("kucun-changelog", async (db) => {
-    let q = query(collection(db, "kucun_changelog"), orderBy("ts", "desc"), limit(limitCount));
-    if (productId) q = query(collection(db, "kucun_changelog"),
+    let q = query(collection(db, COLLECTIONS.changelog), orderBy("ts", "desc"), limit(limitCount));
+    if (productId) q = query(collection(db, COLLECTIONS.changelog),
       where("productId", "==", productId), orderBy("ts", "desc"), limit(limitCount));
     const snap = await getDocs(q);
     return snap.docs.map(d => {
@@ -218,7 +247,7 @@ export async function getKucunChangelog(productId = null, limitCount = 200) {
 export async function savePandianSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");
   await dualWrite("pandian-history", { ...snapshotObj, _docId: docId }, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, "pandian_snapshots", docId, snapshotObj);
+    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.pandian, docId, snapshotObj);
     await setDoc(ref, payload, { merge: true });
   });
   localStorage.setItem("pandian-result", JSON.stringify(snapshotObj));
@@ -227,7 +256,7 @@ export async function savePandianSnapshot(snapshotObj) {
 export async function getLatestPandian() {
   if (isFirestoreAvailable()) {
     try {
-      const snap = await getDocs(query(collection(_db, "pandian_snapshots"), orderBy("date", "desc"), limit(1)));
+      const snap = await getDocs(query(collection(_db, COLLECTIONS.pandian), orderBy("date", "desc"), limit(1)));
       if (!snap.empty) return snap.docs[0].data();
     } catch (e) { console.warn("[getLatestPandian]", e); }
   }
@@ -236,7 +265,7 @@ export async function getLatestPandian() {
 
 export async function getPandianHistory() {
   return fsGetOrFallback("pandian-history", async (db) => {
-    const snap = await getDocs(query(collection(db, "pandian_snapshots"), orderBy("date", "desc")));
+    const snap = await getDocs(query(collection(db, COLLECTIONS.pandian), orderBy("date", "desc")));
     return snap.docs.map(d => d.data());
   });
 }
@@ -245,7 +274,7 @@ export async function getPandianHistory() {
 export async function saveBeipanSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");
   await dualWrite("beipan-result", snapshotObj, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, "beipan_snapshots", docId, snapshotObj);
+    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.beipan, docId, snapshotObj);
     await setDoc(ref, payload, { merge: true });
   });
 }
@@ -253,7 +282,7 @@ export async function saveBeipanSnapshot(snapshotObj) {
 export async function getLatestBeipan() {
   if (isFirestoreAvailable()) {
     try {
-      const snap = await getDocs(query(collection(_db, "beipan_snapshots"), orderBy("date", "desc"), limit(1)));
+      const snap = await getDocs(query(collection(_db, COLLECTIONS.beipan), orderBy("date", "desc"), limit(1)));
       if (!snap.empty) return snap.docs[0].data();
     } catch (e) { console.warn("[getLatestBeipan]", e); }
   }
@@ -263,7 +292,7 @@ export async function getLatestBeipan() {
 export async function getBeipanHistory(limitCount = 5) {
   return fsGetOrFallback("beipan-result", async (db) => {
     const snap = await getDocs(query(
-      collection(db, "beipan_snapshots"), orderBy("date", "desc"), limit(limitCount)
+      collection(db, COLLECTIONS.beipan), orderBy("date", "desc"), limit(limitCount)
     ));
     return snap.docs.map(d => d.data());
   }, []);
@@ -273,7 +302,7 @@ export async function getBeipanHistory(limitCount = 5) {
 export async function saveGupanSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");
   await dualWrite("gupan-confirmed", snapshotObj, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, "gupan_snapshots", docId, snapshotObj);
+    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.gupan_snapshots, docId, snapshotObj);
     await setDoc(ref, payload, { merge: true });
   });
 }
@@ -281,7 +310,7 @@ export async function saveGupanSnapshot(snapshotObj) {
 export async function getLatestGupan() {
   if (isFirestoreAvailable()) {
     try {
-      const snap = await getDocs(query(collection(_db, "gupan_snapshots"), orderBy("date", "desc"), limit(1)));
+      const snap = await getDocs(query(collection(_db, COLLECTIONS.gupan_snapshots), orderBy("date", "desc"), limit(1)));
       if (!snap.empty) return snap.docs[0].data();
     } catch (e) { console.warn("[getLatestGupan]", e); }
   }
@@ -290,7 +319,7 @@ export async function getLatestGupan() {
 
 export async function getGupanHistory(limitCount = 30) {
   return fsGetOrFallback("gupan-confirmed", async (db) => {
-    const snap = await getDocs(query(collection(db, "gupan_snapshots"), orderBy("date", "desc"), limit(limitCount)));
+    const snap = await getDocs(query(collection(db, COLLECTIONS.gupan_snapshots), orderBy("date", "desc"), limit(limitCount)));
     return snap.docs.map(d => d.data());
   }, []);
 }
@@ -302,7 +331,7 @@ export async function saveGupanDraft(dateStr, payload) {
   } catch(e) {}
   if (isFirestoreAvailable()) {
     // 不 catch：讓 Firestore 錯誤傳回給呼叫方，才能顯示正確的 UI 反饋
-    await setDoc(doc(_db, "gupan_drafts", dateStr), {
+    await setDoc(doc(_db, COLLECTIONS.gupan_drafts, dateStr), {
       ...payload,
       savedAt: new Date().toISOString(),
     });
@@ -312,7 +341,7 @@ export async function saveGupanDraft(dateStr, payload) {
 export async function getGupanDraft(dateStr) {
   if (isFirestoreAvailable()) {
     try {
-      const snap = await getDoc(doc(_db, "gupan_drafts", dateStr));
+      const snap = await getDoc(doc(_db, COLLECTIONS.gupan_drafts, dateStr));
       if (snap.exists()) return snap.data();
     } catch(e) { console.warn("[getGupanDraft] Firestore 失敗", e); }
   }
@@ -324,7 +353,7 @@ export async function getGupanDraft(dateStr) {
 export function subscribeGupanDraft(dateStr, callback) {
   if (!isFirestoreAvailable()) return null;
   return onSnapshot(
-    doc(_db, "gupan_drafts", dateStr),
+    doc(_db, COLLECTIONS.gupan_drafts, dateStr),
     (snap) => callback(snap.exists() ? snap.data() : null),
     (err) => console.warn("[subscribeGupanDraft] 訂閱失敗", err)
   );
