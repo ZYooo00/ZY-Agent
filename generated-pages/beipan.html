@@ -351,7 +351,7 @@
                   <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular" id="glue-plan-cell">0</td>
                   <td class="px-3 pr-4 py-2.5 text-center">
                     <div>
-                      <input type="number" value="3" min="0" max="99" id="glue-plan-input"
+                      <input type="number" value="0" min="0" max="99" id="glue-plan-input"
                         class="w-14 text-center text-sm border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
                         oninput="checkSimpleDiff(this, gluePlan, 'glue-row')">
                       <div class="diff-note-wrap hidden mt-1">
@@ -809,7 +809,7 @@ const bulkReagents = [
     name: 'Heavy Oil',
     bigUnit: '罐',
     smallUnit: '瓶',
-    planBig: 5,
+    planBig: 0,
     planSmall: 0,
   },
   {
@@ -817,7 +817,7 @@ const bulkReagents = [
     name: 'HEPES',
     bigUnit: '罐',
     smallUnit: '瓶',
-    planBig: 9,
+    planBig: 0,
     planSmall: 0,
   },
 ];
@@ -1639,6 +1639,7 @@ function buildBulkCard(cfg) {
 function buildAllBulkCards() {
   const container = document.getElementById('bulk-reagent-section');
   if (!container) return;
+  container.innerHTML = '';
   bulkReagents.forEach(cfg => container.insertAdjacentHTML('beforeend', buildBulkCard(cfg)));
 }
 
