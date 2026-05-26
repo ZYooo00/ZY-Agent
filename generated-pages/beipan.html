@@ -348,7 +348,7 @@
               <tbody>
                 <tr class="hover:bg-slate-50 transition-colors" id="glue-row">
                   <td class="pl-4 py-2.5 text-sm font-medium text-slate-700">Glue</td>
-                  <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular" id="glue-plan-cell">3</td>
+                  <td class="px-3 py-2.5 text-center text-sm text-slate-500 tabular" id="glue-plan-cell">0</td>
                   <td class="px-3 pr-4 py-2.5 text-center">
                     <div>
                       <input type="number" value="3" min="0" max="99" id="glue-plan-input"
@@ -1882,7 +1882,7 @@ async function submitBeipan() {
 }
 
 // ── Glue 計畫值（可由 gupan 覆蓋）──
-let gluePlan = 3;
+let gluePlan = 0;
 
 // ── 讀取 gupan 估盤確認資料（優先 Firebase Firestore，fallback localStorage）──
 async function loadGupanData() {
