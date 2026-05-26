@@ -439,9 +439,10 @@ async function completePandian() {
   if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
   try {
     await window._fb.savePandianSnapshot(pandianPayload);
+    const logTimestamp = new Date().toISOString(); // 同批盤點共用同一時間戳，確保 kucun 能正確群組
     await Promise.all(pandianAllValues.map(it => window._fb.fsLog({
       id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}-${it.id}`,
-      ts: new Date().toISOString(),
+      ts: logTimestamp,
       source: 'pandian', action: 'pandian',
       productId: it.id.replace(/^m-/, ''), productName: it.name,
       operator: staffName,

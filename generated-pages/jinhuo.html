@@ -2225,6 +2225,7 @@ async function batchSaveAll() {
     const newRecords = records.slice(0, count);
     await Promise.all(newRecords.map(r => window._fb.saveJinhuoRecord(r)));
 
+    const logTimestamp = new Date().toISOString(); // 同批收貨共用同一時間戳，確保 kucun 能正確群組
     const logEntries = sessionTray.filter(i => !i.isRejected).map(i => {
       const isPartial = i.orderedQty && i.qty < i.orderedQty;
       const deliveryStatus = i.orderedQty
@@ -2232,7 +2233,7 @@ async function batchSaveAll() {
         : null;
       return {
         id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
-        ts: new Date().toISOString(),
+        ts: logTimestamp,
         source: 'jinhuo', action: 'receive',
         productId: i.productId, productName: i.productName,
         lotNumber: i.lotNumber || null,

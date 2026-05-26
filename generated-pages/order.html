@@ -904,11 +904,11 @@
     result.id = `ord-${Date.now()}`;
     try {
       await window._fb.saveOrder(result);
-      // 逐筆寫入稽核日誌（強綁定在 firebase-service，localStorage + Firestore 都寫）
+      const logTimestamp = new Date().toISOString(); // 同批訂貨共用同一時間戳，確保 kucun 能正確群組
       for (const o of result.orders) {
         await window._fb.fsLog({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          ts: new Date().toISOString(),
+          ts: logTimestamp,
           source: 'order', action: 'order',
           productId: (o.itemId || '').replace(/^[a-z]\d?-/, ''),
           productName: o.name,
