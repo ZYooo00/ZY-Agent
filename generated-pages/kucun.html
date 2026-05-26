@@ -205,6 +205,7 @@
 </style>
 </head>
 <body>
+<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">⚠️ 測試模式 — 所有動作只影響測試資料，不影響正式庫存</div>');}})()</script>
 
 <!-- MOBILE NAV -->
 <div id="nav-overlay" onclick="closeNav()"></div>
@@ -1012,8 +1013,10 @@ function renderInventoryTable(data) {
           let qtyHtml = '';
           const S = 'font-size:11px;font-weight:600;margin-top:2px';
           if (g.source === 'pandian') {
-            const pandianQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
-            qtyHtml = `<div style="${S};color:#059669">= ${fmtNum(pandianQty)} 瓶</div>`;
+            const latestEntry = [...matched].sort((a, b) => (b.ts || '').localeCompare(a.ts || ''))[0];
+            const pandianQty = latestEntry?.qty ?? latestEntry?.qtyDelta ?? 0;
+            const pandianUnit = latestEntry?.unit || '瓶';
+            qtyHtml = `<div style="${S};color:#059669">= ${fmtNum(pandianQty)} ${pandianUnit}</div>`;
           } else if (g.source === 'beipan') {
             const totalOpened = matched.reduce((s, e) => s + (e.bottlesOpened || 0), 0);
             if (totalOpened > 0) {
@@ -1301,9 +1304,10 @@ function buildExpandRows(entries, src) {
     }
 
     if (src === 'pandian') {
-      const col3 = qty != null ? `<span class="text-slate-600 font-semibold">${qty} ${unit}</span>` : '';
+      const actualQty = e.qty ?? e.qtyDelta;
+      const col3 = actualQty != null ? `<span class="text-slate-600 font-semibold">${actualQty} ${unit}</span>` : '';
       const noteClean = baseNote
-        .replace(/盤點[：:]\s*[一-龥a-zA-Z\s]+/g, '')
+        .replace(/盤點[：:]\s*[^（(]+[（(][\d/]+[）)][;；]?\s*/g, '')
         .replace(/^[;；,，\s]+|[;；,，\s]+$/g, '').trim();
       return expandRow4(name, '', col3, noteClean || '—');
     }

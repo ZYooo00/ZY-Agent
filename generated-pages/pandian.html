@@ -77,6 +77,7 @@
 </head>
 
 <body class="bg-slate-50">
+<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">⚠️ 測試模式 — 所有動作只影響測試資料，不影響正式庫存</div>');}})()</script>
 
 <!-- ── Mobile Nav Overlay ── -->
 <div id="nav-overlay" onclick="closeNav()"></div>
@@ -446,9 +447,9 @@ async function completePandian() {
       source: 'pandian', action: 'pandian',
       productId: it.id.replace(/^m-/, ''), productName: it.name,
       operator: staffName,
-      lotNumber: null, qty: it.actual, qtyDelta: 0,
+      lotNumber: null, qty: it.actual,
       unit: it.unit || '瓶', vendor: '',
-      note: `盤點：${staffName}（${dateStr}）`,
+      note: `盤點：${staffName}（${dateStr}）` + (it.note ? `；${it.note}` : ''),
     })));
   } catch(e) {
     console.error('[pandian] Firebase 儲存失敗', e);
