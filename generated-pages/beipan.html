@@ -1390,11 +1390,21 @@ function onFirstVolInput(id) {
   if (secondVolEl) secondVolEl.textContent = firstVol > 0 ? String(secondVol) : '—';
   const firstBatch = cfg?.batches?.[0];
   const firstRem = firstBatch ? (firstBatch.remaining || 0) : 0;
-  const over = firstVol > 0 && firstVol > firstRem;
-  if (warnEl) warnEl.classList.toggle('hidden', !over);
-  if (firstVolEl) firstVolEl.classList.toggle('border-red-400', over);
-  if (firstVolEl) firstVolEl.classList.toggle('ring-2', over);
-  if (firstVolEl) firstVolEl.classList.toggle('ring-red-300', over);
+  const firstOver = firstVol > 0 && firstVol > firstRem;
+
+  const secondLotId = document.getElementById(id + '-second-lot')?.value;
+  const secondBatch = cfg?.batches?.find(b => b.lot === secondLotId);
+  const secondRem = secondBatch ? (secondBatch.remaining || 0) : 0;
+  const secondOver = secondVol > 0 && secondVol > secondRem;
+
+  const over = firstOver || secondOver;
+  const warnMsg = secondOver
+    ? `⚠ 第二批號剩餘 ${secondRem}mL 不足，請先登記新開瓶`
+    : '⚠ 超出第一批剩餘量';
+  if (warnEl) { warnEl.classList.toggle('hidden', !over); if (over) warnEl.textContent = warnMsg; }
+  if (firstVolEl) firstVolEl.classList.toggle('border-red-400', firstOver);
+  if (firstVolEl) firstVolEl.classList.toggle('ring-2', firstOver);
+  if (firstVolEl) firstVolEl.classList.toggle('ring-red-300', firstOver);
 }
 
 // ── GM508 expand / collapse ──
@@ -1910,7 +1920,22 @@ async function submitBeipan() {
   const _wasForceOverride = _forceOverride;
   _forceOverride = false;
 
-  // 混批超量：視覺提示由 onFirstVolInput 負責，這裡不阻擋（previewBeipan 是唯一關卡）
+  // 混批第二批號驗證：第二批號未開封屬於真實阻擋（不同於帳面誤差的 Soft Warning）
+  for (const cfg of reagentConfig) {
+    const panel = document.getElementById(cfg.id + '-second');
+    if (!panel || panel.classList.contains('hidden')) continue;
+    const fv = parseFloat(document.getElementById(cfg.id + '-first-vol')?.value);
+    if (isNaN(fv) || fv <= 0) continue;
+    const secondLotId = document.getElementById(cfg.id + '-second-lot')?.value;
+    const secondBatch = cfg.batches.find(b => b.lot === secondLotId);
+    const secondVol = parseFloat(Math.max(0, cfg.needed - fv).toFixed(1));
+    if (secondVol > 0 && (!secondBatch || secondBatch.remaining < secondVol)) {
+      const rem = secondBatch?.remaining ?? 0;
+      showToast(`${cfg.name} 第二批號「${secondLotId}」剩餘 ${rem}mL，不足 ${secondVol}mL，請先登記新開瓶`, 'warn');
+      window._beipanSubmitting = false;
+      return;
+    }
+  }
 
   const now = new Date().toISOString();
   const dateStr = now.slice(0, 10);
@@ -1941,12 +1966,23 @@ async function submitBeipan() {
     const _mixNote = (_secondPanel && !_secondPanel.classList.contains('hidden'))
       ? (document.getElementById(cfg.id + '-second-note')?.value?.trim() || '')
       : '';
-    // 混批手動取用量（選填）— 若有填寫，第一批只取 firstVol，其餘留給第二批
+    // 混批手動取用量（選填）— 若有填寫，改用精確兩批模式（禁止 cascade）
     const _firstVolRaw = (_secondPanel && !_secondPanel.classList.contains('hidden'))
       ? parseFloat(document.getElementById(cfg.id + '-first-vol')?.value) : NaN;
     const _useManualVol = !isNaN(_firstVolRaw) && _firstVolRaw > 0;
     let _appliedManualFirst = false;
     let _isFirstBatch = true;
+
+    // 手動模式：orderedBatches 只保留第一批 + 明確選取的第二批，杜絕 cascade 吃掉其他批號
+    if (_useManualVol) {
+      const _secondLotId = document.getElementById(cfg.id + '-second-lot')?.value;
+      const _secondBatch = cfg.batches.find(b => b.lot === _secondLotId && b !== orderedBatches[0]);
+      if (_secondBatch && !orderedBatches.includes(_secondBatch)) {
+        orderedBatches.splice(1, orderedBatches.length - 1, _secondBatch);
+      } else if (orderedBatches.length > 2) {
+        orderedBatches.splice(2);
+      }
+    }
 
     for (const batch of orderedBatches) {
       const _batchOpened = batch._manuallyOpened || 0;
