@@ -912,6 +912,9 @@ async function saveConfirmedData(now, t, staffA, staffB) {
     matrix[d.key] = { h5: effMatrix(d, 'h5'), gx: effMatrix(d, 'gx') };
   });
 
+  const oilCans   = parseInt(document.getElementById('oil-result')?.textContent) || 0;
+  const hepesCans = parseInt(document.getElementById('he-result')?.textContent)  || 0;
+
   const payload = {
     date: dateStr,
     confirmedAt: t,
@@ -921,6 +924,8 @@ async function saveConfirmedData(now, t, staffA, staffB) {
     taiVals: { ...taiVals },
     givf,
     matrix,
+    oilCans,
+    hepesCans,
   };
 
   try {

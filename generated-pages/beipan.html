@@ -1909,6 +1909,16 @@ async function loadGupanData() {
   const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
   if (data.date !== todayStr) return;
 
+  // 更新 Oil / HEPES 待分裝罐數（從估盤計算結果）
+  if (data.oilCans != null) {
+    const oilCfg = bulkReagents.find(r => r.id === 'oil');
+    if (oilCfg) oilCfg.planBig = data.oilCans;
+  }
+  if (data.hepesCans != null) {
+    const hepesCfg = bulkReagents.find(r => r.id === 'hepes');
+    if (hepesCfg) hepesCfg.planBig = data.hepesCans;
+  }
+
   // 更新估盤摘要 bar（台數）
   if (data.taiVals) {
     const tv = data.taiVals;
