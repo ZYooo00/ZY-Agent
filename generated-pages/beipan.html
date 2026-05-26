@@ -15,11 +15,11 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory } from './firebase-service.js?v=6';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=6';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory };
+  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, getLatestBeipan, getBeipanHistory, getLatestGupan };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -235,6 +235,12 @@
         <span class="text-sm text-green-700" id="gupan-banner-staff">估盤人：— / —</span>
         <span class="text-green-300">|</span>
         <span class="text-sm text-green-600" id="gupan-banner-time">今日 —</span>
+      </div>
+
+      <!-- 估盤資料同步中 -->
+      <div id="gupan-loading-banner" class="hidden bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 flex items-center gap-3 text-sm text-slate-400">
+        <svg class="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+        估盤資料同步中…
       </div>
 
       <!-- 備盤人員 -->
@@ -1463,6 +1469,7 @@ const givfDishes = [
 
 function buildGivfTable() {
   const tbody = document.getElementById('givf-dish-body');
+  tbody.innerHTML = '';
   givfDishes.forEach((d, i) => {
     const tr = document.createElement('tr');
     tr.id = 'givf-row-' + i;
@@ -1520,6 +1527,7 @@ function cellCls(val, side) {
 
 function buildMatrixTable() {
   const tbody = document.getElementById('matrix-dish-body');
+  tbody.innerHTML = '';
   matrixDishes.forEach((d, i) => {
     const tr = document.createElement('tr');
     tr.id = 'mrow-' + i;
@@ -1876,10 +1884,23 @@ async function submitBeipan() {
 // ── Glue 計畫值（可由 gupan 覆蓋）──
 let gluePlan = 3;
 
-// ── 讀取 gupan 估盤確認資料 ──
-function loadGupanData() {
-  let data;
-  try { data = JSON.parse(localStorage.getItem('gupan-confirmed') || 'null'); } catch(e) {}
+// ── 讀取 gupan 估盤確認資料（優先 Firebase Firestore，fallback localStorage）──
+async function loadGupanData() {
+  const loadingEl = document.getElementById('gupan-loading-banner');
+  if (loadingEl) loadingEl.classList.remove('hidden');
+
+  let data = null;
+  try {
+    if (window._fb?.getLatestGupan) {
+      data = await window._fb.getLatestGupan();
+    }
+  } catch(e) { console.warn('[loadGupanData]', e); }
+  finally {
+    if (!data) {
+      try { data = JSON.parse(localStorage.getItem('gupan-confirmed') || 'null'); } catch(e) {}
+    }
+    if (loadingEl) loadingEl.classList.add('hidden');
+  }
   if (!data) return;
 
   // 驗證日期（只接受今天的估盤）
@@ -1963,12 +1984,11 @@ function loadGupanData() {
   if (tmLabel) tmLabel.textContent = `備用日期：${tm.getMonth()+1}/${tm.getDate()}（${days[tm.getDay()]}）`;
 })();
 
-loadGupanData();
+// 先建立空佔位表格，Firebase ready 後 onReady() 會填入估盤資料並重建
 buildGivfTable();
 buildMatrixTable();
 buildAllBulkCards();
 recalcAllNeeded();
-// 批號卡片先渲染空白佔位，等 Firebase bridge ready 後再填入真實資料
 buildAllBatchCards();
 function onReady(fn) {
   var domOk = document.readyState !== 'loading';
@@ -1980,6 +2000,13 @@ function onReady(fn) {
   if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
 }
 onReady(async function() {
+  // 從 Firebase 讀取估盤資料並重建表格（跨裝置同步）
+  await loadGupanData();
+  buildGivfTable();
+  buildMatrixTable();
+  buildAllBulkCards();
+  recalcAllNeeded();
+
   // 先確認今日備盤是否已送出（防止重複送出造成庫存雙重扣除）
   const todayStr = new Date().toISOString().slice(0, 10);
   let todayBeipan = null;
@@ -2012,8 +2039,28 @@ onReady(async function() {
   }
 }, { once: true });
 
-function refreshGupanData() {
-  loadGupanData();
+async function refreshGupanData() {
+  // 已送出鎖定（state-c 可見）或被其他裝置鎖定，不做任何重建
+  const isStateCVisible = !document.getElementById('state-c')?.classList.contains('hidden');
+  const isLockedByOther = !!document.getElementById('state-b-locked-banner');
+  if (isStateCVisible || isLockedByOther) return;
+
+  await loadGupanData();
+
+  // 表格已有列：只更新「估盤」顯示欄，不觸碰使用者輸入的 input 值
+  const givfRows = document.querySelectorAll('#givf-dish-body tr');
+  if (givfRows.length > 0) {
+    givfDishes.forEach((d, i) => {
+      const planTd = document.querySelector(`#givf-row-${i} td:nth-child(2)`);
+      if (planTd) planTd.innerHTML = (d.calc ? '<span class="text-xs text-slate-300 mr-0.5">(估)</span>' : '') +
+        (d.unit === 'mL' ? d.plan.toFixed(1) + ' mL' : String(d.plan));
+    });
+    buildAllBulkCards();
+    recalcAllNeeded();
+    return;
+  }
+
+  // 表格空白（初次），完整重建
   buildGivfTable();
   buildMatrixTable();
   buildAllBatchCards();
