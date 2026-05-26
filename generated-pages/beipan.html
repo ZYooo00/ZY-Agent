@@ -818,7 +818,7 @@ async function lockStateB(snapshot) {
   });
 
   // 8. 隱藏操作性按鈕
-  ['previewBeipan','openModal','toggleSecondBatch','toggleExhausted','replaceExpiredBottle','refreshGupanData'].forEach(fn => {
+  ['previewBeipan','openModal','toggleSecondBatch','onFirstVolInput','toggleExhausted','replaceExpiredBottle','refreshGupanData'].forEach(fn => {
     document.querySelectorAll(`#state-b button[onclick*="${fn}"]`).forEach(b => b.classList.add('hidden'));
   });
   // 隱藏底部送出區
@@ -1326,13 +1326,25 @@ function buildBatchCardHTML(cfg) {
   </div>
   <div id="${cfg.id}-second" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
     <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
-    <div class="flex items-center gap-2 flex-wrap">
+    <div class="flex items-center gap-2 flex-wrap mb-3">
       <select id="${cfg.id}-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
-      <input type="text" id="${cfg.id}-second-note" placeholder="混批原因（必填）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
-    <div id="${cfg.id}-mix-note" class="hidden mt-3">
-      <input type="text" placeholder="混批備註（必填）：說明為何需要混批"
-        class="w-full text-sm border border-amber-300 rounded-lg px-3 py-1.5 bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-2 text-sm flex-wrap">
+        <span class="text-slate-500 shrink-0">第一批取用量：</span>
+        <input type="number" id="${cfg.id}-first-vol" min="0" step="0.1" placeholder="mL"
+          oninput="onFirstVolInput('${cfg.id}')"
+          class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+        <span class="text-slate-400">mL</span>
+        <span id="${cfg.id}-vol-warn" class="hidden text-xs text-red-500 font-medium">⚠ 超出第一批剩餘量</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="text-slate-400 shrink-0">第二批需要量：</span>
+        <span id="${cfg.id}-second-vol" class="font-semibold text-primary">—</span>
+        <span class="text-slate-400">mL</span>
+      </div>
+      <input type="text" id="${cfg.id}-second-note" placeholder="混批備註（選填）"
+        class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
     <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
   </div>
@@ -1364,6 +1376,25 @@ function onBatchSelect(cardId, status) {
 // ── Second batch toggle ──
 function toggleSecondBatch(id) {
   document.getElementById(id+'-second').classList.toggle('hidden');
+}
+
+// ── 混批公式計算：firstVol 輸入時即時更新 secondVol + 警示 ──
+function onFirstVolInput(id) {
+  const cfg = reagentConfig.find(c => c.id === id);
+  const firstVolEl = document.getElementById(id + '-first-vol');
+  const secondVolEl = document.getElementById(id + '-second-vol');
+  const warnEl = document.getElementById(id + '-vol-warn');
+  const firstVol = parseFloat(firstVolEl?.value) || 0;
+  const needed = parseFloat(cfg?.needed) || 0;
+  const secondVol = parseFloat(Math.max(0, needed - firstVol).toFixed(1));
+  if (secondVolEl) secondVolEl.textContent = firstVol > 0 ? String(secondVol) : '—';
+  const firstBatch = cfg?.batches?.[0];
+  const firstRem = firstBatch ? (firstBatch.remaining || 0) : 0;
+  const over = firstVol > 0 && firstVol > firstRem;
+  if (warnEl) warnEl.classList.toggle('hidden', !over);
+  if (firstVolEl) firstVolEl.classList.toggle('border-red-400', over);
+  if (firstVolEl) firstVolEl.classList.toggle('ring-2', over);
+  if (firstVolEl) firstVolEl.classList.toggle('ring-red-300', over);
 }
 
 // ── GM508 expand / collapse ──
@@ -1879,20 +1910,7 @@ async function submitBeipan() {
   const _wasForceOverride = _forceOverride;
   _forceOverride = false;
 
-  // 混批備註必填驗證
-  for (const cfg of reagentConfig) {
-    const panel = document.getElementById(cfg.id + '-second');
-    if (panel && !panel.classList.contains('hidden')) {
-      const noteEl = document.getElementById(cfg.id + '-second-note');
-      if (!noteEl?.value?.trim()) {
-        noteEl.classList.add('border-red-400', 'ring-2', 'ring-red-300');
-        noteEl.focus();
-        showToast(`${cfg.name} 混批備註為必填`, 'warn');
-        return;
-      }
-      noteEl.classList.remove('border-red-400', 'ring-2', 'ring-red-300');
-    }
-  }
+  // 混批超量：視覺提示由 onFirstVolInput 負責，這裡不阻擋（previewBeipan 是唯一關卡）
 
   const now = new Date().toISOString();
   const dateStr = now.slice(0, 10);
@@ -1923,6 +1941,11 @@ async function submitBeipan() {
     const _mixNote = (_secondPanel && !_secondPanel.classList.contains('hidden'))
       ? (document.getElementById(cfg.id + '-second-note')?.value?.trim() || '')
       : '';
+    // 混批手動取用量（選填）— 若有填寫，第一批只取 firstVol，其餘留給第二批
+    const _firstVolRaw = (_secondPanel && !_secondPanel.classList.contains('hidden'))
+      ? parseFloat(document.getElementById(cfg.id + '-first-vol')?.value) : NaN;
+    const _useManualVol = !isNaN(_firstVolRaw) && _firstVolRaw > 0;
+    let _appliedManualFirst = false;
     let _isFirstBatch = true;
 
     for (const batch of orderedBatches) {
@@ -1936,9 +1959,18 @@ async function submitBeipan() {
       let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
       batch._manuallyOpened = 0;
 
-      const deduct = parseFloat(Math.min(needed, rem).toFixed(1));
-      let newRem = parseFloat((rem - deduct).toFixed(1));
-      needed = parseFloat((needed - deduct).toFixed(1));
+      // 手動分配模式：第一批記錄使用者實際抽取量（不受帳面限制），newRem 最低歸零
+      let deduct, newRem;
+      if (_useManualVol && !_appliedManualFirst) {
+        deduct = parseFloat(_firstVolRaw.toFixed(1));
+        newRem = parseFloat(Math.max(0, rem - deduct).toFixed(1));
+        needed = parseFloat(Math.max(0, needed - deduct).toFixed(1));
+        _appliedManualFirst = true;
+      } else {
+        deduct = parseFloat(Math.min(needed, rem).toFixed(1));
+        newRem = parseFloat((rem - deduct).toFixed(1));
+        needed = parseFloat((needed - deduct).toFixed(1));
+      }
 
       const _baseNote = opened > 0
         ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
