@@ -764,7 +764,16 @@ function applyDraftData(data) {
   if (!data) { console.log('[gupan] applyDraftData: data 為 null，略過'); return; }
   if (!data.date) { console.log('[gupan] applyDraftData: 無 date 欄位', data); return; }
   if (data.date !== todayStr()) { console.log('[gupan] applyDraftData: 日期不符，略過', data.date, '≠', todayStr()); return; }
-  if (data._cleared) { console.log('[gupan] applyDraftData: _cleared=true，略過'); return; }
+  if (data._cleared) {
+    console.log('[gupan] 收到 _cleared 訊號，強制重置本地畫面');
+    taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
+    document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => { el.value = ''; });
+    switchState('A');
+    updateAllSuggestions();
+    calcOil();
+    calcHepes();
+    return;
+  }
   console.log('[gupan] applyDraftData: 開始套用，taiVals=', JSON.stringify(data.taiVals), 'fields keys=', Object.keys(data.fields||{}));
   if (data.taiVals) Object.assign(taiVals, data.taiVals);
   if (data.fields) {
@@ -780,7 +789,11 @@ function applyDraftData(data) {
     set('confirm-time-display', data.confirm.timeDisp);
     set('confirm-info-text',  data.confirm.infoText);
   }
-  if (data.state) switchState(data.state);
+  // 單向守衛：state 只能前進（A→B→C），防止其他裝置的舊草稿把狀態拉回
+  const _rank = { A: 0, B: 1, C: 2 };
+  if (data.state && (_rank[data.state] ?? -1) >= (_rank[currentState] ?? 0)) {
+    switchState(data.state);
+  }
   updateAllSuggestions();
   calcOil();
   calcHepes();
@@ -830,6 +843,8 @@ async function resetToday() {
 // STATE MACHINE
 // ══════════════════════════════════════════
 function switchState(state) {
+  // 切入 B/C 時立刻清 debounce timer，防止舊 A-state 的存檔把狀態拉回
+  if (state !== 'A') clearTimeout(_draftDebounceTimer);
   currentState = state;
 
   document.querySelectorAll('.demo-btn').forEach((btn, i) => {
@@ -870,11 +885,28 @@ function switchState(state) {
   }
 }
 
+// 立即儲存狀態到 Firebase（不走 debounce），用於 A→B、B→C 跳轉
+async function saveStateNow() {
+  clearTimeout(_draftDebounceTimer);
+  const data = buildDraftPayload();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  isLocalSaving = true;
+  try {
+    await window._fb.saveGupanDraft(data.date, data);
+    setAutosaveBadge(`自動儲存 ${hhmm(new Date())}`);
+  } catch(e) {
+    console.error('[gupan] saveStateNow 失敗', e);
+  } finally {
+    setTimeout(() => { isLocalSaving = false; }, 500);
+  }
+}
+
 function submitGupan() {
   const staffA = document.getElementById('staff-a').value;
   if (!staffA) { window.scrollTo({ top:0, behavior:'smooth' }); showToast('請先選擇估盤人', 'warn'); return; }
   window.scrollTo({ top:0, behavior:'smooth' });
   switchState('B');
+  saveStateNow(); // 立即同步狀態給所有裝置
 }
 
 async function confirmGupan() {
@@ -888,8 +920,14 @@ async function confirmGupan() {
   document.getElementById('confirm-time-display').textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${t}`;
   document.getElementById('confirm-info-text').textContent = `${staffB} 核對，${t}`;
   switchState('C');
-  await saveConfirmedData(now, t, staffA, staffB);
-  saveToStorage();
+  try {
+    await saveConfirmedData(now, t, staffA, staffB);
+    saveStateNow(); // 確保正式紀錄寫入成功後才廣播鎖定
+  } catch(e) {
+    console.error('[confirmGupan] 儲存失敗', e);
+    showToast('核對儲存失敗，請重試', 'warn');
+    switchState('B'); // 退回讓使用者可重試
+  }
 }
 
 async function saveConfirmedData(now, t, staffA, staffB) {
