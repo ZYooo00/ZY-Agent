@@ -98,7 +98,10 @@ async function dualWrite(localKey, localData, firestoreFn) {
 async function fsGetOrFallback(localKey, firestoreFn, fallbackDefault = []) {
   if (isFirestoreAvailable()) {
     try {
-      return await firestoreFn(_db);
+      const result = await firestoreFn(_db);
+      // Firestore 讀取成功後同步回 localStorage，確保快取不陳舊
+      try { localStorage.setItem(localKey, JSON.stringify(result)); } catch(e) {}
+      return result;
     } catch (e) {
       console.warn("[fsGetOrFallback] Firestore 讀取失敗，使用 localStorage", e);
     }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -15,7 +15,7 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=6';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=7';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }

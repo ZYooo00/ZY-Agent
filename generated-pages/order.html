@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
@@ -15,7 +15,7 @@
   <script src="design.js" defer></script>
   <!-- Firebase bridge -->
   <script type="module">
-    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=5';
+    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=7';
     try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
     window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog };
     window.__fbDone = true;
@@ -452,14 +452,10 @@
     activeOrders = [];
     try {
       let history = await window._fb.getOrders();
-      // 一次性舊資料遷移：order-result → order-history
+      // Cloud First：Firestore 為空時，強制清除本機快取，不允許本機自作主張上傳
       if (history.length === 0) {
-        const legacy = JSON.parse(localStorage.getItem('order-result') || 'null');
-        if (legacy && legacy.orders) {
-          legacy.id = legacy.id || `ord-${Date.now()}`;
-          history = [legacy];
-          await window._fb.saveOrder(legacy);
-        }
+        localStorage.removeItem('order-result');
+        localStorage.removeItem('order-history');
       }
       history.forEach(order => {
         if (!['pending', 'partial'].includes(order.status)) return;
@@ -1069,11 +1065,15 @@
 
   function buildLineText(vendor, cfg, orders, date) {
     const contact = cfg ? cfg.contact : '';
+    const cleanName = (name, v) => name
+      .replace(`（${v}）`, '')
+      .replace(new RegExp(`\\s+${v}(?=\\s|$)`), '')
+      .trim();
     let text = `${date}\n`;
     text += `【訂貨通知】送子鳥台北胚胎室\n\n`;
     if (contact) text += `${contact} 您好\n`;
     text += `本次想訂購\n\n`;
-    orders.forEach(o => { text += `${o.name} × ${o.orderQty} ${o.unit}\n`; });
+    orders.forEach(o => { text += `${cleanName(o.name, o.vendor)} × ${o.orderQty} ${o.unit}\n`; });
     text += `\n再請確認收到，感謝 🙏`;
     return text;
   }

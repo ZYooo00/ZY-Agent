@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -15,7 +15,7 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=5';
+  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=7';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { savePandianSnapshot, fsLog, getOrders };
   window.__fbDone = true;
