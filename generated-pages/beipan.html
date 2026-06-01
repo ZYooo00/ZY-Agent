@@ -65,6 +65,21 @@
     } catch(e) { console.warn('[devClean] Firestore 失敗', e); }
     alert('清除完成！請按 F5 重新整理頁面。');
   };
+
+  // Dev Panel button handlers
+  window.runDevReset = async function() {
+    if(!confirm('【測試專用】確定要清除今日備盤鎖定並重置快照嗎？')) return;
+    await window.devResetBeipan();
+    location.reload();
+  };
+
+  window.runNuclearWipe = async function() {
+    if(!confirm('💥 終極清理：將清除今日備盤快照、今日 Changelog、所有 localStorage 暫存，並解除鎖定。確定？')) return;
+    await window.devResetBeipan();
+    await window.devCleanTodayChangelog();
+    localStorage.removeItem('test-simulated-date');
+    location.reload();
+  };
 </script>
 <style>
   /* beipan 專屬 */
@@ -92,7 +107,51 @@
 </head>
 
 <body class="bg-slate-50 min-h-screen">
-<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">⚠️ 測試模式 — 所有動作只影響測試資料，不影響正式庫存</div>');}})()</script>
+<script>
+(function(){
+  var h = location.hostname;
+  if(h !== 'stork11-embryo-lab.web.app' && h !== 'stork11-embryo-lab.firebaseapp.com'){
+    // 時間旅行：在 firebase-service 初始化前 override Date()
+    var _sim = localStorage.getItem('test-simulated-date');
+    if(_sim){
+      var _Orig = Date;
+      window.Date = function(){
+        if(!arguments.length) return new _Orig(_sim + 'T00:00:00+08:00');
+        return new (Function.prototype.bind.apply(_Orig, [null].concat(Array.from(arguments))))();
+      };
+      Object.assign(window.Date, _Orig);
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      var prefix = window._isTestEnv ? 'test_' : '';
+      var simLabel = localStorage.getItem('test-simulated-date') || '（真實時間）';
+
+      var bar = document.createElement('div');
+      bar.id = 'dev-panel';
+      bar.style.cssText = 'background:#F59E0B;color:#fff;padding:8px 16px;font-size:12px;font-family:sans-serif;position:relative;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.15)';
+
+      bar.innerHTML = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:1600px;margin:0 auto">'
+        + '<span style="flex:1;font-weight:700;min-width:220px">⚠️ 測試模式 — <code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:4px;font-family:monospace">' + prefix + 'beipan_snapshots / ' + prefix + 'kucun_changelog</code></span>'
+        + '<span style="font-size:11px;opacity:.85">🕒 模擬日期：' + simLabel + '</span>'
+        + '<input type="date" id="dp-time-travel" value="' + (localStorage.getItem('test-simulated-date')||'') + '" style="padding:2px 6px;border-radius:5px;border:none;font-size:11px;color:#334155;height:22px;cursor:pointer" title="選日期後頁面重整，系統視為該日" />'
+        + '<button onclick="window.runDevReset()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🔄 重置今日備盤</button>'
+        + '<button onclick="window.runNuclearWipe()" style="background:rgba(220,38,38,.35);border:1px solid rgba(220,38,38,.5);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🗑️ 終極清理</button>'
+        + '</div>';
+
+      document.body.insertBefore(bar, document.body.firstChild);
+
+      document.getElementById('dp-time-travel').addEventListener('change', function(){
+        if(this.value){
+          localStorage.setItem('test-simulated-date', this.value);
+        } else {
+          localStorage.removeItem('test-simulated-date');
+        }
+        location.reload();
+      });
+    });
+  }
+})();
+</script>
 
 <!-- ════════════════ MOBILE NAV OVERLAY ════════════════ -->
 <div id="nav-overlay" onclick="closeNav()"></div>
