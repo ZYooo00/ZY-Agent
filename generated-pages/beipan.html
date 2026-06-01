@@ -1110,13 +1110,6 @@ function buildBatchRow(b, needed, cardId, checked) {
                    badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
   const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
-  const exhaustBtn = b.remaining > 0
-    ? (b.markedExhausted && !b._exhaustedByExpiry
-        ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-amber-600 font-medium transition-colors">↺ 復原</button>`
-        : !b.markedExhausted
-        ? `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">🗑️ 已耗盡</button>`
-        : '')
-    : '';
   const rowBg = b.markedExhausted ? 'row-ok bg-amber-50' : 'row-ok hover:bg-slate-50';
 
   // 效期類 badge 會蓋掉數量狀態，在效期 badge 下方補顯示數量次要 badge
@@ -1130,9 +1123,23 @@ function buildBatchRow(b, needed, cardId, checked) {
     }
   }
 
-  const cancelOpenBtn = (b._manuallyOpened || 0) > 0
-    ? `<button onclick="cancelOpenBottle('${cardId}','${b.lot.replace(/'/g,"\\'")}')" class="mt-1 block text-xs text-blue-400 hover:text-blue-600 transition-colors">↩ 取消開瓶</button>`
-    : '';
+  // 狀態機：三態互斥，鎖定後全隱藏
+  const escapedLot = b.lot.replace(/'/g, "\\'");
+  let actionBtns = '';
+  if (!window._beipanLocked) {
+    if (b.markedExhausted && !b._exhaustedByExpiry) {
+      // 狀態 A：已標記耗盡 → 只顯示「復原殘液」
+      actionBtns = `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-amber-600 font-medium transition-colors">↺ 復原殘液</button>`;
+    } else if (!b.markedExhausted) {
+      // 狀態 B：正常開封 → 依條件顯示丟棄 / 取消（兩者可同時出現但不與 A 共存）
+      if (b.remaining > 0) {
+        actionBtns += `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">🗑️ 丟棄殘液</button>`;
+      }
+      if ((b._manuallyOpened || 0) > 0) {
+        actionBtns += `<button onclick="cancelOpenBottle('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-blue-400 hover:text-blue-600 transition-colors">↩ 取消開瓶</button>`;
+      }
+    }
+  }
 
   return `<tr class="${rowBg} transition-colors">
     <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
@@ -1147,7 +1154,7 @@ function buildBatchRow(b, needed, cardId, checked) {
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
     <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
-    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${exhaustBtn}${cancelOpenBtn}</td>
+    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${actionBtns}</td>
   </tr>`;
 }
 
@@ -1593,20 +1600,15 @@ function closeModal() {
 function cancelOpenBottle(cardId, lot) {
   const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
-  const idx = cfg.batches.findIndex(b => b.lot === lot);
-  if (idx < 0) return;
-  const b = cfg.batches[idx];
-  if ((b._manuallyOpened || 0) <= 0) return;
+  const b = cfg.batches.find(x => x.lot === lot);
+  if (!b || (b._manuallyOpened || 0) <= 0) return;  // 防連擊
 
   const vol = b.bottleVol || cfg.bottleVol || 0;
-  b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
-  b.unopened  = (b.unopened || 0) + 1;
-  b._manuallyOpened = Math.max(0, (b._manuallyOpened || 0) - 1);
-  // 若此批號在本 session 前尚未開封（remaining 歸零了），清除開封日
-  if (b.remaining === 0) {
-    b.openDate   = null;
-    b.openExpiry = null;
-  }
+  b.unopened  = (b.unopened || 0) + b._manuallyOpened;
+  b.remaining = parseFloat(Math.max(0, b.remaining - vol * b._manuallyOpened).toFixed(1));
+  b._manuallyOpened = 0;
+  // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
+  if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
 
   if (cardId === 'gm508') {
     const el = document.getElementById('card-gm508');
@@ -1615,6 +1617,10 @@ function cancelOpenBottle(cardId, lot) {
     const el = document.getElementById('card-' + cardId);
     if (el) el.innerHTML = buildBatchCardHTML(cfg);
   }
+
+  // 重新驗證 badge，庫存低於需用量時自動展開混批面板並顯示警示
+  const badge = calcBadge(b, cfg.needed);
+  onBatchSelect(cardId, badge.status);
 }
 
 function toggleExhausted(cardId, lot) {
@@ -1627,6 +1633,12 @@ function toggleExhausted(cardId, lot) {
     batch._exhaustedVol  = batch.remaining;
     batch.remaining      = 0;
     batch.markedExhausted = true;
+    // 清空混批「第一批取用量」，避免從空瓶抽水
+    const firstVolInput = document.getElementById(cardId + '-first-vol');
+    if (firstVolInput && parseFloat(firstVolInput.value) > 0) {
+      firstVolInput.value = '';
+      onFirstVolInput(cardId);
+    }
   } else {
     // 復原：把 remaining 還回去，解除標記
     batch.remaining       = batch._exhaustedVol || 0;
