@@ -399,7 +399,7 @@
           <div class="section-divider"><span class="section-label">試劑批號選擇</span></div>
           <div id="card-givf"></div>
           <div id="card-aoa-ci"></div>
-          <div id="card-gm508"></div>
+          <div id="card-aoa-508"></div>
           <div id="card-h5gt"></div>
           <div id="card-gxtl"></div>
           <div id="card-glue"></div>
@@ -717,10 +717,10 @@ function restoreStateC(snapshot) {
     seen.add(b.reagentId);
     const bgCls  = b.reagentId === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
                    b.reagentId === 'gxtl' ? 'bg-blue-50 border border-blue-100' :
-                   b.reagentId === 'gm508' ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50';
+                   b.reagentId === 'aoa-508' ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50';
     const lblCls = b.reagentId === 'h5gt' ? 'text-purple-400' :
                    b.reagentId === 'gxtl' ? 'text-blue-400' :
-                   b.reagentId === 'gm508' ? 'text-amber-500' : 'text-slate-500';
+                   b.reagentId === 'aoa-508' ? 'text-amber-500' : 'text-slate-500';
     // 同品項若有多個批次（混批），收集所有 lot
     const lots = (snapshot.batches || [])
       .filter(x => x.reagentId === b.reagentId)
@@ -984,7 +984,7 @@ const reagentConfig = [
  */
 
 const gm508Config = {
-  id: 'gm508', name: 'AOA 明美 GM508', needed: 2.0,
+  id: 'aoa-508', name: 'AOA 明美 GM508', needed: 2.0,
   bottleVol: 1, batches: []
 };
 
@@ -1174,7 +1174,7 @@ function buildGM508HTML() {
   })();
   const orderedBatches = [...validBatches, ...openExpiredBatches, ...shownExpired];
   const batchRows = orderedBatches.length
-    ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'gm508', false)).join('')
+    ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'aoa-508', false)).join('')
     : `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`;
 
   const activeLots = gm.batches.filter(b => {
@@ -1227,11 +1227,11 @@ function buildGM508HTML() {
       <input type="text" id="gm508-patient-id">
     </div>
     <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
-      <button onclick="toggleSecondBatch('gm508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
+      <button onclick="toggleSecondBatch('aoa-508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
       </button>
       <span class="text-slate-200">|</span>
-      <button onclick="openModal('AOA 明美 GM508','gm508')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
+      <button onclick="openModal('AOA 明美 GM508','aoa-508')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
       </button>
     </div>
@@ -1244,7 +1244,7 @@ function buildGM508HTML() {
         <div class="flex items-center gap-2 text-sm flex-wrap">
           <span class="text-slate-500 shrink-0">第一批取用量：</span>
           <input type="number" id="gm508-first-vol" min="0" step="0.1" placeholder="mL"
-            oninput="onFirstVolInput('gm508')"
+            oninput="onFirstVolInput('aoa-508')"
             class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary">
           <span class="text-slate-400">mL</span>
           <span id="gm508-vol-warn" class="hidden text-xs text-red-500 font-medium">⚠ 超出第一批剩餘量</span>
@@ -1257,7 +1257,7 @@ function buildGM508HTML() {
         <input type="text" id="gm508-second-note" placeholder="混批備註（選填）"
           class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
       </div>
-      <button onclick="toggleSecondBatch('gm508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
+      <button onclick="toggleSecondBatch('aoa-508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
     </div>
   </div>
 </div>`;
@@ -1383,7 +1383,7 @@ function buildAllBatchCards() {
     const el = document.getElementById('card-' + cfg.id);
     if (el) el.innerHTML = buildBatchCardHTML(cfg);
   });
-  const gm508El = document.getElementById('card-gm508');
+  const gm508El = document.getElementById('card-aoa-508');
   if (gm508El) gm508El.innerHTML = buildGM508HTML();
 }
 
@@ -1409,7 +1409,7 @@ function toggleSecondBatch(id) {
 
   // 展開時，自動預選第二批號（排除已選的第一批）
   if (isOpening) {
-    const cfg = (id === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === id);
+    const cfg = (id === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === id);
     if (!cfg) return;
     const firstLot = document.querySelector(`input[name="r-${id}"]:checked`)?.value || '';
     const secondSelect = document.getElementById(id+'-second-lot');
@@ -1471,7 +1471,7 @@ let _modalCardId = null;
 function openModal(r, cardId, preSelectLot) {
   _modalCardId = cardId || null;
   document.getElementById('modal-reagent').textContent = r;
-  const cfg = (cardId === 'gm508') ? gm508Config :
+  const cfg = (cardId === 'aoa-508') ? gm508Config :
               reagentConfig.find(c => c.id === cardId) ||
               reagentConfig.find(c => c.name === r) || null;
   const needed  = cfg?.needed || 0;
@@ -1512,7 +1512,7 @@ function confirmOpenBottle() {
   const lotVal = sel.value;
   if (!_modalCardId) { closeModal(); return; }
 
-  const cfg = (_modalCardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === _modalCardId);
+  const cfg = (_modalCardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === _modalCardId);
   if (!cfg) { closeModal(); return; }
 
   const _fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1581,8 +1581,8 @@ function confirmOpenBottle() {
   }
 
   // 重新渲染卡片
-  if (_modalCardId === 'gm508') {
-    const el = document.getElementById('card-gm508');
+  if (_modalCardId === 'aoa-508') {
+    const el = document.getElementById('card-aoa-508');
     if (el) el.innerHTML = buildGM508HTML();
   } else {
     const renderCfg = reagentConfig.find(c => c.id === _modalCardId);
@@ -1598,7 +1598,7 @@ function closeModal() {
 }
 
 function cancelOpenBottle(cardId, lot) {
-  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
   const b = cfg.batches.find(x => x.lot === lot);
   if (!b || (b._manuallyOpened || 0) <= 0) return;  // 防連擊
@@ -1610,8 +1610,8 @@ function cancelOpenBottle(cardId, lot) {
   // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
   if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
 
-  if (cardId === 'gm508') {
-    const el = document.getElementById('card-gm508');
+  if (cardId === 'aoa-508') {
+    const el = document.getElementById('card-aoa-508');
     if (el) el.innerHTML = buildGM508HTML();
   } else {
     const el = document.getElementById('card-' + cardId);
@@ -1624,7 +1624,7 @@ function cancelOpenBottle(cardId, lot) {
 }
 
 function toggleExhausted(cardId, lot) {
-  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
   const batch = cfg.batches.find(b => b.lot === lot);
   if (!batch) return;
@@ -1645,8 +1645,8 @@ function toggleExhausted(cardId, lot) {
     batch._exhaustedVol   = undefined;
     batch.markedExhausted = false;
   }
-  if (cardId === 'gm508') {
-    const el = document.getElementById('card-gm508');
+  if (cardId === 'aoa-508') {
+    const el = document.getElementById('card-aoa-508');
     if (el) el.innerHTML = buildGM508HTML();
   } else {
     const renderCfg = reagentConfig.find(c => c.id === cardId);
@@ -1657,7 +1657,7 @@ function toggleExhausted(cardId, lot) {
 
 function replaceExpiredBottle(cardId, lot) {
   // 開封逾期需開新品：標記開封瓶耗盡，重新渲染卡片，再開啟 Modal 預選同批號開新瓶
-  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
   const batch = cfg.batches.find(b => b.lot === lot);
   if (!batch) return;
@@ -1667,8 +1667,8 @@ function replaceExpiredBottle(cardId, lot) {
     batch.markedExhausted   = true;
     batch._exhaustedByExpiry = true;  // 效期觸發，不顯示復原按鈕
   }
-  if (cardId === 'gm508') {
-    const el = document.getElementById('card-gm508');
+  if (cardId === 'aoa-508') {
+    const el = document.getElementById('card-aoa-508');
     if (el) el.innerHTML = buildGM508HTML();
   } else {
     const renderCfg = reagentConfig.find(c => c.id === cardId);
@@ -1979,7 +1979,7 @@ function recalcAllNeeded() {
   }
 
   gm508Config.needed = parseFloat(Math.max(0, aoa508Needed).toFixed(1));
-  const gm508CardEl = document.getElementById('card-gm508');
+  const gm508CardEl = document.getElementById('card-aoa-508');
   if (gm508CardEl) gm508CardEl.innerHTML = buildGM508HTML();
 
   setNeeded('givf', givfNeeded);
