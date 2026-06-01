@@ -1205,8 +1205,7 @@ function buildGM508HTML() {
   <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 cursor-pointer" onclick="toggleGM508()">
     <div class="flex items-center gap-2">
       <span class="font-heading font-semibold text-slate-800">AOA 明美 GM508</span>
-      <span class="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">卵子添加劑</span>
-      <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⚠️ 需填病歷號</span>
+      <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium">卵子添加劑</span>
     </div>
     <div class="flex items-center gap-3">
       <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${gm.needed.toFixed(1)} mL</span></span>
@@ -1236,13 +1235,8 @@ function buildGM508HTML() {
       <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
       <span class="text-xs font-semibold text-amber-800">此批號不足今日需用量，已自動展開第二批次</span>
     </div>
-    <div class="px-5 py-3 border-t border-slate-100">
-      <div class="flex items-center gap-3 flex-wrap">
-        <label class="text-sm font-semibold text-slate-700 whitespace-nowrap">病歷號（必填）</label>
-        <span class="text-xs text-slate-400">多筆用逗號隔開</span>
-      </div>
-      <input type="text" id="gm508-patient-id" placeholder="例：123456 或 123456, 789012"
-        class="mt-1.5 w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-400">
+    <div class="hidden">
+      <input type="text" id="gm508-patient-id">
     </div>
     <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
       <button onclick="toggleSecondBatch('gm508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
