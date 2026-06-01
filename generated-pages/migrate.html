@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>資料遷移工具 — 正式 → 測試</title>
+<style>
+  body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #f8fafc; }
+  h1 { color: #1e293b; font-size: 20px; }
+  .warn { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 20px 0; }
+  .warn strong { color: #92400E; }
+  .log { background: #0f172a; color: #94a3b8; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; height: 320px; overflow-y: auto; white-space: pre-wrap; margin: 16px 0; }
+  .log .ok { color: #4ade80; }
+  .log .err { color: #f87171; }
+  .log .info { color: #60a5fa; }
+  button { padding: 10px 24px; border-radius: 8px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; }
+  #btn-migrate { background: #dc2626; color: white; }
+  #btn-migrate:disabled { background: #94a3b8; cursor: not-allowed; }
+  #btn-clear { background: #dc2626; color: white; margin-left: 8px; display: none; }
+  #btn-clear:disabled { background: #94a3b8; cursor: not-allowed; }
+  .stat { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 16px 0; }
+  .stat-item { background: white; border-radius: 6px; padding: 10px 14px; border: 1px solid #e2e8f0; font-size: 13px; }
+  .stat-item strong { display: block; color: #1e293b; }
+  .stat-item span { color: #64748b; }
+  #status { font-weight: 600; margin: 12px 0; color: #1e293b; }
+</style>
+</head>
+<body>
+<h1>⚙️ Firestore 資料遷移工具</h1>
+
+<div class="warn">
+  <strong>⚠️ 這個工具會執行以下動作：</strong>
+  <ol style="margin:8px 0 0;padding-left:20px;color:#78350F">
+    <li>把所有正式集合的資料，逐筆複製到 <code>test_*</code> 集合</li>
+    <li>確認複製完成後，清空所有正式集合</li>
+  </ol>
+  <p style="color:#78350F;margin:8px 0 0">執行後正式站 (stork11-embryo-lab.web.app) 資料將完全清空。</p>
+</div>
+
+<div class="stat" id="stat-grid">
+  <div class="stat-item"><strong id="s-changelog">—</strong><span>kucun_changelog</span></div>
+  <div class="stat-item"><strong id="s-jinhuo">—</strong><span>jinhuo_records</span></div>
+  <div class="stat-item"><strong id="s-orders">—</strong><span>orders</span></div>
+  <div class="stat-item"><strong id="s-pandian">—</strong><span>pandian_snapshots</span></div>
+  <div class="stat-item"><strong id="s-beipan">—</strong><span>beipan_snapshots</span></div>
+  <div class="stat-item"><strong id="s-gupan-s">—</strong><span>gupan_snapshots</span></div>
+  <div class="stat-item"><strong id="s-gupan-d">—</strong><span>gupan_drafts</span></div>
+</div>
+
+<div style="background:white; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:16px;">
+  <h2 style="margin:0 0 8px 0; font-size:16px; color:#0F172A;">🔧 補修 5/27 盤點 productId 錯誤</h2>
+  <p style="margin:0 0 12px 0; font-size:13px; color:#64748B;">
+    修復耗材與試劑（Top tips、HEPES、Oil 等）因前綴剝除邏輯錯誤而寫入 gupanId 的問題。<br>
+    <strong>此操作安全：</strong>使用 updateDoc 就地更新，不刪除任何資料。
+  </p>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <button onclick="previewPandianFix()" style="background:#F1F5F9; border:1px solid #CBD5E1; color:#475569; font-size:13px; padding:8px 16px;">1. 掃描預覽</button>
+    <button onclick="executePandianFix()" style="background:#EF4444; color:white; font-size:13px; padding:8px 16px;">2. 執行修復</button>
+  </div>
+</div>
+
+<div>
+  <button id="btn-scan" onclick="scanCollections()">1️⃣ 先掃描資料量</button>
+  <button id="btn-migrate" onclick="startMigration()" disabled>2️⃣ 確認後開始遷移</button>
+  <button id="btn-clear" onclick="clearProduction()">3️⃣ 確認遷移完成，清空正式站</button>
+</div>
+
+<div id="status"></div>
+<div class="log" id="log">等待操作…</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, writeBatch,
+         query, where, updateDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC3FHchC_pHZHz2ZghxSS0mrDGBWhB_M1o",
+  authDomain: "stork11-embryo-lab.firebaseapp.com",
+  projectId: "stork11-embryo-lab",
+  storageBucket: "stork11-embryo-lab.firebasestorage.app",
+  messagingSenderId: "565116361227",
+  appId: "1:565116361227:web:6788ae3503bf431cf3050e"
+};
+
+const COLLECTIONS = [
+  { src: 'kucun_changelog',  dst: 'test_kucun_changelog',  statId: 's-changelog' },
+  { src: 'jinhuo_records',   dst: 'test_jinhuo_records',   statId: 's-jinhuo' },
+  { src: 'orders',           dst: 'test_orders',           statId: 's-orders' },
+  { src: 'pandian_snapshots',dst: 'test_pandian_snapshots',statId: 's-pandian' },
+  { src: 'beipan_snapshots', dst: 'test_beipan_snapshots', statId: 's-beipan' },
+  { src: 'gupan_snapshots',  dst: 'test_gupan_snapshots',  statId: 's-gupan-s' },
+  { src: 'gupan_drafts',     dst: 'test_gupan_drafts',     statId: 's-gupan-d' },
+];
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+let scannedDocs = {};
+
+function log(msg, cls = '') {
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function init() {
+  await signInAnonymously(auth);
+  log('[系統] Firebase 匿名登入成功', 'ok');
+}
+
+window.scanCollections = async function() {
+  logEl.innerHTML = '';
+  document.getElementById('btn-scan').disabled = true;
+  log('[掃描] 開始讀取各集合資料量…', 'info');
+  await init();
+
+  let total = 0;
+  scannedDocs = {};
+  for (const col of COLLECTIONS) {
+    const snap = await getDocs(collection(db, col.src));
+    scannedDocs[col.src] = snap.docs;
+    total += snap.size;
+    document.getElementById(col.statId).textContent = snap.size + ' 筆';
+    log(`  ${col.src}: ${snap.size} 筆`);
+  }
+
+  log(`[掃描完成] 共 ${total} 筆資料`, 'ok');
+  statusEl.textContent = `掃描完成，共 ${total} 筆。確認無誤後點「開始遷移」。`;
+  document.getElementById('btn-migrate').disabled = false;
+};
+
+window.startMigration = async function() {
+  if (!confirm(`確定要將所有正式站資料複製到測試集合嗎？\n（還不會刪除正式站資料，複製完成後才詢問你）`)) return;
+
+  document.getElementById('btn-migrate').disabled = true;
+  log('\n[遷移] 開始複製資料到 test_* 集合…', 'info');
+  statusEl.textContent = '遷移中，請勿關閉頁面…';
+
+  let copied = 0;
+  for (const col of COLLECTIONS) {
+    log(`  複製 ${col.src} → ${col.dst}…`);
+    const docs = scannedDocs[col.src] || [];
+    // 每批最多 500 筆（Firestore writeBatch 上限）
+    const CHUNK = 400;
+    for (let i = 0; i < docs.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + CHUNK).forEach(d => {
+        batch.set(doc(db, col.dst, d.id), d.data());
+      });
+      await batch.commit();
+    }
+    copied += docs.length;
+    log(`  ✓ ${col.dst}：${docs.length} 筆`, 'ok');
+  }
+
+  log(`\n[遷移完成] 共複製 ${copied} 筆到 test_* 集合`, 'ok');
+  statusEl.textContent = `複製完成（${copied} 筆）。請先到測試站確認資料正確，再點「清空正式站」。`;
+  document.getElementById('btn-clear').style.display = 'inline-block';
+};
+
+// ── 5/27 盤點 productId 補修 ──────────────────────────────────
+// gupanId → 真實 productId 對照表（m- 前綴已在原邏輯中處理正確，無需列入）
+const GUPAN_TO_PRODUCT = {
+  'f-508':'aoa-508',  'f-hepes':'hepes',  'f-oil':'oil',   'f-pvp':'pvp',
+  'f-cum':'cumulase', 'f-602':'602',      'f-101':'101',   'f-102':'102',
+  'f-102-mm':'102-mm','f-gm501':'gm501',  'f-110':'110',
+  's-fert':'fertipro','s-sf':'spermfr',   's-spas':'spas', 's-tyb':'tyb',
+  's-mg':'mountgl',   's-pure':'pure100',
+  'c1-ty':'toptip-y', 'c1-tg':'toptip-g', 'c1-tr':'toptip-r',
+  'c1-tb':'toptip-b', 'c1-tw':'toptip-w',
+  'c2-135':'riez135', 'c2-145':'riez145', 'c2-200':'riez200',
+  'c2-vl135':'vltip135','c2-vl145':'vltip145','c2-vl200':'vltip200',
+  'c1-6w':'6well',    'b-mp':'mouth',     'r-os1':'oosafe-c','r-os2':'oosafe-f',
+  'c1-3w':'3well',    'c3-gd':'geridish', 'c3-gw':'geriwat', 'c3-gf':'gerifl',
+  'b-cf':'coda',      'b-of':'orifl',
+};
+const PANDIAN_FIX_DATE = '2026-05-27';
+
+window.previewPandianFix = async function() {
+  logEl.innerHTML = '';
+  log('==== 掃描 ' + PANDIAN_FIX_DATE + ' 盤點錯誤記錄 ====', 'info');
+  await init();
+  const q = query(
+    collection(db, 'kucun_changelog'),
+    where('source', '==', 'pandian')
+  );
+  const snap = await getDocs(q);
+  const toFix = snap.docs.filter(d => {
+    const data = d.data();
+    const dateStr = (data.ts || '').slice(0, 10);
+    return dateStr === PANDIAN_FIX_DATE && GUPAN_TO_PRODUCT[data.productId];
+  });
+  if (toFix.length === 0) {
+    log('✅ 沒有發現需要修正的記錄（可能已補修過）', 'ok');
+    return;
+  }
+  log(`🔍 找到 ${toFix.length} 筆需修正記錄：`, 'ok');
+  toFix.forEach(d => {
+    const data = d.data();
+    const correctId = GUPAN_TO_PRODUCT[data.productId];
+    log(`  [${data.productId}] → [${correctId}]  ${data.productName || ''}`);
+  });
+  log('\n確認無誤後，點「執行修復」進行補修。');
+};
+
+window.executePandianFix = async function() {
+  if (!confirm('確定執行？\n將就地更新 ' + PANDIAN_FIX_DATE + ' 盤點紀錄的 productId，不刪除資料。')) return;
+  logEl.innerHTML = '';
+  log('==== 執行補修 ====', 'info');
+  await init();
+  const q = query(
+    collection(db, 'kucun_changelog'),
+    where('source', '==', 'pandian')
+  );
+  const snap = await getDocs(q);
+  const toFix = snap.docs.filter(d => {
+    const data = d.data();
+    const dateStr = (data.ts || '').slice(0, 10);
+    return dateStr === PANDIAN_FIX_DATE && GUPAN_TO_PRODUCT[data.productId];
+  });
+  if (!toFix.length) { log('沒有需修正的記錄，終止。', 'ok'); return; }
+
+  let fixed = 0;
+  for (const d of toFix) {
+    const data = d.data();
+    const correctId = GUPAN_TO_PRODUCT[data.productId];
+    await updateDoc(doc(db, 'kucun_changelog', d.id), { productId: correctId });
+    log(`✅ ${data.productName || data.productId}  [${data.productId}] → [${correctId}]`, 'ok');
+    fixed++;
+  }
+  log(`\n🎉 補修完成！共修正 ${fixed} 筆，請至庫存總覽確認 ${PANDIAN_FIX_DATE} 欄位。`, 'ok');
+};
+
+window.clearProduction = async function() {
+  if (!confirm('最後確認：即將清空所有正式集合的資料，此動作無法復原。確定嗎？')) return;
+  if (!confirm('再次確認：正式站所有資料（kucun_changelog、jinhuo_records 等）將全部刪除。確定繼續？')) return;
+
+  document.getElementById('btn-clear').disabled = true;
+  log('\n[清空] 開始刪除正式集合資料…', 'info');
+  statusEl.textContent = '清空中，請勿關閉頁面…';
+
+  let deleted = 0;
+  for (const col of COLLECTIONS) {
+    const docs = scannedDocs[col.src] || [];
+    log(`  刪除 ${col.src}（${docs.length} 筆）…`);
+    const CHUNK = 400;
+    for (let i = 0; i < docs.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      docs.slice(i, i + CHUNK).forEach(d => batch.delete(doc(db, col.src, d.id)));
+      await batch.commit();
+    }
+    deleted += docs.length;
+    document.getElementById(col.statId).textContent = '0 筆（已清空）';
+    log(`  ✓ ${col.src} 清空完成`, 'ok');
+  }
+
+  log(`\n[完成] 正式站資料已清空（共刪除 ${deleted} 筆）`, 'ok');
+  log('測試站資料完整保留於 test_* 集合。', 'ok');
+  statusEl.textContent = '✅ 遷移完成！正式站已清空，測試站資料齊全。';
+};
+</script>
+</body>
+</html>

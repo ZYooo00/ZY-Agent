@@ -445,7 +445,7 @@ async function completePandian() {
       id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}-${it.id}`,
       ts: logTimestamp,
       source: 'pandian', action: 'pandian',
-      productId: it.id.replace(/^m-/, ''), productName: it.name,
+      productId: GUPAN_MAP[it.id]?.id || it.id, productName: it.name,
       operator: staffName,
       lotNumber: null, qty: it.actual,
       unit: it.unit || '瓶', vendor: '',
