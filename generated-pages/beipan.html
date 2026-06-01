@@ -456,6 +456,28 @@
   </main>
 </div>
 
+<!-- ════ MODAL：確認送出備盤 ════ -->
+<div id="submit-confirm-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div>
+        <h3 class="font-heading font-bold text-slate-800">確認送出備盤</h3>
+        <p class="text-xs text-slate-400 mt-0.5" id="submit-confirm-staff">備盤人員：—</p>
+      </div>
+    </div>
+    <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 mb-5">
+      <strong>送出後今日備盤將鎖定，無法修改。</strong>若實際用量與備盤不符，請送出後至<strong>庫存總覽 → 手動補登</strong>進行修正。
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeSubmitConfirmModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
+      <button onclick="closeSubmitConfirmModal();submitBeipan()" class="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors shadow-sm">確認送出</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════ MODAL：登記新開瓶 ════ -->
 <div id="modal-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeModal()">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onclick="event.stopPropagation()">
@@ -579,54 +601,8 @@ function previewBeipan() {
     _forceOverride = false;
   }
 
-  const cards = [];
-
-  reagentConfig.forEach(cfg => {
-    if (cfg.needed <= 0) return;
-    const primaryLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || '—';
-
-    // 讀取接續批號（若展開且與主批號不同）
-    const secondPanel = document.getElementById(cfg.id + '-second');
-    let lots = [primaryLot];
-    if (secondPanel && !secondPanel.classList.contains('hidden')) {
-      const secondLot = document.getElementById(cfg.id + '-second-lot')?.value;
-      if (secondLot && secondLot !== primaryLot) lots.push(secondLot);
-    }
-
-    const bgCls  = cfg.id === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
-                   cfg.id === 'gxtl' ? 'bg-blue-50 border border-blue-100' : 'bg-slate-50';
-    const lblCls = cfg.id === 'h5gt' ? 'text-purple-400' :
-                   cfg.id === 'gxtl' ? 'text-blue-400' : 'text-slate-500';
-
-    cards.push(`<div class="${bgCls} rounded-lg p-3">
-      <span class="${lblCls} text-xs block">${cfg.name}</span>
-      <span class="font-mono font-semibold text-slate-800">${lots.join(' + ')}</span>
-    </div>`);
-  });
-
-  // GM508（only when needed > 0 and has batches）
-  if (gm508Config.needed > 0 && gm508Config.batches.length > 0) {
-    const gm508Lot = document.querySelector('input[name="r-gm508"]:checked')?.value || '—';
-    const gm508Second = document.getElementById('gm508-second');
-    let gm508Lots = [gm508Lot];
-    if (gm508Second && !gm508Second.classList.contains('hidden')) {
-      const secondLot = document.getElementById('gm508-second-lot')?.value;
-      if (secondLot && secondLot !== gm508Lot) gm508Lots.push(secondLot);
-    }
-    cards.push(`<div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
-      <span class="text-amber-500 text-xs block">AOA GM508</span>
-      <span class="font-mono font-semibold text-slate-800">${gm508Lots.join(' + ')}</span>
-    </div>`);
-  }
-
-  const grid = document.querySelector('#state-c .grid');
-  if (grid) grid.innerHTML = cards.join('');
-
   const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
-  const staffEl = document.getElementById('state-c-staff-display');
-  if (staffEl) staffEl.textContent = `備盤人員：${staffStr}　·　請核對盤子數量（批號與開封日由備盤人員負責）`;
-
-  switchState('c');
+  openSubmitConfirmModal(staffStr);
 }
 
 // ── 歷史備盤 Modal ──
@@ -850,30 +826,27 @@ async function lockStateB(snapshot) {
   if (submitArea) submitArea.classList.add('hidden');
 
   window._beipanLocked = true;
-  window._stateCUnsubmitted = false;
   switchState('b');
 }
 
 function switchState(s) {
   ['a','b','c'].forEach(id => {
-    document.getElementById('state-'+id).classList.toggle('hidden', id !== s);
+    const el = document.getElementById('state-'+id);
+    if (el) el.classList.toggle('hidden', id !== s);
     const btn = document.getElementById('btn-'+id);
     if (btn) btn.classList.toggle('active', id === s);
   });
-  // 進入 State C 預覽（尚未送出）→ 攔截離頁，避免靜默丟失
-  if (s === 'c' && !window._beipanLocked) {
-    window._stateCUnsubmitted = true;
-  } else {
-    window._stateCUnsubmitted = false;
-  }
 }
 
-window.addEventListener('beforeunload', function(e) {
-  if (window._stateCUnsubmitted) {
-    e.preventDefault();
-    e.returnValue = '備盤尚未送出，離開後需重新填寫。確定要離開嗎？';
-  }
-});
+function openSubmitConfirmModal(staffStr) {
+  const el = document.getElementById('submit-confirm-staff');
+  if (el) el.textContent = `備盤人員：${staffStr || '—'}`;
+  document.getElementById('submit-confirm-overlay')?.classList.remove('hidden');
+}
+
+function closeSubmitConfirmModal() {
+  document.getElementById('submit-confirm-overlay')?.classList.add('hidden');
+}
 
 // ── Date utilities ──
 const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
@@ -1157,6 +1130,10 @@ function buildBatchRow(b, needed, cardId, checked) {
     }
   }
 
+  const cancelOpenBtn = (b._manuallyOpened || 0) > 0
+    ? `<button onclick="cancelOpenBottle('${cardId}','${b.lot.replace(/'/g,"\\'")}')" class="mt-1 block text-xs text-blue-400 hover:text-blue-600 transition-colors">↩ 取消開瓶</button>`
+    : '';
+
   return `<tr class="${rowBg} transition-colors">
     <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
     <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
@@ -1170,7 +1147,7 @@ function buildBatchRow(b, needed, cardId, checked) {
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
     <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
-    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${exhaustBtn}</td>
+    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${exhaustBtn}${cancelOpenBtn}</td>
   </tr>`;
 }
 
@@ -1208,7 +1185,11 @@ function buildGM508HTML() {
       <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium">卵子添加劑</span>
     </div>
     <div class="flex items-center gap-3">
-      <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${gm.needed.toFixed(1)} mL</span></span>
+      <div class="inline-flex items-baseline gap-1.5">
+        <span class="text-sm text-slate-500">今日需用</span>
+        <span class="text-2xl font-bold text-slate-900 tabular">${gm.needed.toFixed(1)}</span>
+        <span class="text-sm text-slate-400">mL</span>
+      </div>
       <svg id="gm508-icon" class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
       </svg>
@@ -1324,7 +1305,14 @@ function buildBatchCardHTML(cfg) {
       <span class="font-heading font-semibold text-slate-800">${cfg.name}</span>
       <span class="text-xs ${cfg.labelCls} px-2 py-0.5 rounded-full font-medium">${cfg.label}</span>
     </div>
-    <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${cfg.needed.toFixed(1)} mL</span></span>
+    <div class="text-right">
+      <div class="inline-flex items-baseline gap-1.5">
+        <span class="text-sm text-slate-500">今日需用</span>
+        <span class="text-2xl font-bold text-slate-900 tabular">${cfg.needed.toFixed(1)}</span>
+        <span class="text-sm text-slate-400">mL</span>
+      </div>
+      ${cfg.id === 'givf' && cfg._breakdown ? `<div class="text-xs text-slate-400 mt-0.5">OPU ${cfg._breakdown.opu.toFixed(1)} ＋ 精蟲 ${cfg._breakdown.sperm.toFixed(1)} ＋ 其他 ${cfg._breakdown.other.toFixed(1)} mL</div>` : ''}
+    </div>
   </div>
   <div class="overflow-x-auto">
     <table class="w-full text-sm min-w-[600px]">
@@ -1600,6 +1588,33 @@ function confirmOpenBottle() {
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function cancelOpenBottle(cardId, lot) {
+  const cfg = (cardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  if (!cfg) return;
+  const idx = cfg.batches.findIndex(b => b.lot === lot);
+  if (idx < 0) return;
+  const b = cfg.batches[idx];
+  if ((b._manuallyOpened || 0) <= 0) return;
+
+  const vol = b.bottleVol || cfg.bottleVol || 0;
+  b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
+  b.unopened  = (b.unopened || 0) + 1;
+  b._manuallyOpened = Math.max(0, (b._manuallyOpened || 0) - 1);
+  // 若此批號在本 session 前尚未開封（remaining 歸零了），清除開封日
+  if (b.remaining === 0) {
+    b.openDate   = null;
+    b.openExpiry = null;
+  }
+
+  if (cardId === 'gm508') {
+    const el = document.getElementById('card-gm508');
+    if (el) el.innerHTML = buildGM508HTML();
+  } else {
+    const el = document.getElementById('card-' + cardId);
+    if (el) el.innerHTML = buildBatchCardHTML(cfg);
+  }
 }
 
 function toggleExhausted(cardId, lot) {
