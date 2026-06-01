@@ -1,9 +1,22 @@
 // shared.js — 品項主檔、共用函數
-// v2.4.0 — 新增 APP_VERSION 版本機制
-// v2.1.0 — 新增 brand 欄位（Vitrolife/LifeGlobal/null）；101 needQC 改為 false
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = 'v2.4.0';
+const APP_VERSION = '26.06.01'; // 格式：YY.MM.DD
+
+const CHANGELOG = [
+  {
+    version: '26.06.01',
+    date: '2026-06-01',
+    changes: [
+      'AOA 明美 GM508 批號抓取修正（ID 對應錯誤）',
+      '備盤批號新增「帳面用盡」狀態：灰底可選，區分真實過期',
+      '備盤頁新增多人編輯互斥鎖（防覆蓋保護）',
+      '歷史備盤按鈕移至 header，編輯中也可查詢',
+      '盤點 productId 映射修正（歷史資料補修）',
+    ]
+  }
+  // 未來新版本往上加
+];
 
 const STAFF_LIST = [
   'Ally','Sunny','Linkin','Alvin','Rina','Cara','Lauren',
@@ -94,16 +107,79 @@ function appendKucunLog(entries) {
   } catch(err) { console.warn('kucun-changelog write failed', err); }
 }
 
+window.openChangelogModal = function() {
+  let modal = document.getElementById('changelog-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'changelog-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)';
+    modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:white;border-radius:16px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)';
+
+    const rows = CHANGELOG.map(v => `
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:15px;font-weight:700;color:#1e293b">Version ${v.version}</span>
+          <span style="font-size:12px;color:#94a3b8">${v.date}</span>
+        </div>
+        <ul style="margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.8">
+          ${v.changes.map(c => `<li style="margin-bottom:4px">${c}</li>`).join('')}
+        </ul>
+      </div>`).join('');
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="margin:0;font-size:17px;font-weight:700;color:#0f172a">📋 更新紀錄</h2>
+        <button onclick="document.getElementById('changelog-modal').style.display='none'"
+          style="background:none;border:none;cursor:pointer;font-size:20px;color:#94a3b8;line-height:1">✕</button>
+      </div>
+      ${rows}
+      <button onclick="document.getElementById('changelog-modal').style.display='none'"
+        style="width:100%;padding:10px;background:#f1f5f9;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:#475569;margin-top:10px">
+        了解
+      </button>`;
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+  } else {
+    modal.style.display = 'flex';
+  }
+};
+
 (function checkVersion() {
   window.addEventListener('DOMContentLoaded', function() {
+    // 1. 版本更新 Banner
     const stored = localStorage.getItem('app-version');
-    if (stored === APP_VERSION) return;
-    const bar = document.createElement('div');
-    bar.id = 'version-update-bar';
-    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#FEF08A;color:#713F12;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
-    bar.innerHTML = `<span>🚀 系統已更新至 ${APP_VERSION}，建議重新載入以確保資料正確</span>
-      <button onclick="localStorage.setItem('app-version','${APP_VERSION}');location.reload()" style="background:#92400E;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;white-space:nowrap">立即更新</button>
-      <button onclick="localStorage.setItem('app-version','${APP_VERSION}');this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0 4px" title="暫時忽略">✕</button>`;
-    document.body.prepend(bar);
+    if (stored !== APP_VERSION) {
+      const bar = document.createElement('div');
+      bar.id = 'version-update-bar';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#FEF08A;color:#713F12;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)';
+      bar.innerHTML = `<span>✨ 系統已更新至 Version ${APP_VERSION}，建議重新載入以確保資料正確</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="localStorage.setItem('app-version','${APP_VERSION}');localStorage.setItem('show-changelog','1');location.reload(true)" style="background:#92400E;color:white;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;white-space:nowrap">立即更新</button>
+          <button onclick="localStorage.setItem('app-version','${APP_VERSION}');this.parentElement.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0 4px;color:#713F12" title="暫時忽略">✕</button>
+        </div>`;
+      document.body.prepend(bar);
+    }
+
+    // 2. 重整後自動開 Changelog Modal
+    if (localStorage.getItem('show-changelog') === '1') {
+      localStorage.removeItem('show-changelog');
+      window.openChangelogModal();
+    }
+
+    // 3. 側邊欄注入版本號按鈕
+    document.querySelectorAll('.mt-auto').forEach(block => {
+      if (block.querySelector('#sidebar-version-btn')) return;
+      const btn = document.createElement('button');
+      btn.id = 'sidebar-version-btn';
+      btn.onclick = window.openChangelogModal;
+      btn.style.cssText = 'width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:6px 12px;font-size:11px;color:#94a3b8;font-family:monospace;letter-spacing:.05em;border-radius:8px;transition:color .15s;margin-bottom:6px';
+      btn.onmouseover = () => btn.style.color = '#64748b';
+      btn.onmouseout  = () => btn.style.color = '#94a3b8';
+      btn.textContent = `Version ${APP_VERSION}`;
+      block.insertBefore(btn, block.firstChild);
+    });
   });
 })();
