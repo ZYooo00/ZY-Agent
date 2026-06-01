@@ -1032,7 +1032,7 @@ async function initBatchesFromFirebase() {
           lot: l.lot,
           expiry: l.expiry,
           openExpiry: snap?.openExpiryDate || null,
-          openDate: null,
+          openDate: snap?.openDate || null,
           remaining: snap != null ? snap.remaining : 0,
           unopened: snap != null ? snap.unopened : l.totalReceived,
           bottleVol: cfg.bottleVol || 0,
@@ -1202,7 +1202,7 @@ function buildGM508HTML() {
         </thead>
         <tbody>
           <tr class="row-ok hover:bg-amber-50 transition-colors">
-            <td class="pl-4 py-3 text-center"><input type="radio" name="r-gm508" checked onchange="onBatchSelect('gm508','${badge.status}')"></td>
+            <td class="pl-4 py-3 text-center"><input type="radio" name="r-gm508" value="${b.lot}" onchange="onBatchSelect('gm508','${badge.status}')"></td>
             <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
             <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
             <td class="px-3 py-3 tabular">
@@ -1273,7 +1273,7 @@ function buildBatchCardHTML(cfg) {
     const bs = calcBadge(b, cfg.needed).status;
     const isExpiredRow  = b.blocked || bs === 'expired';
     const isOpenExpRow  = bs === 'open_expired';
-    const isChecked     = !isExpiredRow && !isOpenExpRow && firstActive;
+    const isChecked     = false;  // 預設全部不選，必須手動選擇批號
     if (!isExpiredRow && !isOpenExpRow) firstActive = false;
     return buildBatchRow(b, cfg.needed, cfg.id, isChecked);
   }).join('');
@@ -1376,7 +1376,26 @@ function onBatchSelect(cardId, status) {
 
 // ── Second batch toggle ──
 function toggleSecondBatch(id) {
-  document.getElementById(id+'-second').classList.toggle('hidden');
+  const panel = document.getElementById(id+'-second');
+  if (!panel) return;
+  const isOpening = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+
+  // 展開時，自動預選第二批號（排除已選的第一批）
+  if (isOpening) {
+    const cfg = (id === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === id);
+    if (!cfg) return;
+    const firstLot = document.querySelector(`input[name="r-${id}"]:checked`)?.value || '';
+    const secondSelect = document.getElementById(id+'-second-lot');
+    if (secondSelect && cfg.batches) {
+      const candidate = cfg.batches.find(b => {
+        if (b.lot === firstLot || b.blocked) return false;
+        const s = calcBadge(b, cfg.needed).status;
+        return s !== 'expired' && s !== 'open_expired';
+      });
+      if (candidate) secondSelect.value = candidate.lot;
+    }
+  }
 }
 
 // ── 混批公式計算：firstVol 輸入時即時更新 secondVol + 警示 ──
@@ -1647,7 +1666,8 @@ const givfDishes = [
   { name:'TE',        plan:0,   unit:'盤' },
   { name:'AOA 弘優',  plan:0,   unit:'盤' },
   { name:'AOA 508',   plan:0,   unit:'盤' },
-  { name:'精蟲',      plan:0,   unit:'盤' },
+  { name:'COC',       plan:0,   unit:'盤' },
+  { name:'精蟲',      plan:0,   unit:'台' },
   { name:'G-IVF pH', plan:0,   unit:'盤', key:'givf_ph' },
   { name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
 ];
@@ -1845,15 +1865,16 @@ function recalcAllNeeded() {
     return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (matrixDishes[i]?.gxtl ?? 0);
   }
 
-  // GIVF 盤子索引：0=OPU 1=De 2=TE 3=AOA弘優 4=AOA508 5=精蟲(台) 6=G-IVF pH 7=多配mL
+  // GIVF 盤子索引：0=OPU 1=De 2=TE 3=AOA弘優 4=AOA508 5=COC 6=精蟲(台) 7=G-IVF pH 8=多配mL
   const opu       = givfVal(0);
   const de        = givfVal(1);
   const te        = givfVal(2);
   const aoaCi     = givfVal(3);
   const aoa508    = givfVal(4);
-  const spermTai  = givfVal(5);  // 台數
-  const givfPh    = givfVal(6);
-  const givfMulti = givfVal(7);  // 已是 mL
+  const coc       = givfVal(5);  // COC 卵子盤
+  const spermTai  = givfVal(6);  // 台數
+  const givfPh    = givfVal(7);
+  const givfMulti = givfVal(8);  // 已是 mL
 
   // 矩陣索引：0=D0 1=Bx 2=TB 3=Geri受精 4=GeriFBT 5=pH盤 6=多配mL
   const h5Multi = mxH5(6), gxMulti = mxGx(6);
@@ -1862,8 +1883,10 @@ function recalcAllNeeded() {
   const glueInp = document.getElementById('glue-plan-input');
   const gluePanCount = (glueInp && glueInp.value !== '') ? (parseFloat(glueInp.value) || 0) : gluePlan;
 
-  // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508)×0.5 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
-  const givfNeeded = opu*3 + (de+te+aoaCi+aoa508)*0.5 + spermTai*0.7 + givfPh*1 + givfMulti;
+  // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
+  const givfNeeded = opu*3 + (de+te+aoaCi+aoa508+coc)*0.6 + spermTai*0.7 + givfPh*1 + givfMulti;
+  const givfCfg = reagentConfig.find(c => c.id === 'givf');
+  if (givfCfg) givfCfg._breakdown = { opu: opu*3, sperm: parseFloat((spermTai*0.7).toFixed(1)), other: parseFloat(((de+te+aoaCi+aoa508+coc)*0.6 + givfPh*1 + givfMulti).toFixed(1)) };
 
   // ── AOA 弘優 CI: 盤數 × 0.3 mL ──
   const aoaCiNeeded = aoaCi * 0.3;
@@ -1877,8 +1900,8 @@ function recalcAllNeeded() {
   // ── GxTL: (D0+Bx+TB+Geri受精+GeriFBT)×0.4 + pH×1 + 多配mL ──
   const gxTLNeeded = (mxGx(0)+mxGx(1)+mxGx(2)+mxGx(3)+mxGx(4))*0.4 + mxGx(5)*1 + gxMulti;
 
-  // ── EmbryoGlue: Glue盤 × 0.8 mL ──
-  const glueNeeded = gluePanCount * 0.8;
+  // ── EmbryoGlue: Glue盤 × 0.9 mL ──
+  const glueNeeded = gluePanCount * 0.9;
 
   function setNeeded(cfgId, val) {
     const cfg = reagentConfig.find(c => c.id === cfgId);
@@ -1917,6 +1940,25 @@ async function submitBeipan() {
     showToast('請選擇兩位備盤人員', 'warn');
     return;
   }
+
+  // 批號必填驗證：需用量 > 0 的品項必須選擇批號
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    if ((cfg.needed || 0) > 0 && cfg.batches && cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status !== 'expired' && calcBadge(b, cfg.needed).status !== 'open_expired').length > 0) {
+      const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+      if (!selectedLot) {
+        window._beipanSubmitting = false;
+        showToast(`請為「${cfg.name}」選擇批號`, 'warn');
+        const cardEl = document.getElementById('card-' + cfg.id);
+        if (cardEl) {
+          cardEl.scrollIntoView({ behavior:'smooth', block:'center' });
+          cardEl.classList.add('ring-2', 'ring-red-400', 'ring-offset-1');
+          setTimeout(() => cardEl.classList.remove('ring-2', 'ring-red-400', 'ring-offset-1'), 2500);
+        }
+        return;
+      }
+    }
+  }
+
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
   const _wasForceOverride = _forceOverride;
   _forceOverride = false;
@@ -2055,6 +2097,7 @@ async function submitBeipan() {
         bottleVol: batch.bottleVol || 0,
         expiryDate: batch.expiry || null,
         openExpiryDate: batch.openExpiry || null,
+        openDate: batch.openDate || null,
       });
 
       // 更新記憶體中的 batch（供後續欄位顯示）
@@ -2162,8 +2205,8 @@ async function loadGupanData() {
 
   const { givf, matrix } = data;
 
-  // GIVF 陣列映射（依順序：OPU/De/TE/AOA弘優/AOA508/精蟲/G-IVF pH/多配）
-  const givfKeys = ['opu','de','te','aoa_ci','aoa508','sperm','givf_ph','givf_x'];
+  // GIVF 陣列映射（依順序：OPU/De/TE/AOA弘優/AOA508/COC/精蟲/G-IVF pH/多配）
+  const givfKeys = ['opu','de','te','aoa_ci','aoa508','coc','sperm','givf_ph','givf_x'];
   givfKeys.forEach((k, i) => {
     if (givf[k] != null) givfDishes[i].plan = givf[k];
   });
