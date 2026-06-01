@@ -889,6 +889,7 @@ function calcBadge(b, needed) {
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
   const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
+  if (total <= 0)                return { status:'empty',        cls:'badge-none', text:'🗑️ 已用盡' };
   if (total < needed)            return { status:'insufficient', cls:'badge-warn', text:'⚠️ 批號不足' };
   if ((b.remaining||0) < needed) return { status:'needOpen',    cls:'badge-info', text:'🔄 需開新瓶' };
   return { status:'ok', cls:'badge-ok', text:'✅ 充足' };
@@ -1046,7 +1047,7 @@ async function initBatchesFromFirebase() {
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
   const badge        = calcBadge(b, needed);
-  const isExpired    = b.blocked || badge.status === 'expired';
+  const isExpired    = b.blocked || badge.status === 'expired' || badge.status === 'empty';
   const isOpenExpired = badge.status === 'open_expired';
   const days         = daysUntilExpiry(effectiveExpiry(b));
   const expCls       = isExpired
@@ -1273,12 +1274,15 @@ function buildBatchCardHTML(cfg) {
     .filter(b => {
       if (b.blocked) return false;
       const s = calcBadge(b, cfg.needed).status;
-      return s !== 'expired' && s !== 'open_expired';
+      return s !== 'expired' && s !== 'open_expired' && s !== 'empty';
     })
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
 
-  // 完全過期批號：優先選有殘液的（需要丟棄），其餘只取最近一筆
-  const expiredBatches = cfg.batches.filter(b => b.blocked || calcBadge(b, cfg.needed).status === 'expired');
+  // 完全過期或已用盡批號：優先選有殘液的（需要丟棄），其餘只取最近一筆
+  const expiredBatches = cfg.batches.filter(b => {
+    const s = calcBadge(b, cfg.needed).status;
+    return b.blocked || s === 'expired' || s === 'empty';
+  });
   const shownExpired   = expiredBatches.length === 0 ? [] : (() => {
     const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
     if (withRem.length > 0) return [withRem[0]];
