@@ -531,6 +531,32 @@
   </div>
 </div>
 
+<!-- QC CONFIRM MODAL -->
+<div id="qc-modal-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,.45)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100">
+      <div class="font-semibold text-slate-800">確認 QC 通過</div>
+      <div id="qc-modal-lot-label" class="text-xs text-slate-400 mt-0.5">批號 —</div>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">操作人員</label>
+        <select id="qc-modal-operator" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="">請選擇人員</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">QC 日期</label>
+        <input type="date" id="qc-modal-date" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+      </div>
+    </div>
+    <div class="px-5 py-3 bg-slate-50 flex justify-end gap-2">
+      <button onclick="closeQcModal()" class="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
+      <button onclick="confirmQcPassed()" class="px-4 py-2 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg">✅ 確認通過</button>
+    </div>
+  </div>
+</div>
+
 <!-- ITEM DETAIL DRAWER -->
 <div id="drawer-overlay" onclick="closeDrawer()"></div>
 <div id="item-drawer">
@@ -693,8 +719,8 @@ function calcProductInfo(product, data) {
     stockSource  = 'pandian';
   }
 
-  // ── Target ──
-  const target = pandianItem?.target ?? null;
+  // ── Target（優先用 PRODUCTS 的最新設定，fallback 到盤點快照的舊值）──
+  const target = PRODUCTS.find(p => p.id === product.id)?.target ?? pandianItem?.target ?? null;
 
   // ── Pending delivery ──
   let pending = 0;
@@ -1559,22 +1585,58 @@ function closeDrawer() {
   document.getElementById('item-drawer').classList.remove('open');
 }
 
-async function markQcPassed(productId, lotNumber) {
-  const operator = prompt(`請輸入您的姓名，確認批號 ${lotNumber} 已通過 QC：`);
-  if (!operator || !operator.trim()) return;
+let _qcProductId = null;
+let _qcLotNumber = null;
 
-  const records = JSON.parse(localStorage.getItem('jinhuo-records') || '[]');
-  const updatedRecords = [];
-  let updated = false;
-  records.forEach(r => {
-    if (r.productId === productId && r.lotNumber === lotNumber && r.qcStatus === 'pending') {
-      r.qcStatus = 'passed';
-      updated = true;
-      updatedRecords.push(r);
-    }
-  });
-  if (!updated) { showToast('找不到對應的待 QC 批號'); return; }
-  localStorage.setItem('jinhuo-records', JSON.stringify(records));
+function markQcPassed(productId, lotNumber) {
+  _qcProductId = productId;
+  _qcLotNumber = lotNumber;
+  const overlay = document.getElementById('qc-modal-overlay');
+  const lotLabel = document.getElementById('qc-modal-lot-label');
+  const operatorSel = document.getElementById('qc-modal-operator');
+  const dateInput = document.getElementById('qc-modal-date');
+
+  if (lotLabel) lotLabel.textContent = `批號 ${lotNumber}`;
+  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+
+  // 填入人員下拉選單
+  if (operatorSel) {
+    operatorSel.innerHTML = '<option value="">請選擇人員</option>';
+    (STAFF_LIST || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      operatorSel.appendChild(opt);
+    });
+  }
+
+  if (overlay) overlay.classList.remove('hidden');
+}
+
+function closeQcModal() {
+  const overlay = document.getElementById('qc-modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  _qcProductId = null;
+  _qcLotNumber = null;
+}
+
+async function confirmQcPassed() {
+  const productId = _qcProductId;
+  const lotNumber = _qcLotNumber;
+  if (!productId || !lotNumber) return;
+
+  const operator = document.getElementById('qc-modal-operator')?.value?.trim();
+  if (!operator) { showToast('請選擇操作人員', 'warn'); return; }
+
+  closeQcModal();
+
+  // 更新 Firebase jinhuoRecords
+  const jinhuoRecs = cachedData?.jinhuo || [];
+  const updatedRecs = jinhuoRecs.filter(r =>
+    r.productId === productId && r.lotNumber === lotNumber && !r.isVoided && r.qcStatus === 'pending'
+  );
+  if (!updatedRecs.length) { showToast('找不到對應的待 QC 批號'); return; }
+
+  updatedRecs.forEach(r => { r.qcStatus = 'passed'; });
 
   const productName = PRODUCT_MAP[productId]?.name || productId;
   const logEntry = {
@@ -1584,12 +1646,11 @@ async function markQcPassed(productId, lotNumber) {
     productId, productName,
     lotNumber, qty: 0, qtyDelta: 0,
     unit: '瓶', vendor: '',
-    note: `批號 ${lotNumber} QC 確認通過（${operator.trim()}）`,
+    note: `批號 ${lotNumber} QC 確認通過（${operator}）`,
   };
-  appendKucunLog([logEntry]);
 
   try {
-    await Promise.all(updatedRecords.map(r => window._fb.saveJinhuoRecord(r)));
+    await Promise.all(updatedRecs.map(r => window._fb.saveJinhuoRecord(r)));
     await window._fb.appendLog(logEntry);
   } catch(e) { console.error('[kucun] QC Pass Firebase 寫入失敗', e); }
 

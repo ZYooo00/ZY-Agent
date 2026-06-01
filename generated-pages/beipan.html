@@ -399,6 +399,7 @@
           <div class="section-divider"><span class="section-label">試劑批號選擇</span></div>
           <div id="card-givf"></div>
           <div id="card-aoa-ci"></div>
+          <div id="card-gm508"></div>
           <div id="card-h5gt"></div>
           <div id="card-gxtl"></div>
           <div id="card-glue"></div>
@@ -926,7 +927,7 @@ const bulkReagents = [
   {
     id: 'oil',
     name: 'Heavy Oil',
-    bigUnit: '罐',
+    bigUnit: '罐 (flask)',
     smallUnit: '瓶',
     planBig: 0,
     planSmall: 0,
@@ -934,7 +935,7 @@ const bulkReagents = [
   {
     id: 'hepes',
     name: 'HEPES',
-    bigUnit: '罐',
+    bigUnit: '罐 (flask)',
     smallUnit: '瓶',
     planBig: 0,
     planSmall: 0,
@@ -954,7 +955,6 @@ const reagentConfig = [
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 2.0,
     bottleVol: 10, batches: [],
-    extra: 'gm508'
   },
   {
     id: 'h5gt', name: 'H5GT', label: '胚胎培養液',
@@ -1174,41 +1174,48 @@ function buildBatchRow(b, needed, cardId, checked) {
   </tr>`;
 }
 
-// ── Build GM508 expandable section HTML ──
+// ── Build GM508 standalone collapsible card HTML ──
 function buildGM508HTML() {
-  const gm  = gm508Config;
-  if (!gm.batches.length) return `
-  <div class="px-5 py-2.5 border-t border-dashed border-slate-200">
-    <button onclick="toggleGM508()" id="btn-gm508" class="text-xs font-medium flex items-center gap-1.5 transition-colors text-primary hover:text-primary-dark">
-      <svg id="gm508-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      <span id="gm508-btn-label">AOA 明美 GM508</span>
-    </button>
-  </div>
-  <div id="gm508-section" class="hidden border-t border-amber-100">
-    <div class="px-5 py-3 text-sm text-slate-400">尚無批號資料</div>
-  </div>`;
-  const b   = gm.batches[0];
-  const badge    = calcBadge(b, gm.needed);
-  const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
-  const days = daysUntilExpiry(effectiveExpiry(b));
-  const expCls = (days !== null && days <= 1) ? 'text-red-600 font-semibold' :
-                 (days !== null && days <= 3) ? 'text-amber-600 font-semibold' : 'text-slate-700';
+  const gm = gm508Config;
+
+  // Build sorted batch rows (same logic as buildBatchCardHTML)
+  const openExpiredBatches = gm.batches.filter(b => !b.blocked && calcBadge(b, gm.needed).status === 'open_expired');
+  const validBatches = gm.batches
+    .filter(b => { if (b.blocked) return false; const s = calcBadge(b, gm.needed).status; return s !== 'expired' && s !== 'open_expired'; })
+    .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
+  const expiredBatches = gm.batches.filter(b => b.blocked || calcBadge(b, gm.needed).status === 'expired');
+  const shownExpired = expiredBatches.length === 0 ? [] : (() => {
+    const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
+    return withRem.length > 0 ? [withRem[0]] : [expiredBatches[expiredBatches.length - 1]];
+  })();
+  const orderedBatches = [...validBatches, ...openExpiredBatches, ...shownExpired];
+  const batchRows = orderedBatches.length
+    ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'gm508', false)).join('')
+    : `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`;
+
+  const activeLots = gm.batches.filter(b => {
+    if (b.blocked) return false;
+    const s = calcBadge(b, gm.needed).status;
+    return s !== 'expired' && s !== 'open_expired';
+  });
+  const lotOpts = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
+
   return `
-  <div class="px-5 py-2.5 border-t border-dashed border-slate-200">
-    <button onclick="toggleGM508()" id="btn-gm508" class="text-xs font-medium flex items-center gap-1.5 transition-colors text-primary hover:text-primary-dark">
-      <svg id="gm508-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      <span id="gm508-btn-label">AOA 明美 GM508</span>
-    </button>
-  </div>
-  <div id="gm508-section" class="hidden border-t border-amber-100">
-    <div class="px-5 py-2.5 bg-amber-50 flex items-center justify-between flex-wrap gap-2">
-      <div class="flex items-center gap-2">
-        <span class="font-heading font-semibold text-slate-700 text-sm">AOA 明美 GM508</span>
-        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">卵子添加劑</span>
-        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⚠️ 需填病歷號</span>
-      </div>
-      <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${gm.needed.toFixed(1)} mL</span></span>
+<div class="bg-white rounded-xl border border-amber-200 overflow-hidden">
+  <div class="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between flex-wrap gap-2 cursor-pointer" onclick="toggleGM508()">
+    <div class="flex items-center gap-2">
+      <span class="font-heading font-semibold text-slate-800">AOA 明美 GM508</span>
+      <span class="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">卵子添加劑</span>
+      <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⚠️ 需填病歷號</span>
     </div>
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-slate-500">今日需用 <span class="font-semibold text-slate-800 tabular">${gm.needed.toFixed(1)} mL</span></span>
+      <svg id="gm508-icon" class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </div>
+  </div>
+  <div id="gm508-section" class="hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm min-w-[600px]">
         <thead class="bg-amber-50 border-b border-amber-100 text-xs text-slate-400">
@@ -1222,31 +1229,22 @@ function buildGM508HTML() {
             <th class="py-2.5 px-3 text-left font-medium">狀態</th>
           </tr>
         </thead>
-        <tbody>
-          <tr class="row-ok hover:bg-amber-50 transition-colors">
-            <td class="pl-4 py-3 text-center"><input type="radio" name="r-gm508" value="${b.lot}" onchange="onBatchSelect('gm508','${badge.status}')"></td>
-            <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
-            <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
-            <td class="px-3 py-3 tabular">
-              <div class="${expCls}">${fmtDate(b.expiry)}</div>
-              <div class="text-xs text-slate-400">${b.openExpiry ? '開封 → '+fmtDate(b.openExpiry) : '未開封'}</div>
-            </td>
-            <td class="px-3 py-3 text-right tabular">
-              <div class="font-semibold text-slate-800">${b.remaining.toFixed(1)} mL</div>
-              <div class="text-xs text-slate-400">+${b.unopened||0} 瓶未開封</div>
-            </td>
-            <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${gm.needed.toFixed(1)} mL</td>
-            <td class="px-3 py-3">${badgeHtml}</td>
-          </tr>
-        </tbody>
+        <tbody class="divide-y divide-slate-50">${batchRows}</tbody>
       </table>
     </div>
-    <div class="px-5 py-3 border-t border-amber-100 bg-amber-50 flex items-center gap-3 flex-wrap">
-      <label class="text-sm font-semibold text-amber-800 whitespace-nowrap">病歷號（必填）</label>
-      <span class="text-xs text-amber-500">多筆用逗號隔開</span>
-      <input type="text" placeholder="例：123456 或 123456, 789012" class="flex-1 min-w-48 text-sm border border-amber-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
+    <div id="gm508-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
+      <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span class="text-xs font-semibold text-amber-800">此批號不足今日需用量，已自動展開第二批次</span>
     </div>
-    <div class="px-5 py-2.5 border-t border-amber-100 flex items-center gap-4">
+    <div class="px-5 py-3 border-t border-amber-100 bg-amber-50">
+      <div class="flex items-center gap-3 flex-wrap">
+        <label class="text-sm font-semibold text-amber-800 whitespace-nowrap">病歷號（必填）</label>
+        <span class="text-xs text-amber-500">多筆用逗號隔開</span>
+      </div>
+      <input type="text" id="gm508-patient-id" placeholder="例：123456 或 123456, 789012"
+        class="mt-1.5 w-full text-sm border border-amber-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder-amber-300">
+    </div>
+    <div class="px-5 py-3 border-t border-amber-100 flex items-center gap-4">
       <button onclick="toggleSecondBatch('gm508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
       </button>
@@ -1257,13 +1255,30 @@ function buildGM508HTML() {
     </div>
     <div id="gm508-second" class="hidden px-5 py-4 bg-slate-50 border-t border-amber-100">
       <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <select id="gm508-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary"><option>GM0801</option></select>
-        <input type="text" id="gm508-second-note" placeholder="備註（選填）" class="flex-1 min-w-36 text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+      <div class="flex items-center gap-2 flex-wrap mb-3">
+        <select id="gm508-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center gap-2 text-sm flex-wrap">
+          <span class="text-slate-500 shrink-0">第一批取用量：</span>
+          <input type="number" id="gm508-first-vol" min="0" step="0.1" placeholder="mL"
+            oninput="onFirstVolInput('gm508')"
+            class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+          <span class="text-slate-400">mL</span>
+          <span id="gm508-vol-warn" class="hidden text-xs text-red-500 font-medium">⚠ 超出第一批剩餘量</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-slate-400 shrink-0">第二批需要量：</span>
+          <span id="gm508-second-vol" class="font-semibold text-primary">—</span>
+          <span class="text-slate-400">mL</span>
+        </div>
+        <input type="text" id="gm508-second-note" placeholder="混批備註（選填）"
+          class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
       </div>
       <button onclick="toggleSecondBatch('gm508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
     </div>
-  </div>`;
+  </div>
+</div>`;
 }
 
 // ── Build a full batch card HTML ──
@@ -1307,7 +1322,6 @@ function buildBatchCardHTML(cfg) {
   });
   const lotOpts    = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
   const hdrStyle   = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
-  const extraHTML  = cfg.extra === 'gm508' ? buildGM508HTML() : '';
 
   return `
 <div class="bg-white rounded-xl ${cfg.border} overflow-hidden">
@@ -1371,7 +1385,6 @@ function buildBatchCardHTML(cfg) {
     </div>
     <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
   </div>
-  ${extraHTML}
 </div>`;
 }
 
@@ -1381,6 +1394,8 @@ function buildAllBatchCards() {
     const el = document.getElementById('card-' + cfg.id);
     if (el) el.innerHTML = buildBatchCardHTML(cfg);
   });
+  const gm508El = document.getElementById('card-gm508');
+  if (gm508El) gm508El.innerHTML = buildGM508HTML();
 }
 
 // ── Batch selection: show/hide warning banner + auto-expand second batch ──
@@ -1453,16 +1468,12 @@ function onFirstVolInput(id) {
 function toggleGM508() {
   const section = document.getElementById('gm508-section');
   const icon    = document.getElementById('gm508-icon');
-  const label   = document.getElementById('gm508-btn-label');
+  if (!section || !icon) return;
   const isOpen  = !section.classList.contains('hidden');
   section.classList.toggle('hidden', isOpen);
-  if (isOpen) {
-    icon.innerHTML  = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>';
-    label.textContent = 'AOA 明美 GM508';
-  } else {
-    icon.innerHTML  = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>';
-    label.textContent = '收合 GM508';
-  }
+  icon.innerHTML = isOpen
+    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>'
+    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>';
 }
 
 // ── Modal ──
@@ -1581,10 +1592,14 @@ function confirmOpenBottle() {
   }
 
   // 重新渲染卡片
-  const renderId  = (_modalCardId === 'gm508') ? 'aoa-ci' : _modalCardId;
-  const renderCfg = (_modalCardId === 'gm508') ? gm508Config : reagentConfig.find(c => c.id === renderId);
-  const el = document.getElementById('card-' + renderId);
-  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  if (_modalCardId === 'gm508') {
+    const el = document.getElementById('card-gm508');
+    if (el) el.innerHTML = buildGM508HTML();
+  } else {
+    const renderCfg = reagentConfig.find(c => c.id === _modalCardId);
+    const el = document.getElementById('card-' + _modalCardId);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  }
 
   closeModal();
 }
@@ -1609,10 +1624,14 @@ function toggleExhausted(cardId, lot) {
     batch._exhaustedVol   = undefined;
     batch.markedExhausted = false;
   }
-  const renderId = (cardId === 'gm508') ? 'aoa-ci' : cardId;
-  const renderCfg = reagentConfig.find(c => c.id === renderId);
-  const el = document.getElementById('card-' + renderId);
-  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  if (cardId === 'gm508') {
+    const el = document.getElementById('card-gm508');
+    if (el) el.innerHTML = buildGM508HTML();
+  } else {
+    const renderCfg = reagentConfig.find(c => c.id === cardId);
+    const el = document.getElementById('card-' + cardId);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  }
 }
 
 function replaceExpiredBottle(cardId, lot) {
@@ -1627,10 +1646,14 @@ function replaceExpiredBottle(cardId, lot) {
     batch.markedExhausted   = true;
     batch._exhaustedByExpiry = true;  // 效期觸發，不顯示復原按鈕
   }
-  const renderId = (cardId === 'gm508') ? 'aoa-ci' : cardId;
-  const renderCfg = reagentConfig.find(c => c.id === renderId);
-  const el = document.getElementById('card-' + renderId);
-  if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  if (cardId === 'gm508') {
+    const el = document.getElementById('card-gm508');
+    if (el) el.innerHTML = buildGM508HTML();
+  } else {
+    const renderCfg = reagentConfig.find(c => c.id === cardId);
+    const el = document.getElementById('card-' + cardId);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+  }
   openModal(cfg.name, cardId, lot);
 }
 
@@ -1848,7 +1871,7 @@ function buildBulkCard(cfg) {
       <div>
         <div class="text-xs text-slate-400 mb-1">今日開封（庫存扣除）</div>
         <span class="inline-flex items-center gap-1">
-          <input type="number" value="${cfg.planSmall}" min="0" max="99"
+          <input type="number" id="bulk-small-${cfg.id}" value="${cfg.planSmall}" min="0" max="99"
             class="w-16 text-center text-xl font-bold border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary">
           <span class="text-sm text-slate-400">${cfg.smallUnit}</span>
         </span>
@@ -1934,8 +1957,9 @@ function recalcAllNeeded() {
     if (el) el.innerHTML = buildBatchCardHTML(cfg);
   }
 
-  // GM508 must be set before aoa-ci card re-renders (buildGM508HTML reads gm508Config.needed)
   gm508Config.needed = parseFloat(Math.max(0, aoa508Needed).toFixed(1));
+  const gm508CardEl = document.getElementById('card-gm508');
+  if (gm508CardEl) gm508CardEl.innerHTML = buildGM508HTML();
 
   setNeeded('givf', givfNeeded);
   setNeeded('aoa-ci', aoaCiNeeded);
@@ -1986,7 +2010,7 @@ async function submitBeipan() {
   _forceOverride = false;
 
   // 混批第二批號驗證：第二批號未開封屬於真實阻擋（不同於帳面誤差的 Soft Warning）
-  for (const cfg of reagentConfig) {
+  for (const cfg of [...reagentConfig, gm508Config]) {
     const panel = document.getElementById(cfg.id + '-second');
     if (!panel || panel.classList.contains('hidden')) continue;
     const fv = parseFloat(document.getElementById(cfg.id + '-first-vol')?.value);
@@ -2008,7 +2032,7 @@ async function submitBeipan() {
   const logEntries = [];
   const updatedBatches = [];
 
-  reagentConfig.forEach(cfg => {
+  [...reagentConfig, gm508Config].forEach(cfg => {
     let needed = parseFloat(cfg.needed) || 0;
 
     // needed=0 時仍需檢查是否有手動開瓶或報廢動作，有的話必須寫入日誌
@@ -2126,6 +2150,22 @@ async function submitBeipan() {
       batch.remaining = newRem;
       batch.unopened  = unop;
     }
+  });
+
+  // ── Oil / HEPES：記錄今日開封瓶數 ──
+  bulkReagents.forEach(bulk => {
+    const inputEl = document.getElementById('bulk-small-' + bulk.id);
+    const opened = parseInt(inputEl?.value) || 0;
+    if (opened <= 0) return;
+    logEntries.push({
+      source: 'beipan', action: 'beipan',
+      productId: bulk.id, productName: bulk.name,
+      lotNumber: null,
+      expiryDate: null, openExpiryDate: null,
+      qtyDelta: -opened, unit: bulk.smallUnit,
+      bottlesOpened: opened, operator,
+      note: `備盤開封 ${bulk.name} ${opened} ${bulk.smallUnit}`,
+    });
   });
 
   const userNote = document.getElementById('beipan-note-input')?.value.trim() || '';
