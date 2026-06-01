@@ -15,11 +15,13 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan } from './firebase-service.js?v=7';
+  import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
+           acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock } from './firebase-service.js?v=8';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan };
+  window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
+                 acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -275,13 +277,20 @@
       <!-- 備盤人員 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-3.5 flex items-center gap-4 flex-wrap">
         <span class="text-sm font-medium text-slate-700">備盤人員</span>
-        <select id="beipan-staff-1" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
+        <select id="beipan-staff-1" onchange="onStaffSelect()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">（選擇備盤人）</option>
         </select>
         <select id="beipan-staff-2" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 bg-secondary focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">（選擇備盤人）</option>
         </select>
         <span class="text-xs text-slate-400">兩人皆可操作，任一人可送出</span>
+      </div>
+
+      <!-- 編輯鎖定 Banner（預設隱藏）-->
+      <div id="beipan-lock-banner" class="hidden flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm">
+        <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        <span id="beipan-lock-msg" class="text-amber-800 font-medium flex-1"></span>
+        <button id="beipan-lock-takeover" onclick="forceBeipanTakeover()" class="hidden text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg px-3 py-1.5 transition-colors">強制接手</button>
       </div>
 
       <!-- 估盤摘要（由 loadGupanData 動態填入，未估盤時隱藏） -->
@@ -2245,6 +2254,11 @@ async function submitBeipan() {
     return;
   }
   window._beipanSubmitting = false;
+  // 釋放編輯鎖定（備盤已送出，不再需要鎖）
+  stopHeartbeat();
+  if (_lockCurrentStaff && _lockTodayStr) {
+    window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff).catch(() => {});
+  }
   showToast('備盤結果已儲存 ✓', 'ok');
   await lockStateB(payload);
 }
@@ -2378,6 +2392,123 @@ buildMatrixTable();
 buildAllBulkCards();
 recalcAllNeeded();
 buildAllBatchCards();
+
+// ── Phase 7：備盤編輯互斥鎖 ────────────────────────────────────
+let _lockUnsubscribe = null;
+let _heartbeatTimer  = null;
+let _lockTodayStr    = null;
+let _lockCurrentStaff = '';
+
+// 啟動鎖定訂閱（onReady 後、只有今日備盤尚未送出時呼叫）
+function initBeipanLock(todayStr) {
+  _lockTodayStr = todayStr;
+
+  // 初始狀態：除 staff-1 下拉選單外，全部禁用
+  setBeipanFormDisabled(true);
+
+  // 訂閱今日鎖定狀態（即時更新）
+  _lockUnsubscribe = window._fb?.subscribeBeipanLock?.(todayStr, (data) => {
+    updateLockBanner(data);
+  });
+
+  // 頁面關閉時釋放鎖定
+  window.addEventListener('beforeunload', () => {
+    if (_lockCurrentStaff) {
+      window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff);
+    }
+  });
+}
+
+// 備盤人員 staff-1 選擇觸發
+async function onStaffSelect() {
+  const staffName = document.getElementById('beipan-staff-1')?.value?.trim();
+  if (!staffName) {
+    // 清空名字 → 釋放鎖定，回到禁用狀態
+    if (_lockCurrentStaff) {
+      await window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff);
+      _lockCurrentStaff = '';
+      stopHeartbeat();
+    }
+    setBeipanFormDisabled(true);
+    hideLockBanner();
+    return;
+  }
+
+  const result = await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName);
+  if (!result || result.success) {
+    _lockCurrentStaff = staffName;
+    setBeipanFormDisabled(false);
+    hideLockBanner();
+    startHeartbeat();
+  } else {
+    // 被他人鎖定
+    _lockCurrentStaff = '';
+    setBeipanFormDisabled(true);
+    // Banner 由訂閱回呼自動更新
+  }
+}
+
+// 強制接手
+async function forceBeipanTakeover() {
+  const staffName = document.getElementById('beipan-staff-1')?.value?.trim();
+  if (!staffName) return;
+  await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName, true);
+  _lockCurrentStaff = staffName;
+  setBeipanFormDisabled(false);
+  hideLockBanner();
+  startHeartbeat();
+}
+
+// 更新鎖定 Banner（由訂閱回呼驅動）
+function updateLockBanner(data) {
+  if (!data) { hideLockBanner(); return; }
+  if (data.lockedBy === _lockCurrentStaff && _lockCurrentStaff) { hideLockBanner(); return; }
+
+  const lockedAt   = data.lockedAt?.toMillis?.() ?? 0;
+  const minutesAgo = Math.floor((Date.now() - lockedAt) / 60000);
+  const isOld      = minutesAgo >= 20;
+
+  const banner    = document.getElementById('beipan-lock-banner');
+  const msg       = document.getElementById('beipan-lock-msg');
+  const takeoverBtn = document.getElementById('beipan-lock-takeover');
+  if (!banner) return;
+
+  msg.textContent = `⚠️ ${data.lockedBy} 正在編輯今日備盤，目前為唯讀模式`;
+  if (isOld) {
+    msg.textContent += `（已${minutesAgo}分鐘無活動）`;
+    takeoverBtn.classList.remove('hidden');
+  } else {
+    takeoverBtn.classList.add('hidden');
+  }
+  banner.classList.remove('hidden');
+}
+
+function hideLockBanner() {
+  document.getElementById('beipan-lock-banner')?.classList.add('hidden');
+}
+
+// 啟用 / 禁用表單（保留 staff-1 下拉選單可選）
+function setBeipanFormDisabled(disabled) {
+  document.querySelectorAll('#state-b input, #state-b select, #state-b textarea, #state-b button').forEach(el => {
+    if (el.id === 'beipan-staff-1') return; // 永遠可操作
+    if (el.id === 'beipan-lock-takeover') return; // 由 banner 控制
+    el.disabled = disabled;
+  });
+}
+
+// 心跳：每 5 分鐘更新 lockedAt，防止逾時被搶鎖
+function startHeartbeat() {
+  stopHeartbeat();
+  _heartbeatTimer = setInterval(async () => {
+    if (_lockCurrentStaff && _lockTodayStr) {
+      await window._fb?.heartbeatBeipanLock?.(_lockTodayStr, _lockCurrentStaff);
+    }
+  }, 5 * 60 * 1000);
+}
+function stopHeartbeat() {
+  if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+}
+
 function onReady(fn) {
   var domOk = document.readyState !== 'loading';
   var fbOk = !!window.__fbDone;
@@ -2418,6 +2549,10 @@ onReady(async function() {
     await initBatchesFromFirebase();
   }
   buildAllBatchCards();
+
+  // Phase 7：啟動編輯互斥鎖（今日備盤尚未送出才需要）
+  initBeipanLock(todayStr);
+
   const badge = document.getElementById('fetch-time-badge');
   if (badge) {
     const now = new Date();

@@ -42,6 +42,7 @@ const COLLECTIONS = {
   beipan:          DB_PREFIX + 'beipan_snapshots',
   gupan_snapshots: DB_PREFIX + 'gupan_snapshots',
   gupan_drafts:    DB_PREFIX + 'gupan_drafts',
+  beipan_lock:     DB_PREFIX + 'beipan_lock',
 };
 window._isTestEnv = !IS_PROD;
 
@@ -359,5 +360,55 @@ export function subscribeGupanDraft(dateStr, callback) {
     doc(_db, COLLECTIONS.gupan_drafts, dateStr),
     (snap) => callback(snap.exists() ? snap.data() : null),
     (err) => console.warn("[subscribeGupanDraft] 訂閱失敗", err)
+  );
+}
+
+// ── 備盤編輯互斥鎖 ────────────────────────────────────────────
+// beipan_lock/{dateStr} = { date, lockedBy, lockedAt }
+// acquireBeipanLock: 搶佔鎖定；若已被他人鎖定且未逾期則返回失敗
+// force=true 時直接覆蓋（強制接手）
+export async function acquireBeipanLock(dateStr, staffName, force = false) {
+  if (!isFirestoreAvailable()) return { success: true }; // 離線時放行
+  const lockRef = doc(_db, COLLECTIONS.beipan_lock, dateStr);
+  const snap = await getDoc(lockRef);
+  if (snap.exists() && !force) {
+    const data = snap.data();
+    const lockedAt = data.lockedAt?.toMillis?.() ?? 0;
+    const ageMin = (Date.now() - lockedAt) / 60000;
+    if (data.lockedBy !== staffName && ageMin < 20) {
+      return { success: false, lockedBy: data.lockedBy, lockedAt, minutesAgo: Math.floor(ageMin) };
+    }
+  }
+  await setDoc(lockRef, { date: dateStr, lockedBy: staffName, lockedAt: serverTimestamp() });
+  return { success: true };
+}
+
+// 更新心跳（每 5 分鐘呼叫一次，讓鎖定不逾時）
+export async function heartbeatBeipanLock(dateStr, staffName) {
+  if (!isFirestoreAvailable()) return;
+  const lockRef = doc(_db, COLLECTIONS.beipan_lock, dateStr);
+  const snap = await getDoc(lockRef);
+  if (snap.exists() && snap.data().lockedBy === staffName) {
+    await updateDoc(lockRef, { lockedAt: serverTimestamp() });
+  }
+}
+
+// 釋放鎖定（關閉頁面或送出完成時呼叫）
+export async function releaseBeipanLock(dateStr, staffName) {
+  if (!isFirestoreAvailable()) return;
+  const lockRef = doc(_db, COLLECTIONS.beipan_lock, dateStr);
+  const snap = await getDoc(lockRef);
+  if (snap.exists() && snap.data().lockedBy === staffName) {
+    await deleteDoc(lockRef);
+  }
+}
+
+// 訂閱鎖定狀態變化（即時回呼）
+export function subscribeBeipanLock(dateStr, callback) {
+  if (!isFirestoreAvailable()) return null;
+  return onSnapshot(
+    doc(_db, COLLECTIONS.beipan_lock, dateStr),
+    (snap) => callback(snap.exists() ? snap.data() : null),
+    (err) => console.warn("[subscribeBeipanLock] 訂閱失敗", err)
   );
 }
