@@ -533,6 +533,28 @@ function previewBeipan() {
     return;
   }
 
+  // ── 批號必填驗證：需用量 > 0 且有可選批號時，必須選擇批號 ──
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    if ((cfg.needed || 0) <= 0) continue;
+    const hasValidBatch = (cfg.batches || []).some(b => {
+      if (b.blocked) return false;
+      const s = calcBadge(b, cfg.needed).status;
+      return s !== 'expired' && s !== 'open_expired';
+    });
+    if (!hasValidBatch) continue;  // 沒有可選批號（無進貨資料），跳過
+    const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+    if (!selectedLot) {
+      showToast(`請為「${cfg.name}」選擇批號`, 'warn');
+      const cardEl = document.getElementById('card-' + cfg.id);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cardEl.classList.add('ring-2', 'ring-red-400', 'ring-offset-1');
+        setTimeout(() => cardEl.classList.remove('ring-2', 'ring-red-400', 'ring-offset-1'), 2500);
+      }
+      return;
+    }
+  }
+
   // ── 庫存充足性軟性檢查 ──
   const insufficient = [];
   reagentConfig.forEach(cfg => {
