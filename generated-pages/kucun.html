@@ -420,7 +420,7 @@
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="beipan" onclick="setCLFilter('beipan')">備盤</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="pandian" onclick="setCLFilter('pandian')">盤點</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="order" onclick="setCLFilter('order')">訂貨</button>
-        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="manual:use" onclick="setCLFilter('manual:use')">手動使用</button>
+        <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f="manual" onclick="setCLFilter('manual')">手動</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f=":void" onclick="setCLFilter(':void')">異常/作廢</button>
         <button class="cl-filter-btn text-xs px-2.5 py-1 rounded-md font-medium" data-f=":edit" onclick="setCLFilter(':edit')">修改/調整</button>
       </div>
@@ -553,6 +553,33 @@
     <div class="px-5 py-3 bg-slate-50 flex justify-end gap-2">
       <button onclick="closeQcModal()" class="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
       <button onclick="confirmQcPassed()" class="px-4 py-2 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg">✅ 確認通過</button>
+    </div>
+  </div>
+</div>
+
+<!-- QC REVERT MODAL -->
+<div id="qc-revert-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,.45)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100">
+      <div class="font-semibold text-slate-800">復原 QC 狀態</div>
+      <div id="qc-revert-lot-label" class="text-xs text-slate-400 mt-0.5">批號 —</div>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">操作人員 <span class="text-red-400">*</span></label>
+        <select id="qc-revert-operator" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="">請選擇人員</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-500 block mb-1">復原原因 <span class="text-red-400">*</span></label>
+        <input type="text" id="qc-revert-reason" placeholder="例：廠商錯誤、批號填寫有誤…"
+          class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-400">
+      </div>
+    </div>
+    <div class="px-5 py-3 bg-slate-50 flex justify-end gap-2">
+      <button onclick="closeRevertQcModal()" class="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100">取消</button>
+      <button onclick="confirmRevertQc()" class="px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg">↩ 確認復原</button>
     </div>
   </div>
 </div>
@@ -987,7 +1014,7 @@ function renderInventoryTable(data) {
       const srcCls = `src-${g.source}`;
       const srcLbl = srcShort[g.source] || '?';
       const colDate2 = g.ts.slice(0, 10);
-      const colF2    = {jinhuo:'jinhuo:receive',beipan:'beipan',pandian:'pandian',order:'order',manual:'manual:use'}[g.source] || '';
+      const colF2    = {jinhuo:'jinhuo:receive',beipan:'beipan',pandian:'pandian',order:'order',manual:'manual'}[g.source] || '';
       theadHtml += `<th class="ev-col" style="padding:7px 6px;cursor:pointer" title="${colDate2} — 點擊篩選日誌" onclick="drillDownChangelog('${colDate2}','${colF2}')">
         <div class="font-bold text-slate-600">${M}/${D}</div>
         <span class="src-badge ${srcCls}" style="margin-top:2px;font-size:10px">${srcLbl}</span>
@@ -1063,8 +1090,14 @@ function renderInventoryTable(data) {
             }
           } else {
             // manual / fallback
+            const hasQcPass   = matched.some(e => e.action === 'qc_pass');
+            const hasQcRevert = matched.some(e => e.action === 'qc_revert');
             const totalQty = matched.reduce((s, e) => s + (e.qtyDelta ?? e.qty ?? 0), 0);
-            if (totalQty !== 0) {
+            if (hasQcPass) {
+              qtyHtml = `<div style="${S};color:#059669">QC✓</div>`;
+            } else if (hasQcRevert) {
+              qtyHtml = `<div style="${S};color:#D97706">QC↩</div>`;
+            } else if (totalQty !== 0) {
               const sign = totalQty > 0 ? '+' : '-';
               const clr  = totalQty > 0 ? '#2563EB' : '#DC2626';
               qtyHtml = `<div style="${S};color:${clr}">${sign}${fmtNum(Math.abs(totalQty))}</div>`;
@@ -1167,7 +1200,7 @@ function exportChangelogCSV() {
   const sorted = [...filtered].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const header = ['日期','時間','來源','操作','品項','批號','效期','數量','單位','操作人','備註'];
   const SRC_ZH = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
-  const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
+  const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
   const rows = sorted.map(e => {
     const d = new Date(e.ts);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1202,7 +1235,7 @@ function exportChangelogCSV() {
 // RENDER: CHANGELOG (Accordion)
 // ════════════════════════════════
 const SRC_LABEL  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
-const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新' };
+const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
 const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄', void:'作廢記錄' };
 
 function renderChangelog(data) {
@@ -1519,7 +1552,11 @@ function openDrawer(productId) {
                style="margin-left:4px;background:#7C3AED;color:white;border:none;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;font-weight:600">✅ 通過</button>
            </td>`
         : hasQCPassed
-          ? `<td style="padding-left:6px"><span style="color:#059669;font-size:10px;font-weight:600">✓ QC通過</span></td>`
+          ? `<td style="padding-left:6px;white-space:nowrap">
+               <span style="color:#059669;font-size:10px;font-weight:600">✓ QC通過</span>
+               <button onclick="event.stopPropagation();revertQcPassed('${productId}','${lot.lot.replace(/'/g,"\\\'")}')"
+                 style="margin-left:5px;background:#F1F5F9;color:#94A3B8;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;font-weight:500">↩ 復原</button>
+             </td>`
           : `<td></td>`;
 
       lotRows += `<tr>
@@ -1551,7 +1588,7 @@ function openDrawer(productId) {
 
   // Recent changelog
   const SRC_ZH2 = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
-  const ACT_ZH2 = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'調整', note:'備註', order:'訂貨' };
+  const ACT_ZH2 = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'調整', note:'備註', order:'訂貨', qc_pass:'QC通過', qc_revert:'QC復原' };
   const cl = (cachedData.changelog || [])
     .filter(e => e.productId === productId)
     .sort((a,b) => (b.ts||'').localeCompare(a.ts||''))
@@ -1619,6 +1656,77 @@ function closeQcModal() {
   _qcLotNumber = null;
 }
 
+let _revertProductId = null;
+let _revertLotNumber = null;
+
+function revertQcPassed(productId, lotNumber) {
+  _revertProductId = productId;
+  _revertLotNumber = lotNumber;
+  const overlay = document.getElementById('qc-revert-overlay');
+  const lotLabel = document.getElementById('qc-revert-lot-label');
+  const operatorSel = document.getElementById('qc-revert-operator');
+  const reasonInput = document.getElementById('qc-revert-reason');
+  if (lotLabel) lotLabel.textContent = `批號 ${lotNumber}`;
+  if (reasonInput) reasonInput.value = '';
+  if (operatorSel) {
+    operatorSel.innerHTML = '<option value="">請選擇人員</option>';
+    (STAFF_LIST || []).forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      operatorSel.appendChild(opt);
+    });
+  }
+  if (overlay) overlay.classList.remove('hidden');
+}
+
+function closeRevertQcModal() {
+  const overlay = document.getElementById('qc-revert-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  _revertProductId = null;
+  _revertLotNumber = null;
+}
+
+async function confirmRevertQc() {
+  const productId  = _revertProductId;
+  const lotNumber  = _revertLotNumber;
+  if (!productId || !lotNumber) return;
+
+  const operator = document.getElementById('qc-revert-operator')?.value?.trim();
+  const reason   = document.getElementById('qc-revert-reason')?.value?.trim();
+  if (!operator) { showToast('請選擇操作人員', 'warn'); return; }
+  if (!reason)   { showToast('請填寫復原原因', 'warn'); return; }
+
+  closeRevertQcModal();
+
+  const jinhuoRecs = cachedData?.jinhuo || [];
+  const updatedRecs = jinhuoRecs.filter(r =>
+    r.productId === productId && r.lotNumber === lotNumber && !r.isVoided && r.qcStatus === 'passed'
+  );
+  if (!updatedRecs.length) { showToast('找不到對應的 QC 通過批號'); return; }
+
+  updatedRecs.forEach(r => { r.qcStatus = 'pending'; });
+
+  const productName = PRODUCT_MAP[productId]?.name || productId;
+  const logEntry = {
+    id: `${Date.now().toString(36)}-qcrevert`,
+    ts: new Date().toISOString(),
+    source: 'manual', action: 'qc_revert',
+    productId, productName,
+    lotNumber, qty: 0, qtyDelta: 0,
+    unit: '瓶', vendor: '', operator,
+    note: `批號 ${lotNumber} QC 狀態復原（${operator}）：${reason}`,
+  };
+
+  try {
+    await Promise.all(updatedRecs.map(r => window._fb.saveJinhuoRecord(r)));
+    await window._fb.appendLog(logEntry);
+  } catch(e) { console.error('[kucun] QC Revert Firebase 寫入失敗', e); }
+
+  showToast(`↩ 批號 ${lotNumber} QC 已復原為待審`);
+  render();
+  openDrawer(productId);
+}
+
 async function confirmQcPassed() {
   const productId = _qcProductId;
   const lotNumber = _qcLotNumber;
@@ -1645,7 +1753,7 @@ async function confirmQcPassed() {
     source: 'manual', action: 'qc_pass',
     productId, productName,
     lotNumber, qty: 0, qtyDelta: 0,
-    unit: '瓶', vendor: '',
+    unit: '瓶', vendor: '', operator,
     note: `批號 ${lotNumber} QC 確認通過（${operator}）`,
   };
 
