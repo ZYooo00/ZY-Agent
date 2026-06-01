@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="入料點料">
+  <title>耗材月入料 · 點料</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="data.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { padding-bottom: 80px; }
+    .modal-sheet { transform: translateY(100%); transition: transform 0.3s ease-out; }
+    .modal-sheet.open { transform: translateY(0); }
+    .zone-card { transition: transform 0.1s, box-shadow 0.1s; }
+    .zone-card:active { transform: scale(0.97); }
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  </style>
+</head>
+<body class="bg-slate-50">
+
+<!-- ===== 頂部標題 + 搜尋 ===== -->
+<div class="sticky top-0 z-10 bg-white shadow-sm">
+  <div class="px-4 pt-4 pb-2">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h1 class="text-xl font-bold text-slate-800">點料</h1>
+        <p id="dateLabel" class="text-xs text-slate-400"></p>
+      </div>
+      <button onclick="confirmClear()" class="text-xs text-red-500 border border-red-200 rounded-lg px-3 py-1.5">清除重來</button>
+    </div>
+    <div class="relative">
+      <input id="searchInput" type="text" placeholder="搜尋品項名稱..."
+        class="w-full pl-9 pr-4 py-2.5 bg-slate-100 rounded-xl text-base border-0 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        oninput="handleSearch(this.value)">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+      <button id="clearSearch" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">×</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 搜尋結果 ===== -->
+<div id="searchResults" class="hidden px-4 py-3 space-y-2"></div>
+
+<!-- ===== 區域卡片格 ===== -->
+<div id="zoneGrid" class="px-4 py-3 grid grid-cols-2 gap-3"></div>
+
+<!-- ===== 底部狀態列 ===== -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 flex items-center justify-between z-10">
+  <div>
+    <span id="progressText" class="text-sm font-medium text-slate-700">0 / 8 區域完成</span>
+    <div id="progressBar" class="mt-1 h-1.5 bg-slate-100 rounded-full w-32">
+      <div id="progressFill" class="h-full bg-blue-500 rounded-full transition-all" style="width:0%"></div>
+    </div>
+  </div>
+  <button id="nextBtn" onclick="goToConfirm()"
+    class="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm opacity-40 pointer-events-none">
+    前往確認 →
+  </button>
+</div>
+
+<!-- ===== 點料 Modal ===== -->
+<div id="modalOverlay" class="fixed inset-0 bg-black/40 z-20 hidden" onclick="handleOverlayClick(event)">
+  <div id="modalSheet" class="modal-sheet absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl flex flex-col" style="max-height:88vh" onclick="event.stopPropagation()">
+
+    <!-- Modal 標頭 -->
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div>
+        <h2 id="modalTitle" class="text-lg font-bold text-slate-800"></h2>
+        <p id="modalSubtitle" class="text-xs text-slate-400 mt-0.5"></p>
+      </div>
+      <button onclick="closeModal()" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 text-lg font-bold">×</button>
+    </div>
+
+    <!-- Modal 內容（可捲動） -->
+    <div id="modalContent" class="overflow-y-auto flex-1 px-4 py-2"></div>
+
+    <!-- Modal 底部按鈕 -->
+    <div class="px-4 py-4 border-t border-slate-100 flex gap-3">
+      <button onclick="saveZoneProgress(false)" class="flex-1 py-3 border-2 border-slate-200 rounded-2xl text-slate-700 font-semibold text-sm">儲存進度</button>
+      <button onclick="saveZoneProgress(true)" class="flex-1 py-3 bg-green-600 text-white rounded-2xl font-semibold text-sm">✓ 完成此區</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 狀態 =====
+let currentZone = null;
+let progress = null; // { date, completedZones:[], counts:{id:{locA,locB}} }
+
+// ===== 初始化 =====
+function init() {
+  document.getElementById('dateLabel').textContent = todayString();
+  progress = loadProgress();
+
+  // 如果日期不同（跨日），問是否沿用還是重來
+  if (progress && progress.date !== todayString()) {
+    if (!confirm(`上次點料紀錄是 ${progress.date}，要清除重新開始嗎？`)) {
+      // 沿用舊資料（改日期）
+      progress.date = todayString();
+      saveProgress(progress);
+    } else {
+      progress = null;
+      clearProgress();
+    }
+  }
+
+  if (!progress) {
+    progress = { date: todayString(), completedZones: [], counts: {} };
+    saveProgress(progress);
+  }
+
+  renderZoneGrid();
+  updateBottomBar();
+}
+
+// ===== 渲染區域卡片 =====
+function renderZoneGrid() {
+  const grid = document.getElementById('zoneGrid');
+  grid.innerHTML = ZONES.map(zone => {
+    const items = getProductsInZone(zone.id);
+    const status = getZoneStatus(zone.id);
+    const counted = items.filter(p => {
+      const c = progress.counts[p.id];
+      return c && ((c.locA || 0) + (c.locB || 0)) > 0;
+    }).length;
+
+    const colorCls = ZONE_COLORS[zone.color];
+    let cardStyle = '';
+    let statusBadge = '';
+    let titleColor = 'text-slate-800';
+
+    if (status === 'complete') {
+      cardStyle = 'bg-green-600 border-green-600';
+      titleColor = 'text-white';
+      statusBadge = `<span class="text-xs font-bold text-green-100">✓ 完成</span>`;
+    } else if (status === 'partial') {
+      cardStyle = `${colorCls.bg} ${colorCls.border}`;
+      titleColor = colorCls.text;
+      statusBadge = `<span class="text-xs ${colorCls.text} font-medium">${counted}/${items.length} 已填</span>`;
+    } else {
+      cardStyle = 'bg-white border-slate-200';
+      statusBadge = `<span class="text-xs text-slate-400">${items.length} 項</span>`;
+    }
+
+    return `
+      <button onclick="openModal('${zone.id}')"
+        class="zone-card border-2 rounded-2xl p-4 text-left ${cardStyle}">
+        <div class="flex items-start justify-between">
+          <span class="text-2xl leading-none mb-2">${zoneEmoji(zone.id)}</span>
+          ${status === 'complete' ? '<span class="text-green-200 text-lg">✓</span>' : ''}
+        </div>
+        <div class="font-bold text-base ${titleColor}">${zone.label}</div>
+        <div class="mt-1">${statusBadge}</div>
+      </button>
+    `;
+  }).join('');
+}
+
+function zoneEmoji(zoneId) {
+  const map = { '培養區':'🔬','針具區':'💉','耗材架':'📦','手套防護':'🧤','精蟲室':'🔭','分生室':'🧬','清潔環境':'🧹','文具辦公':'📝' };
+  return map[zoneId] || '📋';
+}
+
+function getZoneStatus(zoneId) {
+  if (progress.completedZones.includes(zoneId)) return 'complete';
+  const items = getProductsInZone(zoneId);
+  const hasSome = items.some(p => {
+    const c = progress.counts[p.id];
+    return c && ((c.locA || 0) + (c.locB || 0)) > 0;
+  });
+  return hasSome ? 'partial' : 'empty';
+}
+
+// ===== 開啟 Modal =====
+function openModal(zoneId) {
+  currentZone = zoneId;
+  const zone = ZONES.find(z => z.id === zoneId);
+  const items = getProductsInZone(zoneId);
+  const isComplete = progress.completedZones.includes(zoneId);
+
+  document.getElementById('modalTitle').textContent = zone.label;
+  document.getElementById('modalSubtitle').textContent = `${items.length} 項品項`;
+  document.getElementById('modalContent').innerHTML = items.map(p => renderProductRow(p)).join('');
+
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('modalSheet').classList.add('open'), 10);
+}
+
+function closeModal() {
+  document.getElementById('modalSheet').classList.remove('open');
+  setTimeout(() => {
+    document.getElementById('modalOverlay').classList.add('hidden');
+    currentZone = null;
+  }, 300);
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// ===== 渲染品項列 =====
+function renderProductRow(product) {
+  const c = progress.counts[product.id] || {};
+  const locA = c.locA || 0;
+  const locB = c.locB || 0;
+  const total = locA + locB;
+
+  // 品項標籤
+  let badge = '';
+  if (product.reportViaLine) {
+    badge = `<span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">LINE週報</span>`;
+  } else if (!product.orderViaIgo) {
+    badge = `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">手動處理</span>`;
+  }
+
+  // 移動到其他區域下拉
+  const moveOptions = ZONES.filter(z => z.id !== (loadLocationOverrides()[product.id] || product.zone))
+    .map(z => `<option value="${z.id}">${z.label}</option>`).join('');
+  const moveBtn = `
+    <div class="flex items-center gap-1 mt-1">
+      <span class="text-xs text-slate-400">移到：</span>
+      <select class="text-xs text-slate-600 border border-slate-200 rounded px-1 py-0.5 bg-white"
+        onchange="moveProduct('${product.id}', this.value); this.value=''">
+        <option value="">選擇區域</option>
+        ${moveOptions}
+      </select>
+    </div>
+  `;
+
+  if (product.twoLocation) {
+    return `
+      <div class="py-3 border-b border-slate-100" id="row-${product.id}">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex-1 pr-2">
+            <span class="font-medium text-slate-800 text-sm leading-snug">${product.name}</span>
+            ${product.unitNote ? `<span class="text-xs text-slate-400 ml-1">${product.unitNote}</span>` : ''}
+            <div class="mt-0.5">${badge}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mb-1">
+          <span class="text-xs text-slate-500 w-12">位置 A</span>
+          ${counterHTML(product.id, 'locA', locA)}
+        </div>
+        <div class="flex items-center gap-4 mb-2">
+          <span class="text-xs text-slate-500 w-12">位置 B</span>
+          ${counterHTML(product.id, 'locB', locB)}
+        </div>
+        <div class="text-xs text-slate-500">合計：<span id="total-${product.id}" class="font-bold text-slate-700 text-sm">${total}</span> ${product.unit}</div>
+        ${moveBtn}
+      </div>
+    `;
+  } else {
+    return `
+      <div class="py-3 border-b border-slate-100" id="row-${product.id}">
+        <div class="flex items-center justify-between">
+          <div class="flex-1 pr-3">
+            <div class="font-medium text-slate-800 text-sm leading-snug">${product.name}</div>
+            ${product.unitNote ? `<div class="text-xs text-slate-400">${product.unitNote}</div>` : ''}
+            <div class="mt-0.5 flex gap-1 flex-wrap">${badge}</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${counterHTML(product.id, 'locA', locA)}
+            <span class="text-xs text-slate-400">${product.unit}</span>
+          </div>
+        </div>
+        ${moveBtn}
+      </div>
+    `;
+  }
+}
+
+function counterHTML(productId, loc, value) {
+  return `
+    <div class="flex items-center gap-1">
+      <button onclick="updateCount('${productId}','${loc}',-1)"
+        class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 text-xl font-bold flex items-center justify-center">−</button>
+      <span id="cnt-${productId}-${loc}" class="w-8 text-center text-base font-mono font-bold text-slate-800">${value}</span>
+      <button onclick="updateCount('${productId}','${loc}',1)"
+        class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xl font-bold flex items-center justify-center">+</button>
+    </div>
+  `;
+}
+
+// ===== 計數操作 =====
+function updateCount(productId, loc, delta) {
+  if (!progress.counts[productId]) progress.counts[productId] = { locA: 0, locB: 0 };
+  const current = progress.counts[productId][loc] || 0;
+  const next = Math.max(0, current + delta);
+  progress.counts[productId][loc] = next;
+
+  // 更新畫面數字
+  const el = document.getElementById(`cnt-${productId}-${loc}`);
+  if (el) el.textContent = next;
+
+  // 更新合計
+  const totalEl = document.getElementById(`total-${productId}`);
+  if (totalEl) {
+    const c = progress.counts[productId];
+    totalEl.textContent = (c.locA || 0) + (c.locB || 0);
+  }
+
+  // 靜默儲存
+  saveProgress(progress);
+}
+
+// ===== 儲存 / 完成此區 =====
+function saveZoneProgress(markComplete) {
+  if (markComplete && currentZone) {
+    if (!progress.completedZones.includes(currentZone)) {
+      progress.completedZones.push(currentZone);
+    }
+  }
+  saveProgress(progress);
+  closeModal();
+
+  // 延遲重繪（等 modal 關掉）
+  setTimeout(() => {
+    renderZoneGrid();
+    updateBottomBar();
+  }, 320);
+}
+
+// ===== 更新底部狀態 =====
+function updateBottomBar() {
+  const total = ZONES.length;
+  const done = progress.completedZones.length;
+  document.getElementById('progressText').textContent = `${done} / ${total} 區域完成`;
+  document.getElementById('progressFill').style.width = `${(done / total) * 100}%`;
+
+  const btn = document.getElementById('nextBtn');
+  if (done > 0) {
+    btn.classList.remove('opacity-40', 'pointer-events-none');
+  } else {
+    btn.classList.add('opacity-40', 'pointer-events-none');
+  }
+}
+
+// ===== 移動品項到其他區域 =====
+function moveProduct(productId, newZone) {
+  if (!newZone) return;
+  saveLocationOverride(productId, newZone);
+
+  // 重新渲染目前 modal（移除該品項）
+  if (currentZone) {
+    const items = getProductsInZone(currentZone);
+    document.getElementById('modalContent').innerHTML = items.map(p => renderProductRow(p)).join('');
+    document.getElementById('modalSubtitle').textContent = `${items.length} 項品項`;
+  }
+  renderZoneGrid();
+}
+
+// ===== 搜尋 =====
+function handleSearch(query) {
+  const grid = document.getElementById('zoneGrid');
+  const results = document.getElementById('searchResults');
+  const clearBtn = document.getElementById('clearSearch');
+
+  if (!query.trim()) {
+    grid.classList.remove('hidden');
+    results.classList.add('hidden');
+    clearBtn.classList.add('hidden');
+    return;
+  }
+
+  clearBtn.classList.remove('hidden');
+  grid.classList.add('hidden');
+  results.classList.remove('hidden');
+
+  const q = query.toLowerCase();
+  const matched = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    (p.igoName && p.igoName.toLowerCase().includes(q))
+  );
+
+  if (!matched.length) {
+    results.innerHTML = `<p class="text-center text-slate-400 py-8">找不到「${query}」相關品項</p>`;
+    return;
+  }
+
+  results.innerHTML = matched.map(p => {
+    const overrides = loadLocationOverrides();
+    const zone = overrides[p.id] || p.zone;
+    const c = progress.counts[p.id] || {};
+    const total = (c.locA || 0) + (c.locB || 0);
+    return `
+      <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center justify-between"
+        onclick="clearSearch(); openModal('${zone}')">
+        <div>
+          <div class="font-medium text-slate-800 text-sm">${p.name}</div>
+          <div class="text-xs text-slate-400 mt-0.5">📍 ${zone} · 目前：${total} ${p.unit}</div>
+        </div>
+        <span class="text-slate-400 text-lg">›</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  handleSearch('');
+}
+
+// ===== 清除進度 =====
+function confirmClear() {
+  if (confirm('確定要清除所有點料進度重新開始嗎？')) {
+    clearProgress();
+    init();
+  }
+}
+
+// ===== 前往確認頁 =====
+function goToConfirm() {
+  saveProgress(progress);
+  window.location.href = 'confirm.html';
+}
+
+// ===== 啟動 =====
+init();
+</script>
+</body>
+</html>

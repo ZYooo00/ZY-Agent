@@ -111,10 +111,18 @@ brew install python3
 sudo apt update && sudo apt install python3
 ```
 
-**Windows:**
-```powershell
-winget install Python.Python.3.12
-```
+**Windows（Git Bash 環境）：**
+> `python3` 通常不在 PATH，優先從 `uv` 管理的 Python 找：
+> ```bash
+> PYTHON=$(find "/c/Users/User/AppData/Roaming/uv/python" -name "python.exe" 2>/dev/null | head -1)
+> "$PYTHON" --version
+> ```
+> 找到後用 `$PYTHON` 變數帶入所有後續呼叫。版本資料夾名稱會隨更新改變，用 `find` 動態取得最穩定。
+>
+> 若 uv 路徑也找不到，再用 winget 安裝：
+> ```powershell
+> winget install Python.Python.3.12
+> ```
 
 ---
 

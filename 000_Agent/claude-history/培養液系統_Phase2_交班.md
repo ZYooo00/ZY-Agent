@@ -1,29 +1,133 @@
-# 培養液管理系統 — Phase 2 交班文件
+# 培養液管理系統 — Phase 3.5 交班文件
 
 **日期**：2026-05-06  
-**完成 Phase**：Phase 1（kucun.html v1.1.0 全面重建）  
-**下次要做**：Phase 2（其他頁面寫入 kucun-changelog + 補版本號）
+**完成 Phase**：Phase 1 + Phase 2 + Phase 3 全部完成  
+**下次要做**：Phase 3.5（kucun.html UI 大改版）
 
 ---
 
-## 已完成（Phase 1）
+## 已完成（Phase 1 + 2）
 
-- [x] `kucun.html` v1.1.0 全面重建
-  - **Sticky 表格**：品項 / 庫存 / 狀態 左側固定，右側橫向捲動（批號效期等）
-  - **排序**：種類 / 廠商 / 狀態 三個 tab 切換
-  - **批號顯示**：效期精確到日，全域切換「最近 3 批 / 顯示全部」
-  - **更新紀錄區**：讀取 `kucun-changelog` localStorage，含來源篩選（進貨/備盤/盤點/手動）
-  - **手動登記使用**：Modal 表單，可記錄使用/報廢/庫存調整/備註，寫入 `kucun-changelog`
-  - **無資料空白頁**：友善提示
+- [x] `kucun.html` v1.1.0 全面重建（Sticky 表格、排序、批號、更新紀錄、手動登記）
+- [x] `jinhuo.html` 進貨/作廢/修改 → 自動寫入 `kucun-changelog`
+- [x] `gupan.html` 盤點確認 → 自動寫入 `kucun-changelog` + `pandian-history`
+- [x] `order.html` 訂貨送出 → 自動寫入 `kucun-changelog`
+- [x] `beipan.html` 預留 `appendKucunLog()`（v1.1）
 
 ---
 
-## Phase 2 任務清單
+## 已完成（Phase 3）
 
-### 目標
-讓 beipan / jinhuo / gupan / order 四頁在關鍵操作時，自動寫一筆紀錄到 `kucun-changelog`。
+- [x] `beipan.html` v1.2：「確認無誤，送出備盤」按鈕接線
+  - 新增 `submitBeipan()`：儲存 `beipan-result` + 寫入 `kucun-changelog`
+  - 新增 `showToast()`：成功提示
+- [x] `kucun.html` v1.2.0：
+  - 讀取 `pandian-history`，新增 `calcEstUsage()` 推算期間用量
+  - 新增「期間估計用量」欄
+  - 批號行加「進貨：YYYY-MM-DD」小字（**注意：Phase 3.5 會移除這個**）
+  - 底部提示更新
 
-### kucun-changelog 資料格式（已在 kucun.html 定義）
+---
+
+## Phase 3.5 任務清單（下次 session 執行）
+
+### 背景
+
+ZY 確認後要求對 kucun.html 做完整 UI 重構。
+
+---
+
+### 欄位結構（最終版）
+
+**固定欄（左，sticky）**
+
+| 順序 | 欄位 | 說明 |
+|------|------|------|
+| 1 | 品項 | 只顯示品名，不顯示廠商小字（廠商排序按鈕仍保留） |
+| 2 | 庫存/安全量 | 庫存大字 + 安全量目標小字（如：`3 瓶` 大 + `目標 5` 小） |
+| 3 | 狀態 | 徽章不變 |
+| 4 | 批號/效期 | 三子欄對齊：數量 ｜ 效期 ｜ 批號（切換按鈕放欄頭） |
+| 5 | 待收貨 | 在途數量不變 |
+
+**移除**：本月進貨欄
+
+**可滾動（中）**
+
+- 每欄 = 一個操作事件（同日多筆 = 拆多欄）
+- 欄頭：`M/D` 格式，換年時插入 `YYYY年` 分隔行
+- 欄內：操作類型標籤（備盤/進貨/盤點/手動）+ 數量（瓶，僅顯示非零）
+- 資料來源：`kucun-changelog`，依 ts 排序
+- 備盤條目：只顯示「備盤」標籤，不顯示數量（mL 無法直接換算瓶）
+
+**固定欄（右，sticky）**
+
+| 欄位 | 說明 |
+|------|------|
+| 期間估計用量 | 數字 + 來源標籤，見下方邏輯 |
+| Export CSV 按鈕 | 頁面右上角，下載 kucun-changelog |
+
+---
+
+### 批號/效期欄設計
+
+三子欄對齊（`display:grid` 或 `<table>` 內嵌）：
+
+```
+×1    2026-05-09（3天後）  5555
+×1    2026-06-30           53651
+```
+
+- 切換按鈕「最近 3 批 ／ 全部」放在 `<th>` 欄頭
+- **移除**：批號進貨日期灰字（Phase 3 剛加的，Phase 3.5 撤掉）
+
+---
+
+### 期間估計用量邏輯（已確認）
+
+**公式**：`前一快照存量 + 期間進貨 − 最新快照存量 = 期間用量`
+
+**快照優先鏈**：
+
+| 條件 | 標示 |
+|------|------|
+| pandian-history 最新紀錄 ≥ 最新備盤 | `盤點推算`（精確，瓶） |
+| 最新備盤 > 最新盤點 | `備盤推算（估）`（近似：`(remaining > 0 ? 1 : 0) + unopened`） |
+| 資料不足 | `—` |
+
+- **備盤快照重建**：從 kucun-changelog `source:'beipan'` 按 ts 分組，不需額外 key
+- **無自訂日期選擇器**（已確認捨去）
+
+---
+
+### Export CSV 規格
+
+- 按鈕位置：頁面右上角
+- 檔名：`kucun-changelog-YYYYMMDD.csv`
+- 欄位：`日期,時間,來源,操作,品項,批號,數量,備註`
+- 編碼：**UTF-8 with BOM**（Excel 中文不亂碼）
+
+---
+
+### 關鍵檔案
+
+| 檔案 | 目前版本 | 改版後 |
+|------|---------|-------|
+| `generated-pages/kucun.html` | v1.2.0 | v1.3.0 |
+| 其餘頁面 | 不動 | — |
+
+---
+
+### 驗證方式
+
+1. PowerShell 開啟 kucun.html
+2. DevTools 注入測試資料（含 jinhuo/beipan/pandian/manual 各類型）
+3. 確認：欄位順序、固定滾動分區、批號三子欄對齊、使用紀錄按日期各欄、換年分隔、期間估計用量標示、Export CSV 中文正常
+4. 版本顯示 v1.3.0
+
+---
+
+## kucun-changelog 資料格式（參考）
+
 ```json
 {
   "id": "uid",
@@ -38,100 +142,57 @@
 }
 ```
 
-### 修改清單
-
-#### 1. `jinhuo.html`（進貨記錄）
-觸發時機：
-- **收貨新增**（batchSaveAll / 單筆確認存檔）→ source:`jinhuo`, action:`receive`, qty:+receivedQty
-- **作廢**（void 操作完成後）→ source:`jinhuo`, action:`void`, qty:-receivedQty（負數）
-- **修改**（edit 操作完成後）→ source:`jinhuo`, action:`edit`, note 記錄修改項目
-版本號：目前 v0.5.9，不需變動（已有）
-
-#### 2. `beipan.html`（備盤）
-觸發時機：
-- **備盤完成儲存**（最後 confirm 按鈕）→ 針對每個 batch 各寫一筆：source:`beipan`, action:`beipan`, qty:remaining（開封剩餘），note:批號+usedQty
-版本號：讀取目前頁面標題確認後補上
-
-#### 3. `gupan.html`（盤點）
-觸發時機：
-- **盤點完成確認**（pandian confirm）→ 針對每個 allValues 各寫一筆：source:`pandian`, action:`pandian`, qty:actual, note:"盤點實際值"
-- 同時追加到 `pandian-history`（新 key，陣列）以支援未來使用量推算
-版本號：讀取目前頁面標題確認後補上
-
-#### 4. `order.html`（訂貨管理）
-觸發時機：
-- **訂單送出**（confirm 按鈕）→ 針對每個 order 各寫一筆：source:`order`, action:`order`, qty:orderQty
-版本號：讀取目前頁面標題確認後補上
-
-### 共用的 helper function（可貼到各頁面）
-```javascript
-function appendKucunLog(entries) {
-  const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
-  const now = new Date().toISOString();
-  entries.forEach(e => {
-    cl.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      ts: now,
-      ...e
-    });
-  });
-  localStorage.setItem('kucun-changelog', JSON.stringify(cl));
-}
-```
-
 ---
 
-## Phase 3 任務清單（下下次）
+## localStorage 各 key 說明
 
-### 目標
-使用量推算 + 批號啟用時間追蹤
-
-- [ ] kucun.html 讀取 `pandian-history`，計算每段期間使用量
-  - 公式：前次盤點 actual + 期間進貨 - 本次盤點 actual = 使用量
-- [ ] 在庫存表格右側捲動區補上「本月估計用量」欄位
-- [ ] 在批號列補上「開始使用日期」（= 該批號最早的 jinhuo receivedAt）
-- [ ] 在 changelog 補上「距上次訂購使用量」計算（上次 order 日至今的 changelog 負值總和）
+| Key | 格式 | 說明 |
+|-----|------|------|
+| `jinhuo-records` | `[]` | 進貨紀錄，含 receivedQty / receivedAt / isVoided |
+| `pandian-result` | `{}` | 最新盤點（只存一筆） |
+| `pandian-history` | `[]` | 歷次盤點快照（由 gupan.html append） |
+| `beipan-result` | `{}` | 最新備盤（只存一筆，Phase 3 起由 beipan.html 存） |
+| `order-result` | `{}` | 最新訂貨 |
+| `kucun-changelog` | `[]` | 所有出入庫事件（所有頁面共寫） |
 
 ---
 
 ## 測試資料（DevTools Console 貼入）
 
 ```javascript
-// 快速注入測試資料
-localStorage.setItem('beipan-result', JSON.stringify({
-  date: '2026-05-01',
-  batches: [
-    { reagentId:'givf', reagentName:'G-IVF', selectedLot:'53651', remaining:47, unopened:1, usedQty:5 },
-    { reagentId:'h5gt', reagentName:'H5GT',  selectedLot:'A2041', remaining:12, unopened:0, usedQty:3 }
-  ],
-  threshold: { orange_days:3, red_days:1 }
-}));
-localStorage.setItem('pandian-result', JSON.stringify({
-  date: '2026-04-28',
-  allValues: [
-    { id:'m-givf', name:'G-IVF', unit:'瓶', actual:3, target:5 },
-    { id:'m-h5gt', name:'H5GT',  unit:'瓶', actual:2, target:4 },
-    { id:'m-oil',  name:'Heavy Oil', unit:'瓶', actual:8, target:3 }
-  ]
-}));
+// 注入完整測試資料
 localStorage.setItem('jinhuo-records', JSON.stringify([
   { id:'r1', productId:'givf', productName:'G-IVF', receivedQty:12, receivedAt:'2026-05-03', lotNumber:'53651', expiryDate:'2026-06-30', isVoided:false },
   { id:'r2', productId:'givf', productName:'G-IVF', receivedQty:12, receivedAt:'2026-05-03', lotNumber:'54001', expiryDate:'2026-08-15', isVoided:false },
   { id:'r3', productId:'h5gt', productName:'H5GT',  receivedQty:6,  receivedAt:'2026-05-04', lotNumber:'A2041', expiryDate:'2026-05-07', isVoided:false },
-  { id:'r4', productId:'oil',  productName:'Heavy Oil', receivedQty:3, receivedAt:'2026-05-05', lotNumber:'OIL99', expiryDate:'2027-01-01', isVoided:false }
 ]));
-localStorage.setItem('order-result', JSON.stringify({
-  date: '2026-05-01',
-  orders: [
-    { orderId:'ord1', itemId:'m-givf', name:'G-IVF', orderQty:24, receivedQty:12 },
-    { orderId:'ord2', itemId:'m-h5gt', name:'H5GT',  orderQty:6,  receivedQty:6 }
-  ]
+localStorage.setItem('pandian-history', JSON.stringify([
+  { date:'2026-04-01', allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:5,target:5},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:4,target:4}] },
+  { date:'2026-05-01', allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:3,target:5},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:2,target:4}] },
+]));
+localStorage.setItem('pandian-result', JSON.stringify({
+  date:'2026-05-01',
+  allValues:[{id:'m-givf',name:'G-IVF',unit:'瓶',actual:3,target:5},{id:'m-h5gt',name:'H5GT',unit:'瓶',actual:2,target:4}]
 }));
+localStorage.setItem('beipan-result', JSON.stringify({
+  date:'2026-05-06',
+  batches:[
+    {reagentId:'givf',reagentName:'G-IVF',selectedLot:'53651',remaining:47,unopened:1,usedQty:0,bottleVol:60},
+    {reagentId:'h5gt',reagentName:'H5GT', selectedLot:'A2041',remaining:6, unopened:1,usedQty:0,bottleVol:30},
+  ],
+  threshold:{orange_days:3,red_days:1}
+}));
+localStorage.setItem('kucun-changelog', JSON.stringify([
+  {id:'a1',ts:'2026-05-01T08:00:00Z',source:'pandian',action:'pandian',productId:'givf',productName:'G-IVF',lotNumber:null,qty:3,note:'盤點'},
+  {id:'a2',ts:'2026-05-03T09:00:00Z',source:'jinhuo', action:'receive',productId:'givf',productName:'G-IVF',lotNumber:'53651',qty:12,note:'進貨'},
+  {id:'a3',ts:'2026-05-06T07:30:00Z',source:'beipan', action:'beipan', productId:'givf',productName:'G-IVF',lotNumber:'53651',qty:107,note:'備盤剩餘 47 mL，未開封 1 瓶'},
+  {id:'a4',ts:'2026-05-08T10:00:00Z',source:'manual', action:'use',    productId:'givf',productName:'G-IVF',lotNumber:'53651',qty:-1,note:'手動記錄使用 1 瓶'},
+]));
 location.reload();
 ```
 
 ---
 
-## 下次 session 開頭語
+## 下一個 session 開頭語
 
-「繼續培養液管理系統 Phase 2。請閱讀 `000_Agent/claude-history/培養液系統_Phase2_交班.md` 了解進度。任務：修改 beipan.html、jinhuo.html、gupan.html、order.html，讓它們在關鍵操作時寫入 kucun-changelog，並補上版本號。`kucun-changelog` 格式與 helper function 都在交班文件裡。」
+「繼續培養液管理系統 Phase 3.5。請閱讀 `000_Agent/claude-history/培養液系統_Phase2_交班.md` 了解進度。任務：執行 kucun.html v1.3.0 大改版，完整規格在計畫檔 `.claude/plans/prd-beipan-html-gupan-html-order-html-j-vectorized-pancake.md` 的 Phase 3.5 節。記得先看截圖（使用者已確認概念）。」

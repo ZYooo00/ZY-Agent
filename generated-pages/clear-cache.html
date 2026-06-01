@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>清除快取</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0;
+         min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .card { background: #1e293b; border-radius: 16px; padding: 40px; max-width: 400px;
+          width: 100%; text-align: center; }
+  h1 { font-size: 20px; margin-bottom: 8px; }
+  p  { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+  .log { text-align: left; background: #020617; border-radius: 8px; padding: 16px;
+         font-family: monospace; font-size: 12px; line-height: 1.8; margin-bottom: 24px; }
+  .ok  { color: #4ade80; }
+  .btn { background: #4f46e5; color: white; border: none; border-radius: 10px;
+         padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer;
+         width: 100%; display: none; }
+  .btn:hover { background: #4338ca; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🧹 一鍵清除快取</h1>
+  <p>清除此裝置上殘留的舊訂單快取</p>
+  <div class="log" id="log"></div>
+  <button class="btn" id="btn" onclick="location.href='./jinhuo.html'">
+    ✅ 前往進貨記錄確認
+  </button>
+</div>
+<script>
+const KEYS = [
+  'order-history','order-result',
+  'jinhuo-records','kucun-changelog',
+  'pandian-history','pandian-result',
+  'beipan-result','beipan-locked',
+  'gupan-confirmed','pandian-completed',
+];
+const logEl = document.getElementById('log');
+let count = 0;
+
+KEYS.forEach(k => {
+  if (localStorage.getItem(k) !== null) {
+    localStorage.removeItem(k);
+    logEl.innerHTML += `<div class="ok">✓ 已清除 ${k}</div>`;
+    count++;
+  }
+});
+
+// 清除動態 key
+for (let i = localStorage.length - 1; i >= 0; i--) {
+  const k = localStorage.key(i);
+  if (k && (k.startsWith('gupan-draft-') || k.startsWith('beipan-') || k.startsWith('pandian-'))) {
+    localStorage.removeItem(k);
+    logEl.innerHTML += `<div class="ok">✓ 已清除 ${k}</div>`;
+    count++;
+  }
+}
+
+logEl.innerHTML += count > 0
+  ? `<div style="color:#94a3b8;margin-top:8px">共清除 ${count} 個快取項目</div>`
+  : `<div style="color:#94a3b8">快取已是乾淨狀態</div>`;
+
+document.getElementById('btn').style.display = 'block';
+</script>
+</body>
+</html>

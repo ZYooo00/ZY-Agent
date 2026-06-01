@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>正式站重置工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 24px 16px; }
+  .card { background: #1e293b; border-radius: 12px; padding: 24px; max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 18px; color: #f1f5f9; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+  .warn { background: #7f1d1d; border: 1px solid #ef4444; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #fca5a5; line-height: 1.6; }
+  .warn strong { color: #fca5a5; display: block; margin-bottom: 4px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+  .col-item { background: #0f172a; border-radius: 6px; padding: 10px 12px; border: 1px solid #334155; }
+  .col-item .name { font-size: 11px; color: #64748b; font-family: monospace; }
+  .col-item .count { font-size: 20px; font-weight: 700; color: #94a3b8; margin: 2px 0; }
+  .col-item .count.has-data { color: #f87171; }
+  .col-item .count.cleared { color: #4ade80; }
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .btn { padding: 12px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; transition: opacity .2s; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-scan { background: #1d4ed8; color: white; }
+  .btn-clear-fs { background: #dc2626; color: white; }
+  .btn-clear-ls { background: #92400e; color: #fef3c7; }
+  .btn-done { background: #065f46; color: #d1fae5; display: none; }
+  .log { background: #020617; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 12px; height: 220px; overflow-y: auto; margin-top: 16px; line-height: 1.7; }
+  .ok { color: #4ade80; } .err { color: #f87171; } .info { color: #60a5fa; } .dim { color: #475569; }
+  #status { font-size: 13px; color: #94a3b8; margin: 10px 0; min-height: 18px; }
+  .step-badge { background: #334155; color: #94a3b8; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔴 正式站重置工具</h1>
+  <p class="sub">清空正式站所有 Firestore 資料 + 瀏覽器本機快取，讓正式站回到全新狀態</p>
+
+  <div class="warn">
+    <strong>⚠️ 警告：此操作不可復原</strong>
+    執行後正式站（stork11-embryo-lab.web.app）的所有庫存紀錄、進貨記錄、訂貨記錄、盤點資料將永久清空。<br>
+    請確認測試站資料已備份完成，再繼續。
+  </div>
+
+  <div class="grid">
+    <div class="col-item"><div class="name">kucun_changelog</div><div class="count" id="c-changelog">—</div></div>
+    <div class="col-item"><div class="name">jinhuo_records</div><div class="count" id="c-jinhuo">—</div></div>
+    <div class="col-item"><div class="name">orders</div><div class="count" id="c-orders">—</div></div>
+    <div class="col-item"><div class="name">pandian_snapshots</div><div class="count" id="c-pandian">—</div></div>
+    <div class="col-item"><div class="name">beipan_snapshots</div><div class="count" id="c-beipan">—</div></div>
+    <div class="col-item"><div class="name">gupan_snapshots</div><div class="count" id="c-gupan-s">—</div></div>
+    <div class="col-item"><div class="name">gupan_drafts</div><div class="count" id="c-gupan-d">—</div></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-scan" id="btn-scan" onclick="scanAll()">
+      <span class="step-badge">Step 1</span> 掃描目前資料量
+    </button>
+    <button class="btn btn-clear-fs" id="btn-clear-fs" onclick="clearFirestore()" disabled>
+      <span class="step-badge">Step 2</span> 清空 Firestore 正式集合（7 個）
+    </button>
+    <button class="btn btn-clear-ls" id="btn-clear-ls" onclick="clearLocalStorage()" disabled>
+      <span class="step-badge">Step 3</span> 清空本機 localStorage（此裝置）
+    </button>
+    <button class="btn btn-done" id="btn-done" onclick="window.location.href='./kucun.html'">
+      ✅ 重置完成 — 前往庫存總覽確認
+    </button>
+  </div>
+
+  <div id="status"></div>
+  <div class="log" id="log"><span class="dim">等待操作…</span></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const CFG = {
+  apiKey: "AIzaSyC3FHchC_pHZHz2ZghxSS0mrDGBWhB_M1o",
+  authDomain: "stork11-embryo-lab.firebaseapp.com",
+  projectId: "stork11-embryo-lab",
+  storageBucket: "stork11-embryo-lab.firebasestorage.app",
+  messagingSenderId: "565116361227",
+  appId: "1:565116361227:web:6788ae3503bf431cf3050e"
+};
+
+const COLS = [
+  { name: 'kucun_changelog',   id: 'c-changelog' },
+  { name: 'jinhuo_records',    id: 'c-jinhuo' },
+  { name: 'orders',            id: 'c-orders' },
+  { name: 'pandian_snapshots', id: 'c-pandian' },
+  { name: 'beipan_snapshots',  id: 'c-beipan' },
+  { name: 'gupan_snapshots',   id: 'c-gupan-s' },
+  { name: 'gupan_drafts',      id: 'c-gupan-d' },
+];
+
+const LS_KEYS = [
+  'jinhuo-records', 'order-history', 'pandian-history',
+  'beipan-result', 'gupan-confirmed', 'kucun-changelog',
+  'pandian-completed', 'beipan-locked',
+];
+
+const app = initializeApp(CFG);
+const db  = getFirestore(app);
+const auth = getAuth(app);
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+let scanned = {};
+let authed = false;
+
+function log(msg, cls = '') {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  logEl.innerHTML === '<span class="dim">等待操作…</span>' && (logEl.innerHTML = '');
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function setStatus(msg) { statusEl.textContent = msg; }
+
+async function ensureAuth() {
+  if (authed) return;
+  await signInAnonymously(auth);
+  authed = true;
+  log('[系統] Firebase 匿名登入成功', 'ok');
+}
+
+window.scanAll = async function() {
+  document.getElementById('btn-scan').disabled = true;
+  logEl.innerHTML = '';
+  log('[掃描] 連線中…', 'info');
+  try {
+    await ensureAuth();
+    let total = 0;
+    scanned = {};
+    for (const col of COLS) {
+      const snap = await getDocs(collection(db, col.name));
+      scanned[col.name] = snap.docs;
+      total += snap.size;
+      const el = document.getElementById(col.id);
+      el.textContent = snap.size + ' 筆';
+      el.className = 'count ' + (snap.size > 0 ? 'has-data' : '');
+      log(`  ${col.name}：${snap.size} 筆`);
+    }
+    log(`\n掃描完成，正式 Firestore 共 ${total} 筆資料`, 'ok');
+    setStatus(total > 0 ? `共 ${total} 筆，確認後執行 Step 2 清空 Firestore。` : '正式 Firestore 已是空的，可跳到 Step 3 清 localStorage。');
+    document.getElementById('btn-clear-fs').disabled = false;
+    document.getElementById('btn-clear-ls').disabled = false;
+  } catch(e) {
+    log('[錯誤] ' + e.message, 'err');
+    document.getElementById('btn-scan').disabled = false;
+  }
+};
+
+window.clearFirestore = async function() {
+  if (!confirm('確定清空正式站的所有 Firestore 資料嗎？此動作不可復原。')) return;
+  document.getElementById('btn-clear-fs').disabled = true;
+  log('\n[清空 Firestore] 開始…', 'info');
+  try {
+    let deleted = 0;
+    for (const col of COLS) {
+      const docs = scanned[col.name] || [];
+      if (docs.length === 0) { log(`  ${col.name}：已是空的`, 'dim'); continue; }
+      const CHUNK = 400;
+      for (let i = 0; i < docs.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + CHUNK).forEach(d => batch.delete(doc(db, col.name, d.id)));
+        await batch.commit();
+      }
+      deleted += docs.length;
+      const el = document.getElementById(col.id);
+      el.textContent = '0 筆';
+      el.className = 'count cleared';
+      log(`  ✓ ${col.name} 清空（${docs.length} 筆）`, 'ok');
+    }
+    log(`\n[完成] Firestore 已清空，共刪除 ${deleted} 筆`, 'ok');
+    setStatus('Firestore 清空完成。請繼續 Step 3 清除本機 localStorage。');
+  } catch(e) {
+    log('[錯誤] ' + e.message, 'err');
+    document.getElementById('btn-clear-fs').disabled = false;
+  }
+};
+
+window.clearLocalStorage = async function() {
+  if (!confirm('清除此裝置的本機快取（localStorage）？\n注意：其他裝置需各自開啟此頁面執行。')) return;
+  log('\n[清空 localStorage] 開始…', 'info');
+  let count = 0;
+  // 清除已知固定 key
+  LS_KEYS.forEach(k => {
+    if (localStorage.getItem(k)) {
+      localStorage.removeItem(k);
+      log(`  ✓ 移除 ${k}`, 'ok');
+      count++;
+    }
+  });
+  // 清除動態 key（gupan-draft-YYYY-MM-DD 格式）
+  const toRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.startsWith('gupan-draft-') || k.startsWith('beipan-') || k.startsWith('pandian-'))) {
+      toRemove.push(k);
+    }
+  }
+  toRemove.forEach(k => { localStorage.removeItem(k); log(`  ✓ 移除 ${k}`, 'ok'); count++; });
+  log(`\n[完成] 共清除 ${count} 個 localStorage 項目`, 'ok');
+  setStatus('✅ 重置完成！正式站已完全清空，可以開始真實記錄。');
+  document.getElementById('btn-clear-ls').disabled = true;
+  document.getElementById('btn-done').style.display = 'flex';
+};
+</script>
+</body>
+</html>

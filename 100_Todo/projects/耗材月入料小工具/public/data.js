@@ -1,0 +1,191 @@
+// ===== 品項主資料 =====
+const PRODUCTS = [
+  { id:"organ-dish-cw05", name:"Organ Dish-OOPW-CW03/05", monthlyBase:4, unit:"箱", unitNote:"50條/箱", twoLocation:true, zone:"培養區", igoName:"Oosafe Organ dish", igoSub:"CW05", orderViaIgo:true, reportViaLine:false },
+  { id:"petri-dish-st06", name:"Petri dish -OOPW-ST06", monthlyBase:4, unit:"箱", unitNote:"50條/箱", twoLocation:true, zone:"培養區", igoName:"Oosafe Petri dish", igoSub:"OOPWST06", orderViaIgo:true, reportViaLine:false },
+  { id:"spl-6cm-aoa", name:"20060 SPL 6公分培養皿(AOA盤)", monthlyBase:24, unit:"條", twoLocation:false, zone:"培養區", igoName:"20060 SPL 6公分培養皿", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"icsi-dish-1006", name:"塑膠ICSI dish-1006(Bx用)", monthlyBase:null, baseNote:"_+1 箱", unit:"箱", unitNote:"25條/箱", twoLocation:true, zone:"培養區", igoName:"塑膠ICSI dish-1006", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"glass-dish-d911600", name:"玻璃底培養皿[D911600]", monthlyBase:20, unit:"盒", twoLocation:false, zone:"培養區", igoName:"玻璃底培養皿D911600", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"spindle-dish", name:"Spindle盤", monthlyBase:4, unit:"箱", twoLocation:false, zone:"培養區", igoName:"Spindle盤", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"falcon-10cm-dish", name:"Falcon 10cm找卵dish", monthlyBase:30, unit:"條", twoLocation:false, zone:"培養區", igoName:"Falcon 10cm找卵dish-1029", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"flask-3014", name:"50ml flask[3014]", monthlyBase:null, baseNote:"_+2 箱", unit:"箱", unitNote:"20包/箱", twoLocation:true, zone:"培養區", igoName:"3014", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"catheter-allwin", name:"植入導管(Allwin)", monthlyBase:4, unit:"盒", unitNote:"10支/盒", twoLocation:true, zone:"針具區", igoName:"植入導管", igoSub:"植入導管", orderViaIgo:true, reportViaLine:false },
+  { id:"catheter-metal", name:"金屬導管內管", monthlyBase:11, unit:"組", unitNote:"10支/組", twoLocation:false, zone:"針具區", igoName:"金屬導管內管", igoSub:"10個/捆", orderViaIgo:true, reportViaLine:false },
+  { id:"catheter-cook", name:"曲克植入導管(Cook)", monthlyBase:4, unit:"組", unitNote:"10支/組", twoLocation:false, zone:"針具區", igoName:"曲克植入導管", igoSub:"曲克植入導管", orderViaIgo:true, reportViaLine:false },
+  { id:"icsi-needle-green", name:"ICSI_綠", monthlyBase:45, unit:"盒", twoLocation:false, zone:"針具區", igoName:"ICSI", igoSub:"綠", orderViaIgo:true, reportViaLine:false },
+  { id:"holding-icsi-pink", name:"Holding(ICSI用)_粉", monthlyBase:45, unit:"盒", twoLocation:false, zone:"針具區", igoName:"Holding(ICSI用)", igoSub:"MPH-SM-30", orderViaIgo:true, reportViaLine:false },
+  { id:"biopsy-needle-blue", name:"Biopsy針[Biopsy_藍]", monthlyBase:20, unit:"盒", twoLocation:false, zone:"針具區", igoName:"Biopsy", igoSub:"藍", orderViaIgo:true, reportViaLine:false },
+  { id:"icsi-needle-cook", name:"ICSI (cook老卵針)", monthlyBase:35, unit:"盒", twoLocation:false, zone:"針具區", igoName:"ICSI (cook老卵針)", igoSub:"K-MPIP-3130", orderViaIgo:true, reportViaLine:false },
+  { id:"holding-9218-bx", name:"Holding(9218)_Bx用", monthlyBase:20, unit:"盒", twoLocation:false, zone:"針具區", igoName:"Holding(9218)", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"bx-needle-9222", name:"Biopsy[Bx針_9222]", monthlyBase:20, unit:"盒", twoLocation:false, zone:"針具區", igoName:"Bx針", igoSub:"9222", orderViaIgo:true, reportViaLine:false },
+  { id:"needle-30g-mesa", name:"30G針頭(MESA盒)", monthlyBase:1, unit:"盒", twoLocation:false, zone:"針具區", igoName:"BD針頭/30G(咖)", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"pipet-2ml", name:"2ml pipet", monthlyBase:10, unit:"包", twoLocation:false, zone:"耗材架", igoName:"Falcon 2ml pipet-7507", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"pipet-5ml", name:"5mL Pipet", monthlyBase:8, unit:"包", unitNote:"4包/箱", twoLocation:false, zone:"耗材架", igoName:"Falcon 5ml pipet-7543", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"pipet-10ml", name:"10mL Pipet", monthlyBase:8, unit:"包", unitNote:"4包/箱", twoLocation:false, zone:"耗材架", igoName:"Falcon 10ml pipet-7551", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"falcon-5ml-tube", name:"Falcon 5ml tube-2003", monthlyBase:null, baseNote:"_+2 箱", unit:"箱", unitNote:"500個/箱", twoLocation:true, zone:"耗材架", igoName:"Falcon 5ml tube-2003", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"sperm-cup-4013", name:"透明取精杯[4013]", monthlyBase:null, baseNote:"_+4 箱", unit:"箱", unitNote:"200個/箱", twoLocation:true, zone:"耗材架", igoName:"取精杯-4013", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"sperm-cup-red", name:"取精杯-紅蓋(取精用+找卵替代)", monthlyBase:null, baseNote:"_+2 箱", unit:"箱", unitNote:"100個/箱", twoLocation:true, zone:"耗材架", igoName:"取精杯-紅蓋150ml", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"glass-pipet", name:"玻璃 Pipet (PP-5.75-1000)", monthlyBase:6, unit:"箱", unitNote:"20盒/箱", twoLocation:true, zone:"耗材架", igoName:"玻璃 Pipet", igoSub:"PP-5.75-1000", orderViaIgo:true, reportViaLine:false },
+  { id:"falcon-dropper-3ml", name:"Falcon 3ml 無菌dropper", monthlyBase:1, unit:"箱", unitNote:"500個/箱", twoLocation:false, zone:"耗材架", igoName:"Falcon 3ml 無菌dropper-7575", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"falcon-15ml-tube", name:"Falcon 15ml尖底離心管", monthlyBase:1, unit:"箱", unitNote:"10包/箱", twoLocation:false, zone:"耗材架", igoName:"Falcon 15ml尖底離心管-2096", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"tip-10ul", name:"10 uL 快充tip", monthlyBase:2, unit:"盒", twoLocation:false, zone:"耗材架", igoName:"10快充tip", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"tip-200ul", name:"100/200 uL 快充tip", monthlyBase:6, unit:"盒", twoLocation:false, zone:"耗材架", igoName:"200快充tip", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"paraffin-paper", name:"石蠟紙", monthlyBase:1, unit:"盒", twoLocation:false, zone:"耗材架", igoName:"石蠟紙", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"zipper-bag-7", name:"夾鏈袋(7號)", monthlyBase:1, unit:"包", unitNote:"100入/包", twoLocation:false, zone:"耗材架", igoName:"夾鏈袋", igoSub:"7號", orderViaIgo:true, reportViaLine:false },
+  { id:"battery-lr44", name:"GP 1-5V電池LR44", monthlyBase:8, unit:"片", twoLocation:false, zone:"耗材架", igoName:"電池", igoSub:"LR44/鈕扣型", orderViaIgo:true, reportViaLine:false },
+  { id:"battery-aa", name:"充電電池(3號)", monthlyBase:null, baseNote:"需要再領", unit:"入", unitNote:"4入/組", twoLocation:false, zone:"耗材架", igoName:"東芝 低自放充電電池/3號", igoSub:"TNH-6GME/2000mAh/4入", orderViaIgo:true, reportViaLine:false },
+  { id:"battery-aaa", name:"充電電池(4號)", monthlyBase:null, baseNote:"需要再領", unit:"入", unitNote:"4入/組", twoLocation:false, zone:"耗材架", igoName:"東芝 低自放充電電池/4號", igoSub:"TNH-03GAE/950mAh/4入", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-mudaisu-6-5", name:"摩戴舒無粉手套 6.5", monthlyBase:5, unit:"盒", unitNote:"50雙/盒", twoLocation:false, zone:"手套防護", igoName:"摩戴舒無粉手套", igoSub:"6.5", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-mudaisu-7-5", name:"摩戴舒無粉手套 7.5", monthlyBase:2, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"摩戴舒無粉手套", igoSub:"7.5", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-mudaisu-8", name:"摩戴舒無粉手套 8", monthlyBase:1, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"摩戴舒無粉手套", igoSub:"8", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-pvc-s", name:"PVC手套 S", monthlyBase:4, unit:"盒", unitNote:"100隻/盒", twoLocation:false, zone:"手套防護", igoName:"PVC手套", igoSub:"S", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-protos-m", name:"多倍PROTOS無粉乳膠手套 M", monthlyBase:1, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"多倍PROTOS無粉乳膠手套", igoSub:"M", orderViaIgo:true, reportViaLine:false },
+  { id:"glove-protos-l", name:"多倍PROTOS無粉乳膠手套 L", monthlyBase:2, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"多倍PROTOS無粉乳膠手套", igoSub:"L", orderViaIgo:true, reportViaLine:false },
+  { id:"syringe-bd-1ml-26g", name:"BD附針注射筒(1ml/26G)", monthlyBase:2, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"BD附針注射筒", igoSub:"1ml/26G", orderViaIgo:true, reportViaLine:false },
+  { id:"syringe-bd-3ml-24g", name:"BD附針注射筒(3ml/24G)", monthlyBase:2, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"BD附針注射筒", igoSub:"3ml/24G", orderViaIgo:true, reportViaLine:false },
+  { id:"syringe-bd-1ml-25g", name:"BD橘注射筒(1ml/25G)", monthlyBase:3, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"BD附針注射筒", igoSub:"1ml/25G", orderViaIgo:true, reportViaLine:false },
+  { id:"gauze-10x10", name:"中衛紗布墊(10*10)", monthlyBase:26, unit:"包", twoLocation:false, zone:"手套防護", igoName:"中衛紗布墊", igoSub:"10*10", orderViaIgo:true, reportViaLine:false },
+  { id:"surgical-cap", name:"手術帽", monthlyBase:8, unit:"包", twoLocation:false, zone:"手套防護", igoName:"手術帽", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"mask-csd", name:"口罩醫療用CSD", monthlyBase:8, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"口罩", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"alcohol-swab", name:"酒精棉片", monthlyBase:2, unit:"盒", twoLocation:false, zone:"手套防護", igoName:"中衛酒精棉片", igoSub:"40盒/箱", orderViaIgo:true, reportViaLine:false },
+  { id:"collect-tube-greiner", name:"Grenier[集卵管]", monthlyBase:null, baseNote:"_+7 箱", unit:"箱", unitNote:"100包/箱", twoLocation:true, zone:"精蟲室", igoName:"集卵管", igoSub:"Greiner", orderViaIgo:true, reportViaLine:false },
+  { id:"find-egg-tube-biofil", name:"找卵管_BIOFIL", monthlyBase:2, unit:"箱", unitNote:"40包/箱", twoLocation:false, zone:"精蟲室", igoName:"找卵管", igoSub:"替代品", orderViaIgo:true, reportViaLine:false },
+  { id:"glass-slide", name:"載玻片", monthlyBase:8, unit:"盒", twoLocation:false, zone:"精蟲室", igoName:"載玻片", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"cover-slip", name:"蓋玻片", monthlyBase:2, unit:"盒", twoLocation:false, zone:"精蟲室", igoName:"蓋玻片", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"lens-paper", name:"拭鏡紙", monthlyBase:1, unit:"包", twoLocation:false, zone:"精蟲室", igoName:"NIKOO拭鏡紙", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"lenshooke-slide", name:"Lenshooke玻片", monthlyBase:3, unit:"盒", twoLocation:false, zone:"精蟲室", igoName:null, orderViaIgo:false, orderViaIgoNote:"待申請入iGO", reportViaLine:false },
+  { id:"iv-catheter-22g", name:"柏朗 靜脈留置針(22G)", monthlyBase:1, unit:"盒", unitNote:"50支/盒", twoLocation:false, zone:"精蟲室", igoName:"柏朗 靜脈留置針", igoSub:"22G", orderViaIgo:true, reportViaLine:false },
+  { id:"nipro-18g", name:"NIPRO SYRINGE 18G 針頭", monthlyBase:1, unit:"盒", twoLocation:false, zone:"精蟲室", igoName:"NIPRO SYRINGE 針頭", igoSub:"18G (粉)", orderViaIgo:true, reportViaLine:false },
+  { id:"cryo-tube-ta", name:"冷凍小管(Thermo-0020)(TA tank)", monthlyBase:4, unit:"包", unitNote:"25支/包", twoLocation:false, zone:"精蟲室", igoName:"冷凍小管", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"cryo-tube-tb", name:"冷凍小管(Thermo-1020)(TB tank)", monthlyBase:5, unit:"包", twoLocation:false, zone:"精蟲室", igoName:null, orderViaIgo:false, orderViaIgoNote:"需要時聯絡 Linkin 交貨", reportViaLine:false },
+  { id:"cryo-rack", name:"冷凍鋁架", monthlyBase:null, baseNote:"需要時", unit:"個", twoLocation:false, zone:"精蟲室", igoName:null, orderViaIgo:false, orderViaIgoNote:"跟新竹領", reportViaLine:false },
+  { id:"sharps-box-4l", name:"尖銳物品收集盒 4L", monthlyBase:2, unit:"個", twoLocation:false, zone:"精蟲室", igoName:"尖銳物品收集盒", igoSub:"4L", orderViaIgo:true, reportViaLine:false },
+  { id:"cotton-ball", name:"小棉球", monthlyBase:1, unit:"包", twoLocation:false, zone:"精蟲室", igoName:"小棉球", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"blood-stain-kit", name:"快速血液塗片染色液試劑", monthlyBase:1, unit:"組", twoLocation:false, zone:"精蟲室", igoName:"快速血液塗片染色液試劑", igoSub:"1.11661.0001", orderViaIgo:true, reportViaLine:false },
+  { id:"alcohol-95", name:"95%酒精", monthlyBase:1, unit:"罐", unitNote:"500ml", twoLocation:false, zone:"精蟲室", igoName:"95%酒精", igoSub:"500ml", orderViaIgo:true, reportViaLine:false },
+  { id:"hand-towel", name:"擦手紙", monthlyBase:1, unit:"包", twoLocation:false, zone:"精蟲室", igoName:"擦手紙", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"earpiece-cover", name:"耳機套", monthlyBase:null, baseNote:"_+1 組", unit:"組", twoLocation:true, zone:"精蟲室", igoName:"耳機套/小號", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"pbs-1x", name:"1XPBS", monthlyBase:null, baseNote:"1盒/週", unit:"盒", twoLocation:false, zone:"分生室", igoName:null, orderViaIgo:false, reportViaLine:true, lineTarget:"分生室夥伴", checkFrequency:"weekly" },
+  { id:"aicle-pgs-pgd", name:"艾捷隆PGS/PGD耗材", monthlyBase:null, baseNote:"2組/週", unit:"組", twoLocation:false, zone:"分生室", igoName:null, orderViaIgo:false, reportViaLine:true, lineTarget:"艾捷隆", checkFrequency:"weekly", lineNeedBatch:true, notes:"注意效期" },
+  { id:"plate-96", name:"96孔檢體盒", monthlyBase:null, baseNote:"20盒/週", unit:"盒", twoLocation:false, zone:"分生室", igoName:null, orderViaIgo:false, reportViaLine:true, lineTarget:"分生室夥伴", checkFrequency:"weekly" },
+  { id:"pcr-tube", name:"PCR tube", monthlyBase:null, baseNote:"1.5包/週", unit:"包", twoLocation:false, zone:"分生室", igoName:null, orderViaIgo:false, reportViaLine:true, lineTarget:"分生室夥伴", checkFrequency:"weekly" },
+  { id:"biohazard-bag-45l", name:"生化用垃圾袋 45L", monthlyBase:8, unit:"捲", twoLocation:false, zone:"清潔環境", igoName:"生化用垃圾袋", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"floor-duster", name:"地板黏塵拖", monthlyBase:2, unit:"入", unitNote:"補充包", twoLocation:false, zone:"清潔環境", igoName:"地板黏塵拖/2入補充包", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"swiffer-body", name:"威拂摩撢單支[伸縮魔撢本體]", monthlyBase:1, unit:"支", twoLocation:false, zone:"清潔環境", igoName:"威拂 伸縮魔撢本體", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"swiffer-refill", name:"威拂(補充包)", monthlyBase:null, baseNote:"1/4 包", unit:"包", twoLocation:false, zone:"清潔環境", igoName:"威拂", igoSub:"補充包", orderViaIgo:true, reportViaLine:false },
+  { id:"floor-mat-3m", name:"3M白色地墊", monthlyBase:2, unit:"張", twoLocation:false, zone:"清潔環境", igoName:"3M白色地墊", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"sharps-box-26l", name:"尖銳物品收集盒 26L", monthlyBase:12, unit:"個", twoLocation:false, zone:"清潔環境", igoName:"尖銳物品收集盒", igoSub:"26L", orderViaIgo:true, reportViaLine:false },
+  { id:"tape-clear", name:"封箱膠帶(透明)", monthlyBase:1, unit:"捲", twoLocation:false, zone:"文具辦公", igoName:"封箱膠帶", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"foil", name:"鋁箔紙", monthlyBase:1, unit:"條", twoLocation:false, zone:"文具辦公", igoName:"鑽石牌鋁箔紙", igoSub:"75尺", orderViaIgo:true, reportViaLine:false },
+  { id:"tape-3m-double", name:"3M 無痕雙面膠條(地墊用)", monthlyBase:2, unit:"包", twoLocation:false, zone:"文具辦公", igoName:"3M 無痕雙面大型膠條(8條)(免釘免鑽)", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"postit-goy", name:"3M便條紙(綠橘黃)", monthlyBase:2, unit:"包", twoLocation:false, zone:"文具辦公", igoName:"3M便條紙", igoSub:"綠橘黃", orderViaIgo:true, reportViaLine:false },
+  { id:"postit-ybr", name:"3M便條紙(黃藍紅)", monthlyBase:2, unit:"包", twoLocation:false, zone:"文具辦公", igoName:"3M便條紙", igoSub:"黃藍紅", orderViaIgo:true, reportViaLine:false },
+  { id:"tape-3m-19mm", name:"3M無痕膠帶19mm", monthlyBase:2, unit:"個", twoLocation:false, zone:"文具辦公", igoName:"無痕膠帶", igoSub:"19mm", orderViaIgo:true, reportViaLine:false },
+  { id:"medical-tape", name:"透氣膠布", monthlyBase:1, unit:"個", twoLocation:false, zone:"文具辦公", igoName:"3M透氣膠帶", igoSub:"一般款", orderViaIgo:true, reportViaLine:false },
+  { id:"pen-oil-black", name:"新無毒筆黑[寫盤用]", monthlyBase:1, unit:"隻", twoLocation:false, zone:"文具辦公", igoName:"寫盤用油性擦擦筆(黑)", igoSub:"151399(F 0.6)", orderViaIgo:true, reportViaLine:false },
+  { id:"pen-oil-blue", name:"新無毒筆藍[寫盤用]", monthlyBase:1, unit:"隻", twoLocation:false, zone:"文具辦公", igoName:"寫盤用油性擦擦筆(藍)", igoSub:"151351(F 0.6)", orderViaIgo:true, reportViaLine:false },
+  { id:"pen-oil-red", name:"新無毒筆紅[寫盤用]", monthlyBase:1, unit:"隻", twoLocation:false, zone:"文具辦公", igoName:"寫盤用油性擦擦筆(紅)", igoSub:"151321(F 0.6)", orderViaIgo:true, reportViaLine:false },
+  { id:"correction-tape", name:"立可帶", monthlyBase:2, unit:"個", twoLocation:false, zone:"文具辦公", igoName:"立可帶", igoSub:"正帶", orderViaIgo:true, reportViaLine:false },
+  { id:"correction-tape-refill", name:"立可帶補充包", monthlyBase:6, unit:"個", twoLocation:false, zone:"文具辦公", igoName:"立可帶", igoSub:"補充包", orderViaIgo:true, reportViaLine:false },
+  { id:"pen-refill", name:"原子筆芯(紅藍黑)", monthlyBase:3, unit:"隻", twoLocation:false, zone:"文具辦公", igoName:"原子筆芯", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"lighter", name:"打火機", monthlyBase:4, unit:"個", twoLocation:false, zone:"文具辦公", igoName:"防風型打火機", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"tissue-3f", name:"3樓辦公室用衛生紙", monthlyBase:1, unit:"袋", twoLocation:false, zone:"文具辦公", igoName:"抽取衛生紙", igoSub:null, orderViaIgo:true, reportViaLine:false },
+  { id:"brady-label", name:"Brady 特殊標籤", monthlyBase:2, unit:"個", twoLocation:false, zone:"文具辦公", igoName:null, orderViaIgo:false, orderViaIgoNote:"待更新", reportViaLine:false },
+  { id:"cryo-label", name:"抗凍標籤", monthlyBase:2, unit:"個", twoLocation:false, zone:"文具辦公", igoName:null, orderViaIgo:false, orderViaIgoNote:"待更新", reportViaLine:false },
+  { id:"name-ribbon", name:"姓名標籤碳帶(胚胎室)", monthlyBase:2, unit:"個", twoLocation:false, zone:"文具辦公", igoName:null, orderViaIgo:false, orderViaIgoNote:"待更新", reportViaLine:false },
+  { id:"folder-bag", name:"三孔資料夾/11孔資料袋", monthlyBase:null, baseNote:"需要再領", unit:"個", twoLocation:false, zone:"文具辦公", igoName:null, orderViaIgo:false, orderViaIgoNote:"需要時再領", reportViaLine:false },
+];
+
+// ===== 區域設定 =====
+const ZONES = [
+  { id:"培養區",   label:"培養區",       color:"blue"   },
+  { id:"針具區",   label:"針具區",       color:"red"    },
+  { id:"耗材架",   label:"耗材架",       color:"orange" },
+  { id:"手套防護", label:"手套防護",     color:"purple" },
+  { id:"精蟲室",   label:"精蟲室",       color:"teal"   },
+  { id:"分生室",   label:"分生室 (週報)", color:"green"  },
+  { id:"清潔環境", label:"清潔環境",     color:"sky"    },
+  { id:"文具辦公", label:"文具辦公",     color:"gray"   },
+];
+
+// 區域顏色對應（Tailwind classes）
+const ZONE_COLORS = {
+  blue:   { bg:"bg-blue-50",   border:"border-blue-300",   text:"text-blue-700",   dot:"bg-blue-500"   },
+  red:    { bg:"bg-red-50",    border:"border-red-300",    text:"text-red-700",    dot:"bg-red-500"    },
+  orange: { bg:"bg-orange-50", border:"border-orange-300", text:"text-orange-700", dot:"bg-orange-500" },
+  purple: { bg:"bg-purple-50", border:"border-purple-300", text:"text-purple-700", dot:"bg-purple-500" },
+  teal:   { bg:"bg-teal-50",   border:"border-teal-300",   text:"text-teal-700",   dot:"bg-teal-500"   },
+  green:  { bg:"bg-green-50",  border:"border-green-300",  text:"text-green-700",  dot:"bg-green-500"  },
+  sky:    { bg:"bg-sky-50",    border:"border-sky-300",    text:"text-sky-700",    dot:"bg-sky-500"    },
+  gray:   { bg:"bg-gray-50",   border:"border-gray-300",   text:"text-gray-700",   dot:"bg-gray-500"   },
+};
+
+// ===== 資料查詢 helpers =====
+function getProductsByZone(zoneId) {
+  return PRODUCTS.filter(p => p.zone === zoneId);
+}
+
+function getProductById(id) {
+  return PRODUCTS.find(p => p.id === id);
+}
+
+function getSuggestedQty(product, currentTotal) {
+  if (product.reportViaLine) return null;
+  if (product.monthlyBase === null || product.monthlyBase === undefined) return null;
+  return Math.max(0, product.monthlyBase - currentTotal);
+}
+
+function getProductTotal(productId, counts) {
+  const c = counts[productId] || {};
+  return (c.locA || 0) + (c.locB || 0);
+}
+
+// ===== localStorage =====
+const LS_PROGRESS = 'dianliao-progress';
+const LS_ORDER    = 'order-draft';
+const LS_LOCATIONS = 'item-locations'; // 手動調整的區域覆蓋
+
+function loadProgress() {
+  try { return JSON.parse(localStorage.getItem(LS_PROGRESS)) || null; }
+  catch { return null; }
+}
+function saveProgress(data) {
+  localStorage.setItem(LS_PROGRESS, JSON.stringify(data));
+}
+function clearProgress() {
+  localStorage.removeItem(LS_PROGRESS);
+}
+
+function loadOrder() {
+  try { return JSON.parse(localStorage.getItem(LS_ORDER)) || null; }
+  catch { return null; }
+}
+function saveOrder(data) {
+  localStorage.setItem(LS_ORDER, JSON.stringify(data));
+}
+
+function loadLocationOverrides() {
+  try { return JSON.parse(localStorage.getItem(LS_LOCATIONS)) || {}; }
+  catch { return {}; }
+}
+function saveLocationOverride(productId, newZone) {
+  const overrides = loadLocationOverrides();
+  overrides[productId] = newZone;
+  localStorage.setItem(LS_LOCATIONS, JSON.stringify(overrides));
+}
+
+// 取得品項實際所在區域（考慮手動調整）
+function getProductZone(product) {
+  const overrides = loadLocationOverrides();
+  return overrides[product.id] || product.zone;
+}
+
+// 取得指定區域的品項（考慮手動調整後）
+function getProductsInZone(zoneId) {
+  const overrides = loadLocationOverrides();
+  return PRODUCTS.filter(p => (overrides[p.id] || p.zone) === zoneId);
+}
+
+// ===== 日期 =====
+function todayString() {
+  return new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g, '-');
+}

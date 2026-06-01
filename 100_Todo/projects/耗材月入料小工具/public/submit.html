@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>耗材月入料 · 送出</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="data.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { padding-bottom: 32px; }
+    .copy-btn { transition: background 0.2s; }
+    .copy-btn.copied { background: #16a34a !important; color: white !important; }
+  </style>
+</head>
+<body class="bg-slate-50">
+
+<!-- ===== 頂部 ===== -->
+<div class="sticky top-0 z-10 bg-white shadow-sm px-4 py-3 flex items-center gap-3">
+  <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 text-lg">‹</button>
+  <div>
+    <h1 class="text-lg font-bold text-slate-800">送出請購</h1>
+    <p id="dateLabel" class="text-xs text-slate-400"></p>
+  </div>
+</div>
+
+<!-- ===== 主要內容 ===== -->
+<div class="px-4 py-4 space-y-4" id="mainContent"></div>
+
+<script>
+let order = null;
+
+function init() {
+  document.getElementById('dateLabel').textContent = todayString();
+  order = loadOrder();
+
+  if (!order) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="text-center py-16">
+        <p class="text-slate-400 text-lg mb-3">沒有確認的訂購資料</p>
+        <a href="confirm.html" class="text-blue-600 font-medium">← 返回確認頁</a>
+      </div>`;
+    return;
+  }
+
+  render();
+}
+
+function render() {
+  let html = '';
+
+  // ===== LINE 訊息區塊 =====
+  const lineGroups = groupLineItems(order.lineItems);
+
+  if (Object.keys(lineGroups).length) {
+    html += `
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-4 py-3 bg-green-50 border-b border-green-100 flex items-center gap-2">
+          <span class="text-green-600 text-lg">💬</span>
+          <h2 class="font-bold text-slate-800">LINE 週報訊息</h2>
+        </div>
+        <div class="divide-y divide-slate-100">
+          ${Object.entries(lineGroups).map(([target, items]) => renderLineGroup(target, items)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== iGo 請購清單 =====
+  if (order.igoItems && order.igoItems.length) {
+    html += `
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="px-4 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+          <span class="text-blue-600 text-lg">📋</span>
+          <h2 class="font-bold text-slate-800">iGo 請購清單</h2>
+          <span class="ml-auto text-xs text-blue-500">${order.igoItems.length} 項</span>
+        </div>
+        <div class="px-4 py-3 space-y-2">
+          ${order.igoItems.map(item => `
+            <div class="flex items-center justify-between py-2 border-b border-slate-50">
+              <div class="flex-1 pr-4">
+                <div class="font-medium text-slate-800 text-sm">${item.name}</div>
+                ${item.igoSub ? `<div class="text-xs text-slate-400">${item.igoName} · ${item.igoSub}</div>` : `<div class="text-xs text-slate-400">${item.igoName || ''}</div>`}
+              </div>
+              <div class="text-right flex-shrink-0">
+                <div class="font-bold text-blue-700">${item.confirmedQty} <span class="font-normal text-sm text-slate-500">${item.unit}</span></div>
+                <div class="text-xs text-slate-400">現有 ${item.currentCount}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- 複製全部清單按鈕 -->
+        <div class="px-4 pb-4">
+          <button onclick="copyIgoList()"
+            id="copyIgoBtn"
+            class="copy-btn w-full py-3 border-2 border-blue-200 text-blue-700 rounded-xl font-semibold text-sm">
+            複製請購清單文字
+          </button>
+        </div>
+
+        <!-- Playwright 說明 -->
+        <div class="mx-4 mb-4 bg-slate-50 rounded-xl border border-slate-200 px-4 py-3 text-xs text-slate-500 space-y-1">
+          <div class="font-semibold text-slate-600">自動填表（iGo）</div>
+          <div>1. 確認上方清單無誤</div>
+          <div>2. 在電腦終端機執行：<code class="bg-slate-200 rounded px-1 font-mono">node auto-order.js</code></div>
+          <div>3. 腳本會自動登入並填表，最後暫停讓你確認後再送出</div>
+        </div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="bg-white rounded-2xl border border-slate-200 px-4 py-4 text-center">
+        <p class="text-slate-400 text-sm">本次無 iGo 訂購品項</p>
+      </div>
+    `;
+  }
+
+  document.getElementById('mainContent').innerHTML = html;
+
+  // 恢復批號月份到 LINE 訊息
+  order.lineItems.forEach(item => {
+    if (item.batchMonth) {
+      const el = document.getElementById(`batch-${item.id}`);
+      if (el) el.value = item.batchMonth;
+    }
+  });
+}
+
+// ===== LINE 分組 =====
+function groupLineItems(lineItems) {
+  const groups = {};
+  (lineItems || []).forEach(item => {
+    if (!groups[item.lineTarget]) groups[item.lineTarget] = [];
+    groups[item.lineTarget].push(item);
+  });
+  return groups;
+}
+
+// ===== 渲染 LINE 訊息群組 =====
+function renderLineGroup(target, items) {
+  const msgId = `msg-${target.replace(/[^a-zA-Z0-9]/g, '')}`;
+  return `
+    <div class="px-4 py-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-semibold text-slate-700">${target}</span>
+        <button onclick="copyLineMsg('${target}')" id="copybtn-${target}"
+          class="copy-btn text-xs border border-green-300 text-green-700 rounded-lg px-3 py-1.5 font-medium">
+          複製訊息
+        </button>
+      </div>
+
+      <!-- 訊息預覽（可編輯） -->
+      <textarea id="msg-${target}" rows="6"
+        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-green-300"
+        onfocus="this.select()"
+      >${buildLineMessage(target, items)}</textarea>
+
+      <!-- 批號月份輸入（艾捷隆） -->
+      ${items.some(i => i.lineNeedBatch) ? `
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-xs text-slate-500">批號需在</span>
+          <input type="number" min="1" max="12" placeholder="月份" id="batchInput-${target}"
+            class="w-16 border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-center"
+            oninput="updateMsg('${target}')">
+          <span class="text-xs text-slate-500">月以後</span>
+          <span class="text-xs text-slate-400">(填完後訊息自動更新)</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ===== 組合 LINE 訊息 =====
+function buildLineMessage(target, items) {
+  const batchInput = document.getElementById(`batchInput-${target}`);
+  const batchMonth = batchInput ? batchInput.value : null;
+
+  let lines = [`${target}您好，`, `臺北胚胎室需要`];
+  items.forEach(item => {
+    let line = `${item.name}/${item.count}${item.unit}`;
+    if (item.lineNeedBatch && batchMonth) {
+      line += `（批號需在${batchMonth}月以後）`;
+    } else if (item.lineNeedBatch && !batchMonth) {
+      line += `（批號需在＿月以後）`;
+    }
+    lines.push(line);
+  });
+  lines.push(`謝謝`);
+  return lines.join('\n');
+}
+
+function updateMsg(target) {
+  const items = groupLineItems(order.lineItems)[target];
+  const textarea = document.getElementById(`msg-${target}`);
+  if (textarea && items) {
+    textarea.value = buildLineMessage(target, items);
+  }
+}
+
+// ===== 複製 LINE 訊息 =====
+function copyLineMsg(target) {
+  const textarea = document.getElementById(`msg-${target}`);
+  if (!textarea) return;
+
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    const btn = document.getElementById(`copybtn-${target}`);
+    btn.textContent = '✓ 已複製';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '複製訊息';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ===== 複製 iGo 清單 =====
+function copyIgoList() {
+  if (!order.igoItems || !order.igoItems.length) return;
+  const lines = [`臺北胚胎室請購清單（${order.date}）`, ''];
+  order.igoItems.forEach(item => {
+    const sub = item.igoSub ? ` ${item.igoSub}` : '';
+    lines.push(`${item.igoName}${sub} × ${item.confirmedQty} ${item.unit}`);
+  });
+  const text = lines.join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyIgoBtn');
+    btn.textContent = '✓ 已複製';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '複製請購清單文字';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+init();
+</script>
+</body>
+</html>

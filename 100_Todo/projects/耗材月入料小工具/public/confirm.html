@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>耗材月入料 · 確認訂購</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="data.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { padding-bottom: 88px; }
+  </style>
+</head>
+<body class="bg-slate-50">
+
+<!-- ===== 頂部 ===== -->
+<div class="sticky top-0 z-10 bg-white shadow-sm px-4 py-3 flex items-center gap-3">
+  <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 text-lg">‹</button>
+  <div class="flex-1">
+    <h1 class="text-lg font-bold text-slate-800">確認訂購量</h1>
+    <p id="dateLabel" class="text-xs text-slate-400"></p>
+  </div>
+</div>
+
+<!-- ===== 摘要列 ===== -->
+<div id="summaryBar" class="mx-4 mt-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-center gap-4 text-sm"></div>
+
+<!-- ===== 品項列表 ===== -->
+<div id="itemList" class="px-4 mt-3 space-y-2"></div>
+
+<!-- ===== 底部按鈕 ===== -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 flex gap-3">
+  <button onclick="history.back()" class="flex-1 py-3 border-2 border-slate-200 rounded-2xl text-slate-700 font-semibold text-sm">← 返回點料</button>
+  <button onclick="confirmOrder()" class="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-semibold text-sm">確認送出 →</button>
+</div>
+
+<script>
+let progress = null;
+let orderItems = []; // 最終確認的訂購項目
+
+function init() {
+  progress = loadProgress();
+  document.getElementById('dateLabel').textContent = todayString();
+
+  if (!progress) {
+    document.getElementById('itemList').innerHTML = `
+      <div class="text-center py-16">
+        <p class="text-slate-400 text-lg mb-3">沒有點料資料</p>
+        <a href="index.html" class="text-blue-600 font-medium">← 返回點料</a>
+      </div>`;
+    return;
+  }
+
+  renderSummary();
+  renderItems();
+}
+
+// ===== 計算各類統計 =====
+function buildOrderItems() {
+  const overrides = loadLocationOverrides();
+  return PRODUCTS.map(p => {
+    const c = progress.counts[p.id] || {};
+    const currentTotal = (c.locA || 0) + (c.locB || 0);
+    const suggested = getSuggestedQty(p, currentTotal);
+
+    return {
+      product: p,
+      currentTotal,
+      suggested,
+      confirmed: suggested !== null ? suggested : 0,
+    };
+  });
+}
+
+function renderSummary() {
+  orderItems = buildOrderItems();
+  const igoCount = orderItems.filter(i => i.product.orderViaIgo && i.confirmed > 0).length;
+  const lineCount = orderItems.filter(i => i.product.reportViaLine).length;
+  const manualCount = orderItems.filter(i => !i.product.orderViaIgo && !i.product.reportViaLine && !i.product.orderViaIgoNote?.includes('待')).length;
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="flex-1 text-center">
+      <div class="text-2xl font-bold text-blue-700">${igoCount}</div>
+      <div class="text-xs text-blue-500">iGo 訂購</div>
+    </div>
+    <div class="w-px bg-blue-200 self-stretch"></div>
+    <div class="flex-1 text-center">
+      <div class="text-2xl font-bold text-green-700">${lineCount}</div>
+      <div class="text-xs text-green-500">LINE 週報</div>
+    </div>
+    <div class="w-px bg-blue-200 self-stretch"></div>
+    <div class="flex-1 text-center">
+      <div class="text-2xl font-bold text-amber-700">${manualCount}</div>
+      <div class="text-xs text-amber-500">手動處理</div>
+    </div>
+  `;
+}
+
+function renderItems() {
+  orderItems = buildOrderItems();
+  const list = document.getElementById('itemList');
+
+  // 分組
+  const igoItems    = orderItems.filter(i => i.product.orderViaIgo);
+  const lineItems   = orderItems.filter(i => i.product.reportViaLine);
+  const manualItems = orderItems.filter(i => !i.product.orderViaIgo && !i.product.reportViaLine);
+
+  let html = '';
+
+  // ---- iGo 訂購 ----
+  html += `<h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide pt-2 pb-1">iGo 訂購品項</h2>`;
+  html += igoItems.map(item => renderIgoRow(item)).join('');
+
+  // ---- LINE 週報 ----
+  if (lineItems.length) {
+    html += `<h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide pt-4 pb-1">LINE 週報品項</h2>`;
+    html += lineItems.map(item => renderLineRow(item)).join('');
+  }
+
+  // ---- 手動處理 ----
+  if (manualItems.length) {
+    html += `<h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide pt-4 pb-1">手動處理 / 不走 iGo</h2>`;
+    html += manualItems.map(item => renderManualRow(item)).join('');
+  }
+
+  list.innerHTML = html;
+}
+
+// ===== iGo 品項列（可調整數量）=====
+function renderIgoRow(item) {
+  const p = item.product;
+  const isZero = item.confirmed === 0;
+  const isUnknown = item.suggested === null;
+
+  // 警示：手動調整超過基準量 1.5x
+  const isOverWarn = p.monthlyBase && item.confirmed > p.monthlyBase * 1.5;
+
+  let qtyBlock = '';
+  if (isUnknown) {
+    // 無法自動計算，手動填
+    qtyBlock = `
+      <div class="flex items-center gap-2 mt-2">
+        <span class="text-xs text-slate-500">訂購量</span>
+        <button onclick="adjustQty('${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center">−</button>
+        <span id="qty-${p.id}" class="w-8 text-center font-bold font-mono text-base">${item.confirmed}</span>
+        <button onclick="adjustQty('${p.id}',1)" class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">+</button>
+        <span class="text-xs text-slate-400">${p.unit}</span>
+        <span class="text-xs text-amber-600 ml-1">(${p.baseNote || '請手填'})</span>
+      </div>
+    `;
+  } else {
+    qtyBlock = `
+      <div class="flex items-center gap-2 mt-2">
+        <span class="text-xs text-slate-500">建議</span>
+        <span class="text-xs font-medium ${isZero ? 'text-slate-400' : 'text-slate-700'}">${item.suggested} ${p.unit}</span>
+        <span class="text-slate-300 mx-1">·</span>
+        <span class="text-xs text-slate-500">確認</span>
+        <button onclick="adjustQty('${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center">−</button>
+        <span id="qty-${p.id}" class="w-8 text-center font-bold font-mono text-base ${isZero ? 'text-slate-400' : 'text-blue-700'}">${item.confirmed}</span>
+        <button onclick="adjustQty('${p.id}',1)" class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">+</button>
+        <span class="text-xs text-slate-400">${p.unit}</span>
+        ${isZero ? '<span class="text-xs text-slate-400 ml-1">✓ 不需補貨</span>' : ''}
+        ${isOverWarn ? '<span class="text-xs text-amber-600 ml-1">⚠️ 超出基準量</span>' : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="bg-white rounded-2xl border ${isZero ? 'border-slate-100' : 'border-blue-100'} px-4 py-3 ${isZero ? 'opacity-60' : ''}">
+      <div class="flex items-start justify-between">
+        <div class="flex-1 pr-2">
+          <div class="font-medium text-slate-800 text-sm">${p.name}</div>
+          <div class="text-xs text-slate-400 mt-0.5">現有：${item.currentTotal} ${p.unit}${p.unitNote ? ' · '+p.unitNote : ''}</div>
+        </div>
+        <button onclick="resetQty('${p.id}')" class="text-xs text-slate-400 border border-slate-200 rounded px-1.5 py-0.5 flex-shrink-0">重置</button>
+      </div>
+      ${qtyBlock}
+    </div>
+  `;
+}
+
+// ===== LINE 週報列 =====
+function renderLineRow(item) {
+  const p = item.product;
+  const needBatch = p.lineNeedBatch;
+  return `
+    <div class="bg-green-50 rounded-2xl border border-green-100 px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium text-slate-800 text-sm">${p.name}</div>
+          <div class="text-xs text-slate-400 mt-0.5">現有：${item.currentTotal} ${p.unit} · 回報對象：${p.lineTarget}</div>
+          ${needBatch ? `<div class="flex items-center gap-2 mt-2">
+            <span class="text-xs text-slate-500">批號需在</span>
+            <input type="number" min="1" max="12" placeholder="月份" id="batch-${p.id}"
+              class="w-14 border border-slate-300 rounded-lg px-2 py-1 text-sm text-center"
+              onchange="saveBatchMonth('${p.id}', this.value)">
+            <span class="text-xs text-slate-500">月以後</span>
+          </div>` : ''}
+        </div>
+        <span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-medium">LINE</span>
+      </div>
+    </div>
+  `;
+}
+
+// ===== 手動處理列 =====
+function renderManualRow(item) {
+  const p = item.product;
+  return `
+    <div class="bg-amber-50 rounded-2xl border border-amber-100 px-4 py-3 opacity-80">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium text-slate-800 text-sm">${p.name}</div>
+          <div class="text-xs text-slate-500 mt-0.5">現有：${item.currentTotal} ${p.unit}${p.orderViaIgoNote ? ' · '+p.orderViaIgoNote : ''}</div>
+        </div>
+        <span class="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded-full font-medium whitespace-nowrap">手動</span>
+      </div>
+    </div>
+  `;
+}
+
+// ===== 調整數量 =====
+function adjustQty(productId, delta) {
+  const item = orderItems.find(i => i.product.id === productId);
+  if (!item) return;
+  item.confirmed = Math.max(0, item.confirmed + delta);
+
+  const el = document.getElementById(`qty-${productId}`);
+  if (el) {
+    el.textContent = item.confirmed;
+    el.className = el.className.replace(/text-(blue|slate)-\d+/g, '');
+    el.classList.add(item.confirmed === 0 ? 'text-slate-400' : 'text-blue-700');
+  }
+
+  // 更新摘要
+  renderSummary();
+}
+
+function resetQty(productId) {
+  const item = orderItems.find(i => i.product.id === productId);
+  if (!item) return;
+  item.confirmed = item.suggested !== null ? item.suggested : 0;
+  const el = document.getElementById(`qty-${productId}`);
+  if (el) el.textContent = item.confirmed;
+  renderSummary();
+}
+
+// ===== 儲存批號月份 =====
+const batchMonths = {};
+function saveBatchMonth(productId, month) {
+  batchMonths[productId] = month;
+}
+
+// ===== 確認送出 =====
+function confirmOrder() {
+  // 組合 LINE 訊息資料
+  const lineItems = orderItems.filter(i => i.product.reportViaLine).map(i => ({
+    id: i.product.id,
+    name: i.product.name,
+    count: i.currentTotal,
+    unit: i.product.unit,
+    lineTarget: i.product.lineTarget,
+    batchMonth: batchMonths[i.product.id] || null,
+    lineNeedBatch: i.product.lineNeedBatch || false,
+  }));
+
+  // 組合 iGo 訂購資料（只含 confirmed > 0）
+  const igoItems = orderItems.filter(i => i.product.orderViaIgo && i.confirmed > 0).map(i => ({
+    id: i.product.id,
+    name: i.product.name,
+    currentCount: i.currentTotal,
+    confirmedQty: i.confirmed,
+    unit: i.product.unit,
+    igoName: i.product.igoName,
+    igoSub: i.product.igoSub,
+  }));
+
+  const order = {
+    date: todayString(),
+    confirmedAt: new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit' }),
+    lineItems,
+    igoItems,
+  };
+
+  saveOrder(order);
+  window.location.href = 'submit.html';
+}
+
+init();
+</script>
+</body>
+</html>
