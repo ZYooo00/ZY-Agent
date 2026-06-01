@@ -1047,8 +1047,9 @@ async function initBatchesFromFirebase() {
 // ── Build a single batch table row ──
 function buildBatchRow(b, needed, cardId, checked) {
   const badge        = calcBadge(b, needed);
-  const isExpired    = b.blocked || badge.status === 'expired' || badge.status === 'empty';
+  const isExpired     = b.blocked || badge.status === 'expired';
   const isOpenExpired = badge.status === 'open_expired';
+  const isEmpty       = badge.status === 'empty';
   const days         = daysUntilExpiry(effectiveExpiry(b));
   const expCls       = isExpired
     ? 'text-slate-300 line-through'
@@ -1111,7 +1112,9 @@ function buildBatchRow(b, needed, cardId, checked) {
                    badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
   const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
-  const rowBg = b.markedExhausted ? 'row-ok bg-amber-50' : 'row-ok hover:bg-slate-50';
+  const rowBg = b.markedExhausted ? 'row-ok bg-amber-50'
+              : isEmpty           ? 'bg-slate-100 opacity-80'
+              :                     'row-ok hover:bg-slate-50';
 
   // 效期類 badge 會蓋掉數量狀態，在效期 badge 下方補顯示數量次要 badge
   let quantityBadgeHtml = '';
@@ -1278,19 +1281,19 @@ function buildBatchCardHTML(cfg) {
     })
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
 
-  // 完全過期或已用盡批號：優先選有殘液的（需要丟棄），其餘只取最近一筆
-  const expiredBatches = cfg.batches.filter(b => {
-    const s = calcBadge(b, cfg.needed).status;
-    return b.blocked || s === 'expired' || s === 'empty';
-  });
+  // 帳面已用盡（未過期，灰底但允許點選）
+  const emptyBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'empty');
+
+  // 真正過期（鎖死）
+  const expiredBatches = cfg.batches.filter(b => b.blocked || calcBadge(b, cfg.needed).status === 'expired');
   const shownExpired   = expiredBatches.length === 0 ? [] : (() => {
     const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
     if (withRem.length > 0) return [withRem[0]];
     return [expiredBatches[expiredBatches.length - 1]];
   })();
 
-  // 排序結果：有效 → 開封逾期（可替換）→ 完全過期（最多一筆）
-  const orderedForDisplay = [...validBatches, ...openExpiredBatches, ...shownExpired];
+  // 依序排列：有效 → 開封逾期(可替換) → 帳面已用盡(可選) → 完全過期(鎖死)
+  const orderedForDisplay = [...validBatches, ...openExpiredBatches, ...emptyBatches, ...shownExpired];
   let firstActive = true;
   const rows = orderedForDisplay.map(b => {
     const bs = calcBadge(b, cfg.needed).status;
