@@ -1096,7 +1096,8 @@ async function initBatchesFromFirebase() {
           openExpiry: snap?.openExpiryDate || null,
           openDate: snap?.openDate || null,
           remaining: snap != null ? snap.remaining : 0,
-          unopened: snap != null ? snap.unopened : l.totalReceived,
+          // Math.min 確保快照瓶數不超過當前有效進貨總數（防止作廢進貨後幽靈瓶數殘留）
+          unopened: snap != null ? Math.min(snap.unopened, l.totalReceived) : l.totalReceived,
           bottleVol: cfg.bottleVol || 0,
         };
       }).sort((a, b) => {
