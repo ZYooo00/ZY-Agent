@@ -1696,7 +1696,7 @@ function onBatchSelect(cardId, status) {
   });
 
   if (hasEarlierWithStock) {
-    showToast('⚠️ 上方仍有效期更早的批號未耗盡，請先使用舊批號', 'warn');
+    showToast('⚠️ 上方仍有效期較早的批號尚有庫存，此選擇供參考確認', 'warn', 4000);
   }
 }
 
