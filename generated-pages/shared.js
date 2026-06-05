@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05a'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05b',
+    date: '2026-06-05',
+    changes: [
+      '【修正】進貨：多品項同批入庫時，訂單核銷只有部分成功的問題（Race Condition，改為依序寫入）',
+      '【修正】訂貨：進行中訂單的詳細卡片（含強制結案按鈕）未顯示的問題',
+    ]
+  },
   {
     version: '26.06.05a',
     date: '2026-06-05',

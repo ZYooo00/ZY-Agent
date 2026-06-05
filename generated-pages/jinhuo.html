@@ -2183,10 +2183,10 @@ async function batchSaveAll() {
   const count = sessionTray.length;
   const importBatchId = `BATCH-${Date.now()}`;  // 同一次整批收貨共用同一個批次 ID
 
-  sessionTray.forEach(item => {
+  for (const item of sessionTray) {
     // 最終防護線：阻擋異常或空白資料寫入 Firebase
-    if (!item.productId) return;
-    if (!item.isRejected && (isNaN(item.qty) || item.qty <= 0)) return;
+    if (!item.productId) continue;
+    if (!item.isRejected && (isNaN(item.qty) || item.qty <= 0)) continue;
 
     const noteParts = [
       item.isRejected && item.rejectReason ? `拒收：${item.rejectReason}` : null,
@@ -2220,9 +2220,9 @@ async function batchSaveAll() {
     };
 
     records.unshift(record);
-    if (item.orderId && !item.isRejected) updateOrderStatus(item.orderId, item.qty, item.parentId || null);
+    if (item.orderId && !item.isRejected) await updateOrderStatus(item.orderId, item.qty, item.parentId || null);
     if (REQUIRE_QC_ITEMS.includes(item.productId)) has102 = true;
-  });
+  }
 
   saveRecords();
 
