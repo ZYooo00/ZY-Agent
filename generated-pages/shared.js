@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05l'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05m'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05m',
+    date: '2026-06-05',
+    changes: [
+      '【修正】備盤：選取未開封批號時不足量提醒未觸發（根本原因：remaining=undefined 時 undefined < x 在 JS 永遠為 false，現改用 || 0 確保數值比較正確）',
+      '【優化】備盤：FEFO 跳批提示文字縮短（拿掉冗餘的「此選擇供參考確認」）',
+    ]
+  },
   {
     version: '26.06.05l',
     date: '2026-06-05',

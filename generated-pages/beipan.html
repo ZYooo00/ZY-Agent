@@ -1681,7 +1681,6 @@ function onBatchSelect(cardId, status) {
     secondPanel.classList.remove('hidden');
   }
 
-  // 雙重 Soft Warning（A + B 可同時觸發，組合為一則 Toast）
   const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
   const selectedLot = document.querySelector(`input[name="r-${cardId}"]:checked`)?.value;
@@ -1690,21 +1689,24 @@ function onBatchSelect(cardId, status) {
   if (!selectedBatch) return;
 
   const warnings = [];
+  const needed = cfg.needed || 0;
+  const rem = selectedBatch.remaining || 0;
 
-  // A：帳面液量不足（含未開封 remaining=0 的情境）
-  if ((cfg.needed || 0) > 0 && selectedBatch.remaining < cfg.needed) {
-    warnings.push(`帳面剩餘量不足今日需用（${selectedBatch.remaining.toFixed(1)} mL → 需 ${cfg.needed.toFixed(1)} mL），若現場實際液量足夠，可直接送出`);
+  // A：帳面液量不足（用 || 0 避免未開封批號 remaining=undefined 時 undefined < x 永遠為 false）
+  if (needed > 0 && rem < needed) {
+    warnings.push(`帳面剩餘 ${rem.toFixed(1)} mL 不足今日需用 ${needed.toFixed(1)} mL（若現場實際液量足夠，可直接送出）`);
   }
 
   // B：FEFO 跳批（上方仍有效期更早且有庫存的批號）
   const hasEarlierWithStock = cfg.batches.some(b => {
     if (b.lot === selectedLot || b.blocked || b.markedExhausted) return false;
-    const s = calcBadge(b, cfg.needed).status;
+    const s = calcBadge(b, needed).status;
     if (s === 'expired' || s === 'open_expired' || s === 'empty') return false;
-    return ((b.remaining > 0) || (b.unopened > 0)) && (b.expiry || '') < (selectedBatch.expiry || '');
+    const hasStock = (b.remaining > 0) || (b.unopened > 0);
+    return hasStock && (b.expiry || '') < (selectedBatch.expiry || '');
   });
   if (hasEarlierWithStock) {
-    warnings.push('上方仍有效期較早的批號尚有庫存，此選擇供參考確認');
+    warnings.push('上方仍有效期較早的批號尚有庫存');
   }
 
   if (warnings.length > 0) {
