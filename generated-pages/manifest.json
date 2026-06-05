@@ -2,7 +2,7 @@
   "name": "培養液管理系統",
   "short_name": "培養液",
   "description": "胚胎室培養液庫存管理系統",
-  "start_url": "./kucun.html",
+  "start_url": "./gupan.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#9590D0",
