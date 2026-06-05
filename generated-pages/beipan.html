@@ -119,7 +119,11 @@
         if(!arguments.length) return new _Orig(_sim + 'T00:00:00+08:00');
         return new (Function.prototype.bind.apply(_Orig, [null].concat(Array.from(arguments))))();
       };
-      Object.assign(window.Date, _Orig);
+      // Object.assign 無法複製不可枚舉的靜態方法（Date.now/parse/UTC），必須手動補上
+      window.Date.now   = function(){ return _Orig.now(); };
+      window.Date.parse = function(){ return _Orig.parse.apply(_Orig, arguments); };
+      window.Date.UTC   = function(){ return _Orig.UTC.apply(_Orig, arguments); };
+      window.Date.prototype = _Orig.prototype;
     }
 
     document.addEventListener('DOMContentLoaded', function(){
