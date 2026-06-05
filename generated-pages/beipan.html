@@ -521,6 +521,21 @@
   </main>
 </div>
 
+<!-- ════ MODAL：送出前殘液校正 ════ -->
+<div id="residual-correct-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeResidualCorrectModal()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+    <div class="px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
+      <h3 class="font-heading font-bold text-slate-800 text-base">送出前殘液確認</h3>
+      <p class="text-xs text-slate-400 mt-1">請確認已開瓶的實際殘液量，系統將以此為準進行扣除。若無需修改可直接繼續。</p>
+    </div>
+    <div id="residual-correct-cards" class="px-6 py-4 space-y-3 overflow-y-auto flex-1"></div>
+    <div class="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
+      <button onclick="closeResidualCorrectModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
+      <button onclick="confirmResidualCorrect()" class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-colors shadow-sm">確認並繼續</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════ MODAL：確認送出備盤 ════ -->
 <div id="submit-confirm-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
@@ -667,7 +682,7 @@ function previewBeipan() {
   }
 
   const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
-  openSubmitConfirmModal(staffStr);
+  openResidualCorrectModal(staffStr);
 }
 
 // ── 歷史備盤 Modal ──
@@ -901,6 +916,88 @@ function switchState(s) {
     const btn = document.getElementById('btn-'+id);
     if (btn) btn.classList.toggle('active', id === s);
   });
+}
+
+// ── Fix 8：送出前殘液校正 ──
+let _residualCorrections = {};
+
+function openResidualCorrectModal(staffStr) {
+  const cardsEl = document.getElementById('residual-correct-cards');
+  const overlay = document.getElementById('residual-correct-overlay');
+  if (!cardsEl || !overlay) { openSubmitConfirmModal(staffStr); return; }
+
+  // 找出所有需要顯示校正卡的已開封批次（非 autoLot、非報廢、remaining > 0）
+  const cards = [];
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    const autoLotBatch = (cfg.batches || []).find(b => b._isAutoLot && !b.blocked);
+    for (const b of (cfg.batches || [])) {
+      if (!b.openDate || b._isAutoLot || b.blocked || b.markedExhausted) continue;
+      if (b.remaining <= 0) continue;
+      cards.push({ cfg, batch: b, autoLotBatch });
+    }
+  }
+
+  if (cards.length === 0) {
+    // 無已開封瓶需校正，直接進確認送出
+    _residualCorrections = {};
+    openSubmitConfirmModal(staffStr);
+    return;
+  }
+
+  cardsEl.innerHTML = cards.map(({ cfg, batch, autoLotBatch }) => {
+    const key = `${cfg.id}_${batch.lot}`;
+    const autoLotRow = autoLotBatch ? `
+      <div class="flex items-center justify-between text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-1.5">
+        <span>本次新開瓶（${autoLotBatch.lot}）</span>
+        <span class="font-semibold tabular">＋${(autoLotBatch.bottleVol || 0).toFixed(1)} mL（已含入）</span>
+      </div>` : '';
+    return `
+      <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-semibold text-slate-800">${cfg.name}</span>
+          <span class="text-xs font-mono text-slate-400">${batch.lot}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs text-slate-500">
+          <span>系統帳面殘液</span>
+          <span class="tabular font-medium">${batch.remaining.toFixed(1)} mL</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-600 flex-1">實際殘液校正</span>
+          <input type="number" step="0.1" min="0" id="corr-${key}"
+                 value="${batch.remaining.toFixed(1)}"
+                 class="w-20 text-center text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary tabular bg-white">
+          <span class="text-xs text-slate-500">mL</span>
+        </div>
+        ${autoLotRow}
+      </div>`;
+  }).join('');
+
+  overlay.dataset.staffStr = staffStr;
+  overlay.classList.remove('hidden');
+}
+
+function closeResidualCorrectModal() {
+  document.getElementById('residual-correct-overlay')?.classList.add('hidden');
+}
+
+function confirmResidualCorrect() {
+  const overlay = document.getElementById('residual-correct-overlay');
+  const staffStr = overlay?.dataset.staffStr || '';
+  _residualCorrections = {};
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    for (const b of (cfg.batches || [])) {
+      if (!b.openDate || b._isAutoLot || b.blocked || b.markedExhausted) continue;
+      if (b.remaining <= 0) continue;
+      const key = `${cfg.id}_${b.lot}`;
+      const inputEl = document.getElementById('corr-' + key);
+      if (inputEl) {
+        const corrected = parseFloat(parseFloat(inputEl.value).toFixed(1));
+        if (!isNaN(corrected)) _residualCorrections[key] = corrected;
+      }
+    }
+  }
+  closeResidualCorrectModal();
+  openSubmitConfirmModal(staffStr);
 }
 
 function openSubmitConfirmModal(staffStr) {
@@ -2220,7 +2317,9 @@ async function submitBeipan() {
       // needed 已滿足，且此批號無手動開瓶也無報廢 → 跳過（continue 而非 break，讓後面批號有機會處理）
       if (needed <= 0 && _batchOpened === 0 && !_batchExhausted) continue;
 
-      let rem = batch.remaining;
+      const _corrKey = `${cfg.id}_${batch.lot}`;
+      const _corrected = _residualCorrections[_corrKey];
+      let rem = (_corrected !== undefined) ? _corrected : batch.remaining;
       let unop = batch.unopened;
       let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
       batch._manuallyOpened = 0;
@@ -2238,11 +2337,13 @@ async function submitBeipan() {
         needed = parseFloat((needed - deduct).toFixed(1));
       }
 
+      const _corrSuffix = (_corrected !== undefined && _corrected !== batch.remaining)
+        ? `（帳面校正 ${batch.remaining.toFixed(1)}→${_corrected.toFixed(1)}mL）` : '';
       const _baseNote = opened > 0
-        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
+        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶${_corrSuffix}`
         : (_forceOverride && newRem === 0 && needed > 0)
-          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
-          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶${_corrSuffix}`
+          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶${_corrSuffix}`;
       const _fullNote = (_isFirstBatch && _mixNote)
         ? `${_baseNote}；混批備註：${_mixNote}`
         : _baseNote;

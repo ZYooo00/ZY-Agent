@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05f'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05g'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05g',
+    date: '2026-06-05',
+    changes: [
+      '備盤：新增送出前「殘液校正卡」，可在扣除前確認並修正已開封批次的實際殘液量，修正值寫入日誌供稽核',
+    ]
+  },
   {
     version: '26.06.05f',
     date: '2026-06-05',
