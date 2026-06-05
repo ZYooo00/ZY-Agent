@@ -922,6 +922,7 @@ function calibrateResidual(cardId, lot) {
 
   const newVal = parseFloat(parseFloat(input).toFixed(1));
   if (isNaN(newVal) || newVal < 0) { showToast('請輸入有效數字', 'warn'); return; }
+  if (newVal === 0) { showToast('若已無殘液，請使用「🗑️ 丟棄殘液」按鈕', 'warn'); return; }
 
   if (batch._calibratedFrom === undefined) batch._calibratedFrom = batch.remaining;
   batch.remaining = newVal;
@@ -1176,10 +1177,10 @@ function buildBatchRow(b, needed, cardId, checked) {
         <div class="font-semibold text-red-600">${b.remaining > 0 ? b.remaining.toFixed(1) + ' mL' : '—'}</div>
         <div class="text-xs text-slate-500">+${b.unopened || 0} 瓶未開封</div>
       </td>
-      <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
       <td class="px-3 py-3">
-        <button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 開封逾期 點此開新品</button>
+        <button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 點此開新品</button>
       </td>
+      <td class="px-3 py-3">${badgeHtml}</td>
     </tr>`;
   }
 
@@ -1204,8 +1205,8 @@ function buildBatchRow(b, needed, cardId, checked) {
         <div class="text-slate-400">${(b._exhaustedVol || b.remaining) > 0 ? (b._exhaustedVol || b.remaining).toFixed(1) + ' mL' : '—'}</div>
         <div class="text-xs text-slate-300">+${b.unopened || 0} 瓶未開封</div>
       </td>
-      <td class="px-3 py-3 text-right tabular text-slate-300 text-xs">—</td>
-      <td class="px-3 py-3">${badgeHtml}${expExhaustBtn}</td>
+      <td class="px-3 py-3">${expExhaustBtn}</td>
+      <td class="px-3 py-3">${badgeHtml}</td>
     </tr>`;
   }
 
@@ -1265,8 +1266,8 @@ function buildBatchRow(b, needed, cardId, checked) {
       <div class="font-semibold ${remCls}">${remText}${calibTag}</div>
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
-    <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
-    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}${actionBtns}</td>
+    <td class="px-3 py-3">${actionBtns}</td>
+    <td class="px-3 py-3">${badgeHtml}${quantityBadgeHtml}</td>
   </tr>`;
 }
 
@@ -1338,7 +1339,7 @@ function buildGM508HTML(savedState) {
             <th class="py-2.5 px-3 text-left font-medium">開封日</th>
             <th class="py-2.5 px-3 text-left font-medium">到期日</th>
             <th class="py-2.5 px-3 text-right font-medium">剩餘量</th>
-            <th class="py-2.5 px-3 text-right font-medium">今日需用</th>
+            <th class="py-2.5 px-3 text-left font-medium">操作</th>
             <th class="py-2.5 px-3 text-left font-medium">狀態</th>
           </tr>
         </thead>
@@ -1466,7 +1467,7 @@ function buildBatchCardHTML(cfg, savedState) {
           <th class="py-2.5 px-3 text-left font-medium">開封日</th>
           <th class="py-2.5 px-3 text-left font-medium">到期日</th>
           <th class="py-2.5 px-3 text-right font-medium">剩餘量</th>
-          <th class="py-2.5 px-3 text-right font-medium">今日需用</th>
+          <th class="py-2.5 px-3 text-left font-medium">操作</th>
           <th class="py-2.5 px-3 text-left font-medium">狀態</th>
         </tr>
       </thead>
@@ -1746,6 +1747,7 @@ function cancelOpenBottle(cardId, lot) {
   b.unopened  = (b.unopened || 0) + b._manuallyOpened;
   b.remaining = parseFloat(Math.max(0, b.remaining - vol * b._manuallyOpened).toFixed(1));
   b._manuallyOpened = 0;
+  delete b._calibratedFrom; // 取消開瓶後殘液恢復原始值，校正記憶一併清除
   // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
   if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
 
@@ -2197,6 +2199,26 @@ async function submitBeipan() {
   const logEntries = [];
   const updatedBatches = [];
 
+  // ── 前置迴圈：所有有 _calibratedFrom 的批次，不論有無被選中備盤，都先寫入校正日誌
+  // 必須在扣除迴圈之前處理，否則若批次未進入 orderedBatches 校正紀錄會靜默遺失
+  [...reagentConfig, gm508Config].forEach(cfg => {
+    (cfg.batches || []).forEach(batch => {
+      if (batch._calibratedFrom === undefined) return;
+      const diff = batch.remaining - batch._calibratedFrom;
+      if (Math.abs(diff) <= 0.01) return;
+      logEntries.push({
+        source: 'beipan', action: 'adjust',
+        productId: cfg.id, productName: cfg.name,
+        lotNumber: batch.lot,
+        expiryDate: batch.expiry || null,
+        openExpiryDate: batch.openExpiry || null,
+        qtyDelta: diff, unit: 'mL',
+        bottlesOpened: 0, operator,
+        note: `備盤前殘液校正：${batch._calibratedFrom.toFixed(1)}mL → ${batch.remaining.toFixed(1)}mL`,
+      });
+    });
+  });
+
   [...reagentConfig, gm508Config].forEach(cfg => {
     let needed = parseFloat(cfg.needed) || 0;
 
@@ -2260,22 +2282,6 @@ async function submitBeipan() {
       // needed 已滿足，且此批號無手動開瓶也無報廢 → 跳過（continue 而非 break，讓後面批號有機會處理）
       if (needed <= 0 && _batchOpened === 0 && !_batchExhausted) continue;
 
-      // 殘液就地校正：calibrateResidual() 已直接更新 batch.remaining，並記錄 _calibratedFrom
-      if (batch._calibratedFrom !== undefined) {
-        const diff = batch.remaining - batch._calibratedFrom;
-        if (Math.abs(diff) > 0.01) {
-          logEntries.push({
-            source: 'beipan', action: 'adjust',
-            productId: cfg.id, productName: cfg.name,
-            lotNumber: batch.lot,
-            expiryDate: batch.expiry || null,
-            openExpiryDate: batch.openExpiry || null,
-            qtyDelta: diff, unit: 'mL',
-            bottlesOpened: 0, operator,
-            note: `備盤前殘液校正：${batch._calibratedFrom.toFixed(1)}mL → ${batch.remaining.toFixed(1)}mL`,
-          });
-        }
-      }
       let rem = batch.remaining;
       let unop = batch.unopened;
       let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
