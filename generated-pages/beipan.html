@@ -521,21 +521,6 @@
   </main>
 </div>
 
-<!-- ════ MODAL：送出前殘液校正 ════ -->
-<div id="residual-correct-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeResidualCorrectModal()">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
-    <div class="px-6 pt-6 pb-4 border-b border-slate-100 flex-shrink-0">
-      <h3 class="font-heading font-bold text-slate-800 text-base">送出前殘液確認</h3>
-      <p class="text-xs text-slate-400 mt-1">請確認已開瓶的實際殘液量，系統將以此為準進行扣除。若無需修改可直接繼續。</p>
-    </div>
-    <div id="residual-correct-cards" class="px-6 py-4 space-y-3 overflow-y-auto flex-1"></div>
-    <div class="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
-      <button onclick="closeResidualCorrectModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
-      <button onclick="confirmResidualCorrect()" class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-colors shadow-sm">確認並繼續</button>
-    </div>
-  </div>
-</div>
-
 <!-- ════ MODAL：確認送出備盤 ════ -->
 <div id="submit-confirm-overlay" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
@@ -682,7 +667,7 @@ function previewBeipan() {
   }
 
   const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
-  openResidualCorrectModal(staffStr);
+  openSubmitConfirmModal(staffStr);
 }
 
 // ── 歷史備盤 Modal ──
@@ -847,6 +832,13 @@ async function lockStateB(snapshot) {
     if (cell) cell.textContent = gluePlan;
     if (inp)  inp.value = gluePlan;
   }
+  // 3b. 還原 Oil / HEPES 實際開封數（Fix B）
+  if (snapshot.bulk) {
+    Object.entries(snapshot.bulk).forEach(([id, val]) => {
+      const inp = document.getElementById('bulk-small-' + id);
+      if (inp) inp.value = val;
+    });
+  }
   recalcAllNeeded();
 
   // 4. 還原批號 radio 選取
@@ -918,86 +910,31 @@ function switchState(s) {
   });
 }
 
-// ── Fix 8：送出前殘液校正 ──
-let _residualCorrections = {};
+// ── Fix 8v2：殘液就地校正 ──
+function calibrateResidual(cardId, lot) {
+  const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  if (!cfg) return;
+  const batch = cfg.batches.find(b => b.lot === lot);
+  if (!batch) return;
 
-function openResidualCorrectModal(staffStr) {
-  const cardsEl = document.getElementById('residual-correct-cards');
-  const overlay = document.getElementById('residual-correct-overlay');
-  if (!cardsEl || !overlay) { openSubmitConfirmModal(staffStr); return; }
+  const input = prompt(`【殘液校正】${cfg.name}  批號 ${lot}\n請輸入瓶內實際殘液量（mL）：`, batch.remaining.toFixed(1));
+  if (input === null) return;
 
-  // 找出所有需要顯示校正卡的已開封批次（非 autoLot、非報廢、remaining > 0）
-  const cards = [];
-  for (const cfg of [...reagentConfig, gm508Config]) {
-    const autoLotBatch = (cfg.batches || []).find(b => b._isAutoLot && !b.blocked);
-    for (const b of (cfg.batches || [])) {
-      if (!b.openDate || b._isAutoLot || b.blocked || b.markedExhausted) continue;
-      if (b.remaining <= 0) continue;
-      cards.push({ cfg, batch: b, autoLotBatch });
-    }
+  const newVal = parseFloat(parseFloat(input).toFixed(1));
+  if (isNaN(newVal) || newVal < 0) { showToast('請輸入有效數字', 'warn'); return; }
+
+  if (batch._calibratedFrom === undefined) batch._calibratedFrom = batch.remaining;
+  batch.remaining = newVal;
+
+  const savedState = getCardState(cardId);
+  if (cardId === 'aoa-508') {
+    const el = document.getElementById('card-aoa-508');
+    if (el) el.innerHTML = buildGM508HTML(savedState);
+  } else {
+    const el = document.getElementById('card-' + cardId);
+    if (el) el.innerHTML = buildBatchCardHTML(cfg, savedState);
   }
-
-  if (cards.length === 0) {
-    // 無已開封瓶需校正，直接進確認送出
-    _residualCorrections = {};
-    openSubmitConfirmModal(staffStr);
-    return;
-  }
-
-  cardsEl.innerHTML = cards.map(({ cfg, batch, autoLotBatch }) => {
-    const key = `${cfg.id}_${batch.lot}`;
-    const autoLotRow = autoLotBatch ? `
-      <div class="flex items-center justify-between text-xs text-blue-700 bg-blue-50 rounded-lg px-3 py-1.5">
-        <span>本次新開瓶（${autoLotBatch.lot}）</span>
-        <span class="font-semibold tabular">＋${(autoLotBatch.bottleVol || 0).toFixed(1)} mL（已含入）</span>
-      </div>` : '';
-    return `
-      <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-semibold text-slate-800">${cfg.name}</span>
-          <span class="text-xs font-mono text-slate-400">${batch.lot}</span>
-        </div>
-        <div class="flex items-center justify-between text-xs text-slate-500">
-          <span>系統帳面殘液</span>
-          <span class="tabular font-medium">${batch.remaining.toFixed(1)} mL</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-600 flex-1">實際殘液校正</span>
-          <input type="number" step="0.1" min="0" id="corr-${key}"
-                 value="${batch.remaining.toFixed(1)}"
-                 class="w-20 text-center text-sm border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary tabular bg-white">
-          <span class="text-xs text-slate-500">mL</span>
-        </div>
-        ${autoLotRow}
-      </div>`;
-  }).join('');
-
-  overlay.dataset.staffStr = staffStr;
-  overlay.classList.remove('hidden');
-}
-
-function closeResidualCorrectModal() {
-  document.getElementById('residual-correct-overlay')?.classList.add('hidden');
-}
-
-function confirmResidualCorrect() {
-  const overlay = document.getElementById('residual-correct-overlay');
-  const staffStr = overlay?.dataset.staffStr || '';
-  _residualCorrections = {};
-  for (const cfg of [...reagentConfig, gm508Config]) {
-    for (const b of (cfg.batches || [])) {
-      if (!b.openDate || b._isAutoLot || b.blocked || b.markedExhausted) continue;
-      if (b.remaining <= 0) continue;
-      const key = `${cfg.id}_${b.lot}`;
-      const inputEl = document.getElementById('corr-' + key);
-      if (inputEl) {
-        const corrected = parseFloat(parseFloat(inputEl.value).toFixed(1));
-        if (!isNaN(corrected)) _residualCorrections[key] = corrected;
-      }
-    }
-  }
-  closeResidualCorrectModal();
-  openSubmitConfirmModal(staffStr);
+  showToast(`殘液暫存校正：${newVal.toFixed(1)} mL（備盤送出時生效）`);
 }
 
 function openSubmitConfirmModal(staffStr) {
@@ -1272,10 +1209,13 @@ function buildBatchRow(b, needed, cardId, checked) {
     </tr>`;
   }
 
-  const remCls   = badge.status === 'insufficient' ? 'text-red-600' :
-                   badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
+  const calibrated = b._calibratedFrom !== undefined;
+  const remCls   = calibrated                        ? 'text-violet-600' :
+                   badge.status === 'insufficient'   ? 'text-red-600' :
+                   badge.status === 'needOpen'        ? 'text-amber-700' : 'text-slate-800';
   const isReallyUnopened = !b.openExpiry && !b.openDate;
   const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : isReallyUnopened ? '未開封' : '已耗盡';
+  const calibTag = calibrated ? ' <span class="text-xs font-normal text-violet-400">✓已校正</span>' : '';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
   const rowBg = b.markedExhausted ? 'row-ok bg-amber-50'
               : isEmpty           ? 'bg-slate-100 opacity-80'
@@ -1304,6 +1244,9 @@ function buildBatchRow(b, needed, cardId, checked) {
       if (b.remaining > 0) {
         actionBtns += `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">🗑️ 丟棄殘液</button>`;
       }
+      if (b.openDate && !b._isAutoLot && b.remaining > 0) {
+        actionBtns += `<button onclick="calibrateResidual('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-violet-500 hover:text-violet-700 font-medium transition-colors">✏️ 殘液校正</button>`;
+      }
       if ((b._manuallyOpened || 0) > 0) {
         actionBtns += `<button onclick="cancelOpenBottle('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-blue-400 hover:text-blue-600 transition-colors">↩ 取消開瓶</button>`;
       }
@@ -1319,7 +1262,7 @@ function buildBatchRow(b, needed, cardId, checked) {
       ${openLine}
     </td>
     <td class="px-3 py-3 text-right tabular">
-      <div class="font-semibold ${remCls}">${remText}</div>
+      <div class="font-semibold ${remCls}">${remText}${calibTag}</div>
       <div class="text-xs text-slate-400">${unopText}</div>
     </td>
     <td class="px-3 py-3 text-right tabular text-slate-400 text-xs">${needed.toFixed(1)} mL</td>
@@ -2317,9 +2260,23 @@ async function submitBeipan() {
       // needed 已滿足，且此批號無手動開瓶也無報廢 → 跳過（continue 而非 break，讓後面批號有機會處理）
       if (needed <= 0 && _batchOpened === 0 && !_batchExhausted) continue;
 
-      const _corrKey = `${cfg.id}_${batch.lot}`;
-      const _corrected = _residualCorrections[_corrKey];
-      let rem = (_corrected !== undefined) ? _corrected : batch.remaining;
+      // 殘液就地校正：calibrateResidual() 已直接更新 batch.remaining，並記錄 _calibratedFrom
+      if (batch._calibratedFrom !== undefined) {
+        const diff = batch.remaining - batch._calibratedFrom;
+        if (Math.abs(diff) > 0.01) {
+          logEntries.push({
+            source: 'beipan', action: 'adjust',
+            productId: cfg.id, productName: cfg.name,
+            lotNumber: batch.lot,
+            expiryDate: batch.expiry || null,
+            openExpiryDate: batch.openExpiry || null,
+            qtyDelta: diff, unit: 'mL',
+            bottlesOpened: 0, operator,
+            note: `備盤前殘液校正：${batch._calibratedFrom.toFixed(1)}mL → ${batch.remaining.toFixed(1)}mL`,
+          });
+        }
+      }
+      let rem = batch.remaining;
       let unop = batch.unopened;
       let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
       batch._manuallyOpened = 0;
@@ -2337,13 +2294,11 @@ async function submitBeipan() {
         needed = parseFloat((needed - deduct).toFixed(1));
       }
 
-      const _corrSuffix = (_corrected !== undefined && _corrected !== batch.remaining)
-        ? `（帳面校正 ${batch.remaining.toFixed(1)}→${_corrected.toFixed(1)}mL）` : '';
       const _baseNote = opened > 0
-        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶${_corrSuffix}`
+        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
         : (_forceOverride && newRem === 0 && needed > 0)
-          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶${_corrSuffix}`
-          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶${_corrSuffix}`;
+          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
+          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
       const _fullNote = (_isFirstBatch && _mixNote)
         ? `${_baseNote}；混批備註：${_mixNote}`
         : _baseNote;
@@ -2424,6 +2379,13 @@ async function submitBeipan() {
       gxtl: inpGx && inpGx.value !== '' ? (parseFloat(inpGx.value) || 0) : (d.gxtl ?? null),
     };
   });
+  // Fix B：收集 Oil / HEPES 實際開封數，存入 payload 供 State B 還原顯示
+  const bulkSnap = {};
+  bulkReagents.forEach(bulk => {
+    const inputEl = document.getElementById('bulk-small-' + bulk.id);
+    bulkSnap[bulk.id] = parseInt(inputEl?.value) || 0;
+  });
+
   const payload = {
     date: dateStr, operator, batches: updatedBatches,
     threshold: { orange_days: 3, red_days: 1 },
@@ -2431,6 +2393,7 @@ async function submitBeipan() {
     givf: givfSnap,
     matrix: matrixSnap,
     glue: parseFloat(document.getElementById('glue-plan-input')?.value) || gluePlan,
+    bulk: bulkSnap,
   };
   try {
     await window._fb.saveBeipanSnapshot(payload);
@@ -2736,7 +2699,9 @@ onReady(async function() {
   recalcAllNeeded();
 
   // 先確認今日備盤是否已送出（防止重複送出造成庫存雙重扣除）
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // 使用本地時間，避免早上 8 點前比對到 UTC 昨天日期導致今日備盤重複送出
+  const _td = new Date();
+  const todayStr = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
   let todayBeipan = null;
   try { todayBeipan = await window._fb.getLatestBeipan(); } catch(e) {}
   if (!todayBeipan) {
