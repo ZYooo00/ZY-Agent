@@ -1322,6 +1322,8 @@ function saveDraft() {
       lot:             b.lot,
       remaining:       b.remaining,
       unopened:        b.unopened,
+      openDate:        b.openDate,
+      openExpiry:      b.openExpiry,
       _calibratedFrom: b._calibratedFrom,
       _exhaustedVol:   b._exhaustedVol,
       markedExhausted: b.markedExhausted,
@@ -1376,6 +1378,8 @@ function loadDraft() {
         batch.remaining       = sb.remaining       ?? batch.remaining;
         batch.unopened        = sb.unopened        ?? batch.unopened;
         batch._manuallyOpened = sb._manuallyOpened ?? batch._manuallyOpened;
+        batch.openDate        = sb.openDate        ?? null;
+        batch.openExpiry      = sb.openExpiry      ?? null;
         if (sb._calibratedFrom !== undefined) batch._calibratedFrom = sb._calibratedFrom;
         else delete batch._calibratedFrom;
         if (sb._exhaustedVol !== undefined) batch._exhaustedVol = sb._exhaustedVol;
