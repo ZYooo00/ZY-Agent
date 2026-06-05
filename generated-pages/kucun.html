@@ -689,7 +689,8 @@ async function loadData() {
     localStorage.setItem('jinhuo-records',  JSON.stringify(jinhuo       || []));
     localStorage.setItem('pandian-history', JSON.stringify(pandianHistory|| []));
     localStorage.setItem('order-history',   JSON.stringify(orderHistory  || []));
-    localStorage.setItem('kucun-changelog', JSON.stringify(changelog     || []));
+    const clTrimmed = (changelog || []).slice(-500);
+    localStorage.setItem('kucun-changelog', JSON.stringify(clTrimmed));
     if (pandian) localStorage.setItem('pandian-result', JSON.stringify(pandian));
     if (beipan)  localStorage.setItem('beipan-result',  JSON.stringify(beipan));
   } catch(e) {}
@@ -704,7 +705,7 @@ async function loadData() {
   };
 }
 
-function saveChangelog(cl) { localStorage.setItem('kucun-changelog', JSON.stringify(cl)); }
+function saveChangelog(cl) { localStorage.setItem('kucun-changelog', JSON.stringify(cl.slice(-500))); }
 
 // ════════════════════════════════
 // PRODUCT INFO CALCULATION
@@ -894,7 +895,13 @@ function setKpiFilter(f) {
   if (kpiFilter) document.getElementById('kpi-filter-label').textContent = LABELS[kpiFilter] || kpiFilter;
   if (cachedData) {
     renderInventoryTable(cachedData);
-    if (kpiFilter) document.getElementById('inv-wrap-outer')?.scrollIntoView({ behavior: 'smooth' });
+    if (kpiFilter) {
+      const el = document.getElementById('inv-wrap-outer');
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 70;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
   }
 }
 
@@ -1952,7 +1959,9 @@ function openLogModal() {
       sel.appendChild(opt);
     });
   }
-  document.getElementById('log-date').value = todayStr();
+  const logDate = document.getElementById('log-date');
+  logDate.value = todayStr();
+  logDate.max = todayStr();
   document.getElementById('log-overlay').classList.add('open');
   document.getElementById('log-modal').classList.add('open');
 }

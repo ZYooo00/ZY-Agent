@@ -1,9 +1,18 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05g'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05h'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05h',
+    date: '2026-06-05',
+    changes: [
+      '【防護】庫存：本地快取只保留最近 500 筆日誌，防止長期使用後 localStorage 容量超載',
+      '【防護】庫存：手動登記日期欄限制最大為今天，防止誤填未來日期',
+      '【修正】庫存：KPI 卡片點擊後的滾動定位修正，不再被頂部標題列遮蓋',
+    ]
+  },
   {
     version: '26.06.05g',
     date: '2026-06-05',
