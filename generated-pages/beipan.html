@@ -102,7 +102,7 @@
   .section-divider::before, .section-divider::after { content:''; flex:1; height:1px; background:#E2E8F0; }
   .section-label { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#94A3B8; white-space:nowrap; }
 
-  .diff-note-wrap { margin-top:4px; }
+
 </style>
 </head>
 
@@ -128,7 +128,7 @@
 
       var bar = document.createElement('div');
       bar.id = 'dev-panel';
-      bar.style.cssText = 'background:#F59E0B;color:#fff;padding:8px 16px;font-size:12px;font-family:sans-serif;position:relative;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.15)';
+      bar.style.cssText = 'background:#F59E0B;color:#fff;padding:8px 16px;font-size:12px;font-family:sans-serif;position:fixed;top:0;left:0;right:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.15)';
 
       bar.innerHTML = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:1600px;margin:0 auto">'
         + '<span style="flex:1;font-weight:700;min-width:220px">⚠️ 測試模式 — <code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:4px;font-family:monospace">' + prefix + 'beipan_snapshots / ' + prefix + 'kucun_changelog</code></span>'
@@ -139,6 +139,7 @@
         + '</div>';
 
       document.body.insertBefore(bar, document.body.firstChild);
+      document.body.style.paddingTop = bar.offsetHeight + 'px';
 
       document.getElementById('dp-time-travel').addEventListener('change', function(){
         if(this.value){
@@ -160,9 +161,7 @@
 <div id="nav-drawer">
   <div class="flex items-center justify-between mb-4 px-1">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-      </div>
+      <img src="icon-192.png" class="w-7 h-7 rounded-lg" alt="logo">
       <span class="font-heading font-semibold text-slate-800 text-sm">培養液管理系統</span>
     </div>
     <button onclick="closeNav()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
@@ -207,9 +206,7 @@
     <button class="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition-colors" onclick="openNav()">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
-    <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-    </div>
+    <img src="icon-192.png" class="w-7 h-7 rounded-lg flex-shrink-0" alt="logo">
     <span class="font-heading font-semibold text-slate-800 text-base">培養液管理系統</span>
   </div>
   <div class="flex items-center gap-3">
@@ -375,7 +372,7 @@
 
         <!-- ██ LEFT：盤子計數 ██ -->
         <div class="space-y-4 min-w-0">
-          <div class="section-divider"><span class="section-label">盤子數量</span></div>
+          <div class="section-divider"><span class="section-label">盤子數量</span><span id="lock-hint-text" class="text-xs text-amber-500 font-medium">⚠ 請先選擇上方備盤人員以解鎖編輯</span></div>
 
           <!-- 卵子 (GIVF) -->
           <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -450,9 +447,6 @@
                       <input type="number" value="0" min="0" max="99" id="glue-plan-input"
                         class="w-14 text-center text-sm border border-slate-200 rounded-lg px-1 py-1 tabular focus:outline-none focus:ring-2 focus:ring-primary"
                         oninput="checkSimpleDiff(this, gluePlan, 'glue-row')">
-                      <div class="diff-note-wrap hidden mt-1">
-                        <input type="text" placeholder="修改原因（選填）" class="text-xs border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-slate-300 bg-slate-50 placeholder-slate-400">
-                      </div>
                     </div>
                   </td>
                 </tr>
@@ -480,7 +474,7 @@
       <!-- 備盤備註 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-4">
         <label class="block text-sm font-medium text-slate-700 mb-2">備盤備註（選填）</label>
-        <textarea id="beipan-note-input" rows="2" placeholder="例：G-IVF 53189 瓶底有沉澱，提前開新瓶；Geri-FBT 多備 1 盤備用"
+        <textarea id="beipan-note-input" rows="2" placeholder="例：OPU 多備 1 盤（醫師臨時加作）；G-IVF 53189 瓶底有沉澱，提前開新瓶"
           class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300"></textarea>
       </div>
 
@@ -1180,7 +1174,8 @@ function buildBatchRow(b, needed, cardId, checked) {
 
   const remCls   = badge.status === 'insufficient' ? 'text-red-600' :
                    badge.status === 'needOpen'      ? 'text-amber-700' : 'text-slate-800';
-  const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : '未開封';
+  const isReallyUnopened = !b.openExpiry && !b.openDate;
+  const remText  = (b.remaining > 0) ? `${b.remaining.toFixed(1)} mL` : isReallyUnopened ? '未開封' : '已耗盡';
   const unopText = `+${b.unopened || 0} 瓶未開封`;
   const rowBg = b.markedExhausted ? 'row-ok bg-amber-50'
               : isEmpty           ? 'bg-slate-100 opacity-80'
@@ -1232,8 +1227,22 @@ function buildBatchRow(b, needed, cardId, checked) {
   </tr>`;
 }
 
+// ── 擷取單張卡片的當前使用者狀態（重繪前保存用）──
+function getCardState(id) {
+  const domId      = (id === 'aoa-508') ? 'gm508' : id;
+  const panelId    = domId + '-second';
+  const secondPanel = document.getElementById(panelId);
+  return {
+    selectedLot: document.querySelector(`input[name="r-${id}"]:checked`)?.value || null,
+    mixOpen:     secondPanel ? !secondPanel.classList.contains('hidden') : false,
+    firstVol:    document.getElementById(domId + '-first-vol')?.value || '',
+    secondLot:   document.getElementById(domId + '-second-lot')?.value || '',
+    secondNote:  document.getElementById(domId + '-second-note')?.value || '',
+  };
+}
+
 // ── Build GM508 standalone collapsible card HTML ──
-function buildGM508HTML() {
+function buildGM508HTML(savedState) {
   const gm = gm508Config;
 
   // Build sorted batch rows (same logic as buildBatchCardHTML)
@@ -1248,7 +1257,7 @@ function buildGM508HTML() {
   })();
   const orderedBatches = [...validBatches, ...openExpiredBatches, ...shownExpired];
   const batchRows = orderedBatches.length
-    ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'aoa-508', false)).join('')
+    ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'aoa-508', savedState?.selectedLot === b.lot)).join('')
     : `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`;
 
   const activeLots = gm.batches.filter(b => {
@@ -1256,27 +1265,27 @@ function buildGM508HTML() {
     const s = calcBadge(b, gm.needed).status;
     return s !== 'expired' && s !== 'open_expired';
   });
-  const lotOpts = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
+  const gm508PrimaryLot    = savedState?.selectedLot || '';
+  const gm508SecondHidden  = savedState?.mixOpen ? '' : 'hidden ';
+  const lotOpts = activeLots
+    .filter(b => b.lot !== gm508PrimaryLot)
+    .map(b => `<option value="${b.lot}" ${b.lot === savedState?.secondLot ? 'selected' : ''}>${b.lot}</option>`)
+    .join('');
 
   return `
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-  <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2 cursor-pointer" onclick="toggleGM508()">
+  <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
     <div class="flex items-center gap-2">
       <span class="font-heading font-semibold text-slate-800">AOA 明美 GM508</span>
       <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium">卵子添加劑</span>
     </div>
-    <div class="flex items-center gap-3">
-      <div class="inline-flex items-baseline gap-1.5">
-        <span class="text-sm text-slate-500">今日需用</span>
-        <span class="text-2xl font-bold text-slate-900 tabular">${gm.needed.toFixed(1)}</span>
-        <span class="text-sm text-slate-400">mL</span>
-      </div>
-      <svg id="gm508-icon" class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-      </svg>
+    <div class="inline-flex items-baseline gap-1.5">
+      <span class="text-sm text-slate-500">今日需用</span>
+      <span class="text-2xl font-bold text-slate-900 tabular">${gm.needed.toFixed(1)}</span>
+      <span class="text-sm text-slate-400">mL</span>
     </div>
   </div>
-  <div id="gm508-section" class="hidden">
+  <div id="gm508-section">
     <div class="overflow-x-auto">
       <table class="w-full text-sm min-w-[600px]">
         <thead class="border-b border-slate-100 text-xs text-slate-400">
@@ -1309,7 +1318,7 @@ function buildGM508HTML() {
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
       </button>
     </div>
-    <div id="gm508-second" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
+    <div id="gm508-second" class="${gm508SecondHidden}px-5 py-4 bg-slate-50 border-t border-slate-100">
       <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
       <div class="flex items-center gap-2 flex-wrap mb-3">
         <select id="gm508-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
@@ -1318,6 +1327,7 @@ function buildGM508HTML() {
         <div class="flex items-center gap-2 text-sm flex-wrap">
           <span class="text-slate-500 shrink-0">第一批取用量：</span>
           <input type="number" id="gm508-first-vol" min="0" step="0.1" placeholder="mL"
+            value="${savedState?.firstVol || ''}"
             oninput="onFirstVolInput('aoa-508')"
             class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary">
           <span class="text-slate-400">mL</span>
@@ -1329,6 +1339,7 @@ function buildGM508HTML() {
           <span class="text-slate-400">mL</span>
         </div>
         <input type="text" id="gm508-second-note" placeholder="混批備註（選填）"
+          value="${savedState?.secondNote || ''}"
           class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
       </div>
       <button onclick="toggleSecondBatch('aoa-508')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
@@ -1338,7 +1349,7 @@ function buildGM508HTML() {
 }
 
 // ── Build a full batch card HTML ──
-function buildBatchCardHTML(cfg) {
+function buildBatchCardHTML(cfg, savedState) {
   // open_expired 批號：開封逾期但廠商效期未到且仍有未開封瓶（中間層）
   const openExpiredBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'open_expired');
 
@@ -1369,7 +1380,7 @@ function buildBatchCardHTML(cfg) {
     const bs = calcBadge(b, cfg.needed).status;
     const isExpiredRow  = b.blocked || bs === 'expired';
     const isOpenExpRow  = bs === 'open_expired';
-    const isChecked     = false;  // 預設全部不選，必須手動選擇批號
+    const isChecked     = savedState?.selectedLot === b.lot;
     if (!isExpiredRow && !isOpenExpRow) firstActive = false;
     return buildBatchRow(b, cfg.needed, cfg.id, isChecked);
   }).join('');
@@ -1379,8 +1390,13 @@ function buildBatchCardHTML(cfg) {
     const s = calcBadge(b, cfg.needed).status;
     return s !== 'expired' && s !== 'open_expired';
   });
-  const lotOpts    = activeLots.map(b => `<option value="${b.lot}">${b.lot}</option>`).join('');
-  const hdrStyle   = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
+  const primaryLot     = savedState?.selectedLot || '';
+  const lotOpts        = activeLots
+    .filter(b => b.lot !== primaryLot)
+    .map(b => `<option value="${b.lot}" ${b.lot === savedState?.secondLot ? 'selected' : ''}>${b.lot}</option>`)
+    .join('');
+  const secondHiddenClass = savedState?.mixOpen ? '' : 'hidden ';
+  const hdrStyle       = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
 
   return `
 <div class="bg-white rounded-xl ${cfg.border} overflow-hidden">
@@ -1427,7 +1443,7 @@ function buildBatchCardHTML(cfg) {
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
     </button>
   </div>
-  <div id="${cfg.id}-second" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
+  <div id="${cfg.id}-second" class="${secondHiddenClass}px-5 py-4 bg-slate-50 border-t border-slate-100">
     <div class="text-xs text-slate-500 mb-2 font-medium">混批批號</div>
     <div class="flex items-center gap-2 flex-wrap mb-3">
       <select id="${cfg.id}-second-lot" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">${lotOpts}</select>
@@ -1436,6 +1452,7 @@ function buildBatchCardHTML(cfg) {
       <div class="flex items-center gap-2 text-sm flex-wrap">
         <span class="text-slate-500 shrink-0">第一批取用量：</span>
         <input type="number" id="${cfg.id}-first-vol" min="0" step="0.1" placeholder="mL"
+          value="${savedState?.firstVol || ''}"
           oninput="onFirstVolInput('${cfg.id}')"
           class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary">
         <span class="text-slate-400">mL</span>
@@ -1447,6 +1464,7 @@ function buildBatchCardHTML(cfg) {
         <span class="text-slate-400">mL</span>
       </div>
       <input type="text" id="${cfg.id}-second-note" placeholder="混批備註（選填）"
+        value="${savedState?.secondNote || ''}"
         class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
     <button onclick="toggleSecondBatch('${cfg.id}')" class="mt-3 text-xs text-red-400 hover:text-red-600 font-medium">移除混批</button>
@@ -1837,9 +1855,6 @@ function buildGivfTable() {
               oninput="checkGivfDiff(this,${d.plan},${i})">
             ${d.unit === 'mL' ? '<span class="text-xs text-slate-400">mL</span>' : ''}
           </span>
-          <div class="diff-note-wrap hidden mt-1">
-            <input type="text" placeholder="修改原因（選填）" class="text-xs border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-slate-300 bg-slate-50 placeholder-slate-400">
-          </div>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -1852,8 +1867,6 @@ function checkGivfDiff(input, plan, i) {
   const tr = document.getElementById('givf-row-' + i);
   tr.classList.toggle('row-diff', hasDiff);
   input.classList.toggle('border-red-300', hasDiff);
-  const noteWrap = tr.querySelector('.diff-note-wrap');
-  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
   recalcAllNeeded();
 }
 
@@ -1902,10 +1915,6 @@ function buildMatrixTable() {
               oninput="${diffFn}">
             ${unitHtml}
           </span>
-          <div class="diff-note-wrap hidden mt-1">
-            <input type="text" placeholder="修改原因（選填）"
-              class="text-xs border border-slate-200 rounded-lg px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-slate-300 bg-slate-50 placeholder-slate-400">
-          </div>
         </div>
       </td>`;
     };
@@ -1926,8 +1935,6 @@ function checkMatrixDiff(input, plan) {
   input.classList.toggle('border-red-300', hasDiff);
   input.classList.toggle('ring-1', hasDiff);
   input.classList.toggle('ring-red-200', hasDiff);
-  const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
-  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
   recalcAllNeeded();
 }
 
@@ -1936,8 +1943,6 @@ function checkMatrixDiffMl(input, plan, side) {
   input.classList.toggle('border-red-300', hasDiff);
   input.classList.toggle('ring-1', hasDiff);
   input.classList.toggle('ring-red-200', hasDiff);
-  const noteWrap = input.closest('td').querySelector('.diff-note-wrap');
-  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
   recalcAllNeeded();
 }
 
@@ -1947,8 +1952,6 @@ function checkSimpleDiff(input, plan, rowId) {
   tr.classList.toggle('row-diff', hasDiff);
   recalcAllNeeded();
   input.classList.toggle('border-red-300', hasDiff);
-  const noteWrap = tr.querySelector('.diff-note-wrap');
-  if (noteWrap) noteWrap.classList.toggle('hidden', !hasDiff);
 }
 
 // ── Bulk card builder (Oil / HEPES) ──
@@ -2052,12 +2055,18 @@ function recalcAllNeeded() {
     if (cfg._testNeeded) return;  // 測試模式鎖定，跳過覆蓋
     cfg.needed = parseFloat(Math.max(0, val).toFixed(1));
     const el = document.getElementById('card-' + cfgId);
-    if (el) el.innerHTML = buildBatchCardHTML(cfg);
+    if (el) {
+      const savedState = getCardState(cfgId);
+      el.innerHTML = buildBatchCardHTML(cfg, savedState);
+    }
   }
 
   gm508Config.needed = parseFloat(Math.max(0, aoa508Needed).toFixed(1));
   const gm508CardEl = document.getElementById('card-aoa-508');
-  if (gm508CardEl) gm508CardEl.innerHTML = buildGM508HTML();
+  if (gm508CardEl) {
+    const gm508State = getCardState('aoa-508');
+    gm508CardEl.innerHTML = buildGM508HTML(gm508State);
+  }
 
   setNeeded('givf', givfNeeded);
   setNeeded('aoa-ci', aoaCiNeeded);
@@ -2509,7 +2518,10 @@ async function onStaffSelect() {
 // 強制接手
 async function forceBeipanTakeover() {
   const staffName = document.getElementById('beipan-staff-1')?.value?.trim();
-  if (!staffName) return;
+  if (!staffName) {
+    showToast('請先在上方選擇備盤人員，再強制接手', 'warn');
+    return;
+  }
   await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName, true);
   _lockCurrentStaff = staffName;
   setBeipanFormDisabled(false);
@@ -2552,6 +2564,8 @@ function setBeipanFormDisabled(disabled) {
     if (el.id === 'beipan-lock-takeover') return; // 由 banner 控制
     el.disabled = disabled;
   });
+  const hintEl = document.getElementById('lock-hint-text');
+  if (hintEl) hintEl.classList.toggle('hidden', !disabled);
 }
 
 // 心跳：每 5 分鐘更新 lockedAt，防止逾時被搶鎖
