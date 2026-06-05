@@ -806,6 +806,7 @@ function restoreStateC(snapshot) {
 }
 
 async function lockStateB(snapshot) {
+  window._beipanLocked = true;  // 必須在任何重繪（recalcAllNeeded）之前設定，否則按鈕會被重繪出來
   // 鎖定時清除草稿（不論是自己送出還是被他人強制鎖定）
   localStorage.removeItem(getDraftKey());
 
@@ -900,7 +901,6 @@ async function lockStateB(snapshot) {
   const submitArea = document.querySelector('#state-b .flex.justify-end.gap-3');
   if (submitArea) submitArea.classList.add('hidden');
 
-  window._beipanLocked = true;
   switchState('b');
 }
 
@@ -1673,6 +1673,26 @@ function onBatchSelect(cardId, status) {
   if (mixNote)   mixNote.classList.toggle('hidden', !isInsuff);
   if (isInsuff && secondPanel && secondPanel.classList.contains('hidden')) {
     secondPanel.classList.remove('hidden');
+  }
+
+  // FEFO 防呆：若選擇的批號上方仍有效期更早且有庫存的批號，跳出警告
+  const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
+  if (!cfg) return;
+  const selectedLot = document.querySelector(`input[name="r-${cardId}"]:checked`)?.value;
+  if (!selectedLot) return;
+  const selectedBatch = cfg.batches.find(b => b.lot === selectedLot);
+  if (!selectedBatch) return;
+
+  const hasEarlierWithStock = cfg.batches.some(b => {
+    if (b.lot === selectedLot || b.blocked || b.markedExhausted) return false;
+    const s = calcBadge(b, cfg.needed).status;
+    if (s === 'expired' || s === 'open_expired' || s === 'empty') return false;
+    const hasStock = (b.remaining > 0) || (b.unopened > 0);
+    return hasStock && (b.expiry || '') < (selectedBatch.expiry || '');
+  });
+
+  if (hasEarlierWithStock) {
+    showToast('⚠️ 上方仍有效期更早的批號未耗盡，請先使用舊批號', 'warn');
   }
 }
 
