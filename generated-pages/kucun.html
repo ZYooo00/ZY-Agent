@@ -477,12 +477,13 @@
   <div class="px-5 py-4 space-y-4">
     <div>
       <label class="sc-label">品項 <span class="text-red-400">*</span></label>
-      <select id="log-product" class="sc-input"><option value="">請選擇品項…</option></select>
+      <select id="log-product" class="sc-input" onchange="updateLogLotOptions()"><option value="">請選擇品項…</option></select>
     </div>
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="sc-label">批號</label>
-        <input id="log-lot" type="text" class="sc-input" placeholder="如 53651">
+        <input id="log-lot" type="text" class="sc-input" placeholder="如 53651" list="log-lot-list" autocomplete="off">
+        <datalist id="log-lot-list"></datalist>
       </div>
       <div>
         <label class="sc-label">使用數量 <span class="text-red-400">*</span></label>
@@ -891,7 +892,10 @@ function setKpiFilter(f) {
   bar?.classList.toggle('hidden', !kpiFilter);
   const LABELS = { shortage:'缺貨警示', expiring:'效期危急', pending:'待收貨', qc:'待 QC' };
   if (kpiFilter) document.getElementById('kpi-filter-label').textContent = LABELS[kpiFilter] || kpiFilter;
-  if (cachedData) renderInventoryTable(cachedData);
+  if (cachedData) {
+    renderInventoryTable(cachedData);
+    if (kpiFilter) document.getElementById('inv-wrap-outer')?.scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 function handleSearch(val) {
@@ -1530,6 +1534,8 @@ function openDrawer(productId) {
   // Lots — 最新效期在上、過期在下（reverse 顯示，顏色用原始 index）
   const lots = info.lots;
   const displayLots = [...lots].reverse();
+  const beipanSelectedLot = cachedData.beipan?.batches?.find(b => b.reagentId === productId)?.selectedLot || null;
+  const beipanSelectedExpiry = beipanSelectedLot ? (lots.find(l => l.lot === beipanSelectedLot)?.expiry || '') : '';
   let lotRows = '';
   if (!lots.length) {
     lotRows = `<tr><td colspan="3" class="text-slate-300 text-xs py-2 text-center">無批號資料</td></tr>`;
@@ -1566,10 +1572,18 @@ function openDrawer(productId) {
              </td>`
           : `<td></td>`;
 
+      const mightBeExhausted = beipanSelectedLot
+        && lot.lot !== beipanSelectedLot
+        && beipanSelectedExpiry
+        && (lot.expiry || '') < beipanSelectedExpiry;
+      const exhaustedBadge = mightBeExhausted
+        ? `<span style="font-size:10px;color:#CBD5E1;background:#F1F5F9;border-radius:3px;padding:1px 5px;margin-left:4px">可能已用完</span>`
+        : '';
+
       lotRows += `<tr>
         <td style="color:${expClr};font-weight:600;width:36px">×${lot.qty || 0}</td>
         <td style="color:${expClr}">${lot.expiry || '—'}${dLabel}</td>
-        <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code></td>
+        <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code>${exhaustedBadge}</td>
         ${qcCell}
       </tr>`;
     });
@@ -1941,6 +1955,27 @@ function openLogModal() {
   document.getElementById('log-date').value = todayStr();
   document.getElementById('log-overlay').classList.add('open');
   document.getElementById('log-modal').classList.add('open');
+}
+
+function updateLogLotOptions() {
+  const productId = document.getElementById('log-product').value;
+  const dl = document.getElementById('log-lot-list');
+  const input = document.getElementById('log-lot');
+  dl.innerHTML = '';
+  input.value = '';
+  if (!productId || !cachedData) return;
+  const lotMap = {};
+  (cachedData.jinhuo || [])
+    .filter(r => r.productId === productId && !r.isVoided && r.lotNumber)
+    .forEach(r => { lotMap[r.lotNumber] = r.expiryDate || ''; });
+  const beipanBatch = cachedData.beipan?.batches?.find(b => b.reagentId === productId);
+  if (beipanBatch?.selectedLot) lotMap[beipanBatch.selectedLot] = lotMap[beipanBatch.selectedLot] || '';
+  Object.entries(lotMap).sort((a, b) => a[1].localeCompare(b[1])).forEach(([lot, expiry]) => {
+    const opt = document.createElement('option');
+    opt.value = lot;
+    if (expiry) opt.label = `到期 ${expiry}`;
+    dl.appendChild(opt);
+  });
 }
 
 function closeLogModal() {
