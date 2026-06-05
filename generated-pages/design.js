@@ -3,8 +3,8 @@
 // 載入方式：<script src="design.js" defer></script>
 
 /* ════════════════════════════════════════
-   showToast — 全域提示 Toast
-   防連點（clearTimeout）+ 動態建立 DOM
+   showToast — 堆疊式全域提示 Toast
+   多個 toast 可同時存在、由下往上堆疊
    ════════════════════════════════════════
    用法：
      showToast('訊息')               → 深色底（預設）
@@ -12,25 +12,27 @@
      showToast('成功', 'ok')         → 綠色底
      showToast('訊息', 'default', 3000) → 自訂顯示時長（ms）
 */
-let _toastTimer;
 function showToast(msg, type = 'default', duration = 2500) {
-  let el = document.getElementById('global-toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'global-toast';
-    document.body.appendChild(el);
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
   }
 
-  // 清除原本的 type class，重新套用
-  el.className = '';
+  const el = document.createElement('div');
+  el.className = 'toast-item';
   if (type === 'warn') el.classList.add('toast-warn');
   if (type === 'ok')   el.classList.add('toast-ok');
-  el.classList.add('show');
   el.textContent = msg;
+  container.appendChild(el);
 
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => {
+  // 雙 rAF 確保瀏覽器套用初始 opacity:0 後才觸發進場動畫
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+
+  setTimeout(() => {
     el.classList.remove('show');
+    setTimeout(() => el.remove(), 250); // 等淡出動畫完成後移除
   }, duration);
 }
 

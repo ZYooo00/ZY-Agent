@@ -238,14 +238,23 @@ h1, h2, h3, .heading, .font-heading {
 
 
 /* ════════════════════════════════════════
-   9. Toast（全域提示，由 design.js 動態建立 DOM）
+   9. Toast（堆疊式，由 design.js 動態建立 DOM）
+   每次呼叫產生獨立 .toast-item，由下往上堆疊
    ════════════════════════════════════════ */
-#global-toast {
+#toast-container {
   position: fixed;
   bottom: 80px;
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  max-width: 300px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse; /* 新 toast 在底部，舊的被往上推 */
+  align-items: center;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-item {
+  max-width: 320px;
   padding: 10px 20px;
   border-radius: var(--r-md);
   background: #1E293B;
@@ -254,16 +263,15 @@ h1, h2, h3, .heading, .font-heading {
   font-weight: 500;
   font-family: 'Noto Sans TC', sans-serif;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
-  z-index: 9999;
-  pointer-events: none;  /* 不阻擋下層按鈕點擊 */
   opacity: 0;
+  transform: translateY(8px);
   transition: opacity .2s ease, transform .2s ease;
   text-align: center;
   white-space: pre-line;
 }
-#global-toast.show {
+.toast-item.show {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
-#global-toast.toast-warn { background: #DC2626; }
-#global-toast.toast-ok   { background: #16A34A; }
+.toast-item.toast-warn { background: #DC2626; }
+.toast-item.toast-ok   { background: #16A34A; }

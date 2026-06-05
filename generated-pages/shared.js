@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05o'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05p'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05p',
+    date: '2026-06-05',
+    changes: [
+      '【優化】全系統：Toast 升級為堆疊式 — 多個提示可同時存在、由下往上堆疊，不再互相覆蓋',
+      '【優化】備盤：兩個批號警告改為 0.3 秒錯開堆疊顯示，同時清晰可讀',
+    ]
+  },
   {
     version: '26.06.05o',
     date: '2026-06-05',
