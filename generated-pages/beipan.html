@@ -2860,7 +2860,8 @@ async function forceBeipanTakeover() {
 // 更新鎖定 Banner（由訂閱回呼驅動）
 function updateLockBanner(data) {
   if (!data) { hideLockBanner(); return; }
-  if (data.lockedBy === _lockCurrentStaff && _lockCurrentStaff) { hideLockBanner(); return; }
+  const currentDropdownName = document.getElementById('beipan-staff-1')?.value?.trim();
+  if (data.lockedBy === currentDropdownName || data.lockedBy === _lockCurrentStaff) { hideLockBanner(); return; }
 
   const lockedAt   = data.lockedAt?.toMillis?.() ?? 0;
   const minutesAgo = Math.floor((Date.now() - lockedAt) / 60000);

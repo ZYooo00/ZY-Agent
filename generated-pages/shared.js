@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05a'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05a',
+    date: '2026-06-05',
+    changes: [
+      '【修正】備盤：選人員時黃色互斥鎖 Banner 閃現一下即消失的問題（Race Condition，加入下拉選單即時比對防呆）',
+    ]
+  },
   {
     version: '26.06.05',
     date: '2026-06-05',
