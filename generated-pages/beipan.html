@@ -689,7 +689,7 @@ async function openHistoryModal() {
     if (local) history = [local];
   }
 
-  const startIdx = window._beipanLocked ? 1 : 0;
+  const startIdx = (window._beipanLocked && history.length > 1) ? 1 : 0;
   const list = history.slice(startIdx, startIdx + 7);
 
   if (!list.length) {
@@ -1283,6 +1283,101 @@ function getCardState(id) {
     secondLot:   document.getElementById(domId + '-second-lot')?.value || '',
     secondNote:  document.getElementById(domId + '-second-note')?.value || '',
   };
+}
+
+// ── 自動儲存草稿 ──
+let _draftTimer = null;
+
+function getDraftKey() {
+  const d = new Date();
+  return `beipan-draft-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function saveDraft() {
+  const allIds = reagentConfig.map(c => c.id).concat(['aoa-508']);
+  const cards = {};
+  allIds.forEach(id => { cards[id] = getCardState(id); });
+
+  const givf = givfDishes.map((_, i) => {
+    const inp = document.querySelector(`#givf-row-${i} input[type="number"]`);
+    return inp ? inp.value : '';
+  });
+  const matrix = matrixDishes.map((_, i) => ({
+    h5gt: document.querySelector(`#mrow-${i} .cell-h5gt input`)?.value ?? '',
+    gxtl: document.querySelector(`#mrow-${i} .cell-gxtl input`)?.value ?? '',
+  }));
+  const bulkSmall = {}, bulkLot = {};
+  bulkReagents.forEach(cfg => {
+    bulkSmall[cfg.id] = document.getElementById(`bulk-small-${cfg.id}`)?.value ?? '';
+    bulkLot[cfg.id]   = document.getElementById(`bulk-lot-${cfg.id}`)?.value   ?? '';
+  });
+
+  localStorage.setItem(getDraftKey(), JSON.stringify({
+    note: document.getElementById('beipan-note-input')?.value || '',
+    glue: document.getElementById('glue-plan-input')?.value || '',
+    givf, matrix, bulkSmall, bulkLot, cards,
+  }));
+}
+
+function loadDraft() {
+  let draft;
+  try { draft = JSON.parse(localStorage.getItem(getDraftKey()) || 'null'); } catch(e) {}
+  if (!draft) return;
+
+  draft.givf?.forEach((val, i) => {
+    const inp = document.querySelector(`#givf-row-${i} input[type="number"]`);
+    if (inp && val !== '') { inp.value = val; inp.dispatchEvent(new Event('input')); }
+  });
+  draft.matrix?.forEach((pair, i) => {
+    const h5 = document.querySelector(`#mrow-${i} .cell-h5gt input`);
+    const gx = document.querySelector(`#mrow-${i} .cell-gxtl input`);
+    if (h5 && pair.h5gt !== '') { h5.value = pair.h5gt; h5.dispatchEvent(new Event('input')); }
+    if (gx && pair.gxtl !== '') { gx.value = pair.gxtl; gx.dispatchEvent(new Event('input')); }
+  });
+  if (draft.glue !== '') {
+    const glueInp = document.getElementById('glue-plan-input');
+    if (glueInp) { glueInp.value = draft.glue; glueInp.dispatchEvent(new Event('input')); }
+  }
+  bulkReagents.forEach(cfg => {
+    const sm  = document.getElementById(`bulk-small-${cfg.id}`);
+    const lot = document.getElementById(`bulk-lot-${cfg.id}`);
+    if (sm  && draft.bulkSmall?.[cfg.id] !== undefined) sm.value  = draft.bulkSmall[cfg.id];
+    if (lot && draft.bulkLot?.[cfg.id]   !== undefined) lot.value = draft.bulkLot[cfg.id];
+  });
+  if (draft.note) {
+    const noteInp = document.getElementById('beipan-note-input');
+    if (noteInp) noteInp.value = draft.note;
+  }
+  // 還原卡片狀態（在 recalcAllNeeded 觸發重繪後覆蓋）
+  if (draft.cards) {
+    const allIds = reagentConfig.map(c => c.id).concat(['aoa-508']);
+    allIds.forEach(id => {
+      const saved = draft.cards[id];
+      if (!saved) return;
+      const el = document.getElementById('card-' + id);
+      if (!el) return;
+      if (id === 'aoa-508') {
+        el.innerHTML = buildGM508HTML(saved);
+      } else {
+        const cfg = reagentConfig.find(c => c.id === id);
+        if (cfg) el.innerHTML = buildBatchCardHTML(cfg, saved);
+      }
+    });
+  }
+}
+
+function scheduleDraftSave() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(saveDraft, 1500);
+}
+
+function initDraftListeners() {
+  document.addEventListener('input', e => {
+    if (e.target.closest('#state-a') || e.target.closest('#state-b')) scheduleDraftSave();
+  });
+  document.addEventListener('change', e => {
+    if (e.target.type === 'radio' && (e.target.closest('#state-a') || e.target.closest('#state-b'))) scheduleDraftSave();
+  });
 }
 
 // ── Build GM508 standalone collapsible card HTML ──
@@ -2041,7 +2136,7 @@ function buildBulkCard(cfg) {
     </div>
     <div>
       <label class="text-xs text-slate-400">今日批號（選填）</label>
-      <input type="text" placeholder="例：OIL-20240501"
+      <input type="text" id="bulk-lot-${cfg.id}" placeholder="例：OIL-20240501"
         class="mt-1 w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300 font-mono">
     </div>
   </div>
@@ -2436,6 +2531,7 @@ async function submitBeipan() {
   if (_lockCurrentStaff && _lockTodayStr) {
     window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff).catch(() => {});
   }
+  localStorage.removeItem(getDraftKey());
   showToast('備盤結果已儲存 ✓', 'ok');
   await lockStateB(payload);
 }
@@ -2735,6 +2831,8 @@ onReady(async function() {
     await initBatchesFromFirebase();
   }
   buildAllBatchCards();
+  loadDraft();
+  initDraftListeners();
 
   // Phase 7：啟動編輯互斥鎖（今日備盤尚未送出才需要）
   initBeipanLock(todayStr);

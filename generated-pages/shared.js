@@ -8,6 +8,9 @@ const CHANGELOG = [
     version: '26.06.05',
     date: '2026-06-05',
     changes: [
+      '【新功能】備盤：填寫中途意外關閉瀏覽器或重新整理，重開後自動還原所有已輸入的盤數、批號、備注（自動儲存草稿）',
+      '【新功能】全站：下午 6:30 後若當日備盤尚未送出，所有頁面頂端顯示紅色警告橫幅，可點 ✕ 暫時關閉',
+      '【修正】備盤：「歷史備盤」彈窗在今日送出後若無其他歷史紀錄，原本顯示空白，現在改為正確顯示今日紀錄',
       '【新功能】備盤：試劑批次新增「✏️ 殘液校正」按鈕，備盤前發現帳面殘液與實際不符，可直接就地輸入修正，送出時自動記錄校正明細',
       '【操作改變】備盤：取消開瓶改為逐瓶退回，今天開了幾瓶就能精確取消幾瓶，不再一次全部清零',
       '【畫面改變】備盤：試劑批次表格移除各列重複的「今日需用」欄（資訊整合到卡片標題）',
@@ -248,4 +251,38 @@ window.openChangelogModal = function() {
       block.insertBefore(btn, block.firstChild);
     });
   });
+})();
+
+// ── 18:30 備盤未送出警告橫幅 ──
+(function checkBeipanWarning() {
+  const now = new Date();
+  const taipeiMs = now.getTime() + (now.getTimezoneOffset() + 480) * 60000;
+  const taipeiNow = new Date(taipeiMs);
+  const h = taipeiNow.getHours(), m = taipeiNow.getMinutes();
+  if (h < 18 || (h === 18 && m < 30)) return;
+
+  const taipeiDateStr = `${taipeiNow.getFullYear()}-${String(taipeiNow.getMonth()+1).padStart(2,'0')}-${String(taipeiNow.getDate()).padStart(2,'0')}`;
+  const dismissKey = `beipan-warn-dismissed-${taipeiDateStr.replace(/-/g,'')}`;
+  if (sessionStorage.getItem(dismissKey)) return;
+
+  let result = null;
+  try { result = JSON.parse(localStorage.getItem('beipan-result') || 'null'); } catch(e) {}
+  if (result?.date === taipeiDateStr) return;
+
+  const displayDate = `${taipeiNow.getFullYear()}/${String(taipeiNow.getMonth()+1).padStart(2,'0')}/${String(taipeiNow.getDate()).padStart(2,'0')}`;
+
+  const render = () => {
+    if (document.getElementById('beipan-warning-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'beipan-warning-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#dc2626;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+    banner.innerHTML = `<span>⚠️ 今日備盤（${displayDate}）尚未送出，請當值人員盡速確認！</span><button onclick="sessionStorage.setItem('${dismissKey}','1');document.getElementById('beipan-warning-banner').remove()" style="background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0">✕ 暫時關閉</button>`;
+    document.body.prepend(banner);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', render, { once: true });
+  } else {
+    render();
+  }
 })();
