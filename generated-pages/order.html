@@ -456,7 +456,7 @@
         if (!['pending', 'partial'].includes(order.status)) return;
         activeOrders.push(order);
         (order.orders || []).forEach(o => {
-          const remaining = o.orderQty - (o.receivedQty || 0);
+          const remaining = (o.orderQty||0) - (o.receivedQty || 0) - (o.cancelledQty||0);
           if (remaining <= 0) return;
           if (!intransitMap[o.orderId]) intransitMap[o.orderId] = { ...o, orderQty: 0, receivedQty: 0 };
           intransitMap[o.orderId].orderQty += remaining;
