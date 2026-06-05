@@ -1332,11 +1332,17 @@ function buildExpandRows(entries, src) {
     const baseNote = cleanNote(e.note);
 
     if (src === 'beipan') {
-      const consumed = qty != null ? Math.abs(parseFloat(qty)) : null;
-      const consumedStr = consumed != null ? `使用 ${consumed.toFixed(1)}mL` : '';
-      const openedStr = (e.bottlesOpened > 0) ? `（開 ${e.bottlesOpened} 瓶）` : '';
-      const col3 = consumedStr
-        ? `<span class="text-red-500 font-semibold">${consumedStr}${openedStr}</span>` : '';
+      let col3 = '';
+      if (e.action === 'adjust') {
+        const sign = (qty != null && qty > 0) ? '+' : '';
+        const adjStr = qty != null ? `${sign}${parseFloat(qty).toFixed(1)} mL` : '';
+        col3 = adjStr ? `<span class="text-violet-600 font-semibold">校正 ${adjStr}</span>` : '';
+      } else {
+        const consumed = qty != null ? Math.abs(parseFloat(qty)) : null;
+        const consumedStr = consumed != null ? `使用 ${consumed.toFixed(1)} mL` : '';
+        const openedStr = (e.bottlesOpened > 0) ? `（開 ${e.bottlesOpened} 瓶）` : '';
+        col3 = consumedStr ? `<span class="text-red-500 font-semibold">${consumedStr}${openedStr}</span>` : '';
+      }
       const openExpStr = e.openExpiryDate ? `開封後到期 ${e.openExpiryDate}` : '';
       let noteClean = baseNote.replace(/扣除[\d.]+mL[^；]*[；;]\s*/g, '').trim();
       const col4 = [noteClean, openExpStr].filter(Boolean).join(' ｜ ') || '—';
