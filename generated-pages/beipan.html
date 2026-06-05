@@ -647,22 +647,45 @@ function previewBeipan() {
     }
   }
 
-  // ── 庫存充足性軟性檢查 ──
-  const insufficient = [];
-  reagentConfig.forEach(cfg => {
+  // ── 批號精準驗證：針對使用者選取的批號，而非加總全部批次的總庫存 ──
+  const unopenedLots = [];
+  const insufficientLots = [];
+
+  for (const cfg of [...reagentConfig, gm508Config]) {
     const needed = parseFloat(cfg.needed) || 0;
-    if (needed <= 0) return;
-    const totalAvail = cfg.batches
-      .filter(b => !b.blocked && !['expired', 'open_expired'].includes(calcBadge(b, needed).status))
-      .reduce((sum, b) => sum + (b.remaining || 0), 0);
-    if (parseFloat(totalAvail.toFixed(1)) < needed) {
-      insufficient.push(`${cfg.name}（需 ${needed.toFixed(1)} mL，帳面合計 ${totalAvail.toFixed(1)} mL）`);
+    if (needed <= 0) continue;
+
+    const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+    if (!selectedLot) continue;
+
+    const batch = cfg.batches.find(b => b.lot === selectedLot);
+    if (!batch) continue;
+
+    const rem = batch.remaining || 0;
+
+    // 硬阻擋：選了完全未開封的批號（remaining=0 且無開封日），必須先登記新開瓶
+    if (rem === 0 && !batch.openDate) {
+      unopenedLots.push(`【${cfg.name}】批號 ${batch.lot}`);
+      continue;
     }
-  });
-  if (insufficient.length > 0) {
-    const msg = `以下品項帳面剩餘量不足今日需用量：\n${insufficient.map(s => '• ' + s).join('\n')}\n\n` +
-      `若瓶內實際液量已足夠（帳面是估算誤差），請點「確定」強制送出。\n` +
-      `（系統將以今日需用量直接扣除，帳面剩餘歸零吸收誤差）\n\n` +
+
+    // 軟提醒：已開封但帳面量不足今日需用，交由現場判斷
+    if (rem < needed) {
+      insufficientLots.push(`【${cfg.name}】批號 ${batch.lot}（帳面剩餘 ${rem.toFixed(1)} mL，需用 ${needed.toFixed(1)} mL）`);
+    }
+  }
+
+  // 攔截 1：有未開封批號 → 強制阻擋，不進入確認視窗
+  if (unopenedLots.length > 0) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`⚠️ 以下批號尚未開封，請先點擊「登記新開瓶」：\n${unopenedLots.join('\n')}`, 'warn', 6000);
+    return;
+  }
+
+  // 攔截 2：帳面量不足 → 確認視窗，讓現場決定
+  if (insufficientLots.length > 0) {
+    const msg = `以下選取批號的帳面剩餘量不足今日需用量：\n${insufficientLots.map(s => '• ' + s).join('\n')}\n\n` +
+      `若現場瓶內實際液量足夠（帳面是估算誤差），請點「確定」強制送出。\n` +
       `若尚未開立新瓶，請點「取消」後先點「登記新開瓶」補充。`;
     if (!window.confirm(msg)) return;
     _forceOverride = true;
