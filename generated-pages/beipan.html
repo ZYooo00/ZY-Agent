@@ -968,6 +968,7 @@ function calibrateResidual(cardId, lot) {
     if (el) el.innerHTML = buildBatchCardHTML(cfg, savedState);
   }
   showToast(`殘液暫存校正：${newVal.toFixed(1)} mL（備盤送出時生效）`);
+  scheduleDraftSave();
 }
 
 function openSubmitConfirmModal(staffStr) {
@@ -1711,13 +1712,15 @@ function onBatchSelect(cardId, status) {
   const selectedBatch = cfg.batches.find(b => b.lot === selectedLot);
   if (!selectedBatch) return;
 
-  const warnings = [];
   const needed = cfg.needed || 0;
   const rem = selectedBatch.remaining || 0;
 
-  // A：帳面液量不足（用 || 0 避免未開封批號 remaining=undefined 時 undefined < x 永遠為 false）
+  let toastDelay = 0;
+
+  // A：帳面液量不足（rem 用 || 0 避免 remaining=undefined 時比較永遠為 false）
   if (needed > 0 && rem < needed) {
-    warnings.push(`帳面剩餘 ${rem.toFixed(1)} mL 不足今日需用 ${needed.toFixed(1)} mL（若現場實際液量足夠，可直接送出）`);
+    showToast(`⚠️ 該瓶體積不足今日需用量（帳面剩餘 ${rem.toFixed(1)} mL，若現場實際液量足夠可直接送出）`, 'warn', 6000);
+    toastDelay = 6200;
   }
 
   // B：FEFO 跳批（上方仍有效期更早且有庫存的批號）
@@ -1729,11 +1732,12 @@ function onBatchSelect(cardId, status) {
     return hasStock && (b.expiry || '') < (selectedBatch.expiry || '');
   });
   if (hasEarlierWithStock) {
-    warnings.push('上方仍有效期較早的批號尚有庫存');
-  }
-
-  if (warnings.length > 0) {
-    showToast('⚠️ ' + warnings.join('\n⚠️ '), 'warn', 5000);
+    const fefoMsg = '⚠️ 上方仍有效期較早的批號尚有庫存';
+    if (toastDelay > 0) {
+      setTimeout(() => showToast(fefoMsg, 'warn', 6000), toastDelay);
+    } else {
+      showToast(fefoMsg, 'warn', 6000);
+    }
   }
 }
 
@@ -1931,6 +1935,7 @@ function confirmOpenBottle() {
     if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg, savedStateModal);
   }
 
+  scheduleDraftSave();
   closeModal();
 }
 
@@ -1969,6 +1974,7 @@ function cancelOpenBottle(cardId, lot) {
   if (b._isAutoLot) {
     showToast('已取消開瓶。若此為本次手動輸入的新批號，請至「進貨記錄」將其作廢，以免庫存異常。', 'warn');
   }
+  scheduleDraftSave();
 }
 
 function toggleExhausted(cardId, lot) {
@@ -2005,6 +2011,7 @@ function toggleExhausted(cardId, lot) {
   // 重新驗證 badge，確保丟棄殘液後缺量 Banner 即時更新
   const badgeEx = calcBadge(batch, cfg.needed);
   onBatchSelect(cardId, badgeEx.status);
+  scheduleDraftSave();
 }
 
 function replaceExpiredBottle(cardId, lot) {
@@ -2030,6 +2037,7 @@ function replaceExpiredBottle(cardId, lot) {
     if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg, savedStateReplace);
   }
   openModal(cfg.name, cardId, lot);
+  scheduleDraftSave();
 }
 
 function injectTestBatches() {
@@ -2564,19 +2572,24 @@ async function submitBeipan() {
     }
   });
 
-  // ── Oil / HEPES：記錄今日開封瓶數 ──
+  // ── Oil / HEPES：記錄今日開封瓶數（含批號）──
   bulkReagents.forEach(bulk => {
     const inputEl = document.getElementById('bulk-small-' + bulk.id);
-    const opened = parseInt(inputEl?.value) || 0;
+    const lotEl   = document.getElementById('bulk-lot-'   + bulk.id);
+    const opened  = parseInt(inputEl?.value) || 0;
+    const lotVal  = lotEl?.value?.trim() || null;
     if (opened <= 0) return;
+    const noteText = lotVal
+      ? `備盤開封 ${bulk.name} ${opened} ${bulk.smallUnit}（批號：${lotVal}）`
+      : `備盤開封 ${bulk.name} ${opened} ${bulk.smallUnit}`;
     logEntries.push({
       source: 'beipan', action: 'beipan',
       productId: bulk.id, productName: bulk.name,
-      lotNumber: null,
+      lotNumber: lotVal,
       expiryDate: null, openExpiryDate: null,
       qtyDelta: -opened, unit: bulk.smallUnit,
       bottlesOpened: opened, operator,
-      note: `備盤開封 ${bulk.name} ${opened} ${bulk.smallUnit}`,
+      note: noteText,
     });
   });
 
