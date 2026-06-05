@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05e'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05f'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05f',
+    date: '2026-06-05',
+    changes: [
+      '【調整】進貨：待收卡片按鈕靠右對齊，中間留白',
+      '【調整】歷史紀錄：取消待收紀錄融入主時間軸，依日期排序，紅底卡片視覺區隔',
+    ]
+  },
   {
     version: '26.06.05e',
     date: '2026-06-05',
