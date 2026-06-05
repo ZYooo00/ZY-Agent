@@ -1709,9 +1709,11 @@ function confirmOpenBottle() {
       showToast('此批號已無未開封瓶可供開啟', 'warn');
       closeModal(); return;
     }
+    const openVol = batch.bottleVol || cfg.bottleVol || 0;
     batch.unopened  -= 1;
-    batch.remaining  = parseFloat((batch.remaining + (batch.bottleVol || cfg.bottleVol || 0)).toFixed(1));
+    batch.remaining  = parseFloat((batch.remaining + openVol).toFixed(1));
     batch._manuallyOpened = (batch._manuallyOpened || 0) + 1;
+    if (batch._calibratedFrom !== undefined) batch._calibratedFrom = parseFloat((batch._calibratedFrom + openVol).toFixed(1));
     batch.openDate = _fmt(_today);
     if (_openDays > 0) {
       const _exp = new Date(_today);
@@ -1748,7 +1750,7 @@ function cancelOpenBottle(cardId, lot) {
   b.unopened  = (b.unopened || 0) + 1;
   b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
   b._manuallyOpened = Math.max(0, (b._manuallyOpened || 1) - 1);
-  delete b._calibratedFrom; // 取消開瓶後殘液恢復原始值，校正記憶一併清除
+  if (b._calibratedFrom !== undefined) b._calibratedFrom = parseFloat(Math.max(0, b._calibratedFrom - vol).toFixed(1));
   // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
   if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
 

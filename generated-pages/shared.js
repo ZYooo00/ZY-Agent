@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05j'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05k'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05k',
+    date: '2026-06-05',
+    changes: [
+      '備盤：修正「先校正後開瓶」順序陷阱——開瓶與取消開瓶時同步更新校正水位線（_calibratedFrom），確保 diff 永遠只計算純校正誤差',
+    ]
+  },
   {
     version: '26.06.05j',
     date: '2026-06-05',
