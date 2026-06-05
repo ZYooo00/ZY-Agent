@@ -238,40 +238,5 @@ h1, h2, h3, .heading, .font-heading {
 
 
 /* ════════════════════════════════════════
-   9. Toast（堆疊式，由 design.js 動態建立 DOM）
-   每次呼叫產生獨立 .toast-item，由下往上堆疊
+   9. Toast — 樣式由 design.js 以 inline style 管理，無需 CSS
    ════════════════════════════════════════ */
-#toast-container {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column-reverse; /* 新 toast 在底部，舊的被往上推 */
-  align-items: center;
-  gap: 8px;
-  z-index: 9999;
-  pointer-events: none;
-}
-.toast-item {
-  max-width: 320px;
-  padding: 10px 20px;
-  border-radius: var(--r-md);
-  background: #1E293B;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Noto Sans TC', sans-serif;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity .2s ease, transform .2s ease;
-  text-align: center;
-  white-space: pre-line;
-}
-.toast-item.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-.toast-item.toast-warn { background: #DC2626; }
-.toast-item.toast-ok   { background: #16A34A; }
