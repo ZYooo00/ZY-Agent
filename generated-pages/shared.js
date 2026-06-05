@@ -1,11 +1,11 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05k'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
   {
-    version: '26.06.05k',
+    version: '26.06.05',
     date: '2026-06-05',
     changes: [
       '【新功能】備盤：試劑批次新增「✏️ 殘液校正」按鈕，備盤前發現帳面殘液與實際不符，可直接就地輸入修正，送出時自動記錄校正明細',
