@@ -2770,6 +2770,7 @@ function setBeipanFormDisabled(disabled) {
   document.querySelectorAll('#state-b input, #state-b select, #state-b textarea, #state-b button').forEach(el => {
     if (el.id === 'beipan-staff-1') return; // 永遠可操作
     if (el.id === 'beipan-lock-takeover') return; // 由 banner 控制
+    if (el.id === 'history-btn-b') return; // 歷史備盤隨時可查
     el.disabled = disabled;
   });
   const hintEl = document.getElementById('lock-hint-text');
