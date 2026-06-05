@@ -1719,7 +1719,7 @@ function onBatchSelect(cardId, status) {
 
   // A：帳面液量不足（rem 用 || 0 避免 remaining=undefined 時比較永遠為 false）
   if (needed > 0 && rem < needed) {
-    showToast(`⚠️ 該瓶體積不足今日需用量（帳面剩餘 ${rem.toFixed(1)} mL，若現場實際液量足夠可直接送出）`, 'warn', 6000);
+    showToast(`提醒：該瓶體積不足今日需用量（帳面剩餘 ${rem.toFixed(1)} mL）`, 'warn', 6000);
     toastDelay = 300;
   }
 

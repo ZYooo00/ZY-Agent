@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05p'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05q'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05q',
+    date: '2026-06-05',
+    changes: [
+      '【修正】全系統：Toast 改用 inline style，不依賴外部 CSS，修復升級後提示完全消失的問題',
+      '【優化】備盤：體積不足提示文字精簡（移除過長說明語）',
+    ]
+  },
   {
     version: '26.06.05p',
     date: '2026-06-05',
