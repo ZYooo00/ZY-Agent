@@ -917,7 +917,8 @@ const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
 
 function daysUntilExpiry(isoStr) {
   if (!isoStr) return null;
-  return Math.floor((new Date(isoStr) - TODAY) / 86400000);
+  const [y, m, d] = isoStr.split('-').map(Number);
+  return Math.floor((new Date(y, m - 1, d) - TODAY) / 86400000);
 }
 
 function fmtDate(isoStr) {
@@ -1675,14 +1676,15 @@ function confirmOpenBottle() {
     }
   }
 
-  // 重新渲染卡片
+  // 重新渲染卡片（保留使用者已選批號與混批狀態）
+  const savedStateModal = getCardState(_modalCardId);
   if (_modalCardId === 'aoa-508') {
     const el = document.getElementById('card-aoa-508');
-    if (el) el.innerHTML = buildGM508HTML();
+    if (el) el.innerHTML = buildGM508HTML(savedStateModal);
   } else {
     const renderCfg = reagentConfig.find(c => c.id === _modalCardId);
     const el = document.getElementById('card-' + _modalCardId);
-    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg, savedStateModal);
   }
 
   closeModal();
@@ -1705,12 +1707,13 @@ function cancelOpenBottle(cardId, lot) {
   // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
   if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
 
+  const savedStateCancel = getCardState(cardId);
   if (cardId === 'aoa-508') {
     const el = document.getElementById('card-aoa-508');
-    if (el) el.innerHTML = buildGM508HTML();
+    if (el) el.innerHTML = buildGM508HTML(savedStateCancel);
   } else {
     const el = document.getElementById('card-' + cardId);
-    if (el) el.innerHTML = buildBatchCardHTML(cfg);
+    if (el) el.innerHTML = buildBatchCardHTML(cfg, savedStateCancel);
   }
 
   // 重新驗證 badge，庫存低於需用量時自動展開混批面板並顯示警示
@@ -1740,14 +1743,18 @@ function toggleExhausted(cardId, lot) {
     batch._exhaustedVol   = undefined;
     batch.markedExhausted = false;
   }
+  const savedStateExhausted = getCardState(cardId);
   if (cardId === 'aoa-508') {
     const el = document.getElementById('card-aoa-508');
-    if (el) el.innerHTML = buildGM508HTML();
+    if (el) el.innerHTML = buildGM508HTML(savedStateExhausted);
   } else {
     const renderCfg = reagentConfig.find(c => c.id === cardId);
     const el = document.getElementById('card-' + cardId);
-    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg, savedStateExhausted);
   }
+  // 重新驗證 badge，確保丟棄殘液後缺量 Banner 即時更新
+  const badgeEx = calcBadge(batch, cfg.needed);
+  onBatchSelect(cardId, badgeEx.status);
 }
 
 function replaceExpiredBottle(cardId, lot) {
@@ -1762,13 +1769,14 @@ function replaceExpiredBottle(cardId, lot) {
     batch.markedExhausted   = true;
     batch._exhaustedByExpiry = true;  // 效期觸發，不顯示復原按鈕
   }
+  const savedStateReplace = getCardState(cardId);
   if (cardId === 'aoa-508') {
     const el = document.getElementById('card-aoa-508');
-    if (el) el.innerHTML = buildGM508HTML();
+    if (el) el.innerHTML = buildGM508HTML(savedStateReplace);
   } else {
     const renderCfg = reagentConfig.find(c => c.id === cardId);
     const el = document.getElementById('card-' + cardId);
-    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg);
+    if (renderCfg && el) el.innerHTML = buildBatchCardHTML(renderCfg, savedStateReplace);
   }
   openModal(cfg.name, cardId, lot);
 }
@@ -2295,7 +2303,7 @@ async function submitBeipan() {
     note: userNote || null,
     givf: givfSnap,
     matrix: matrixSnap,
-    glue: gluePlan,
+    glue: parseFloat(document.getElementById('glue-plan-input')?.value) || gluePlan,
   };
   try {
     await window._fb.saveBeipanSnapshot(payload);
