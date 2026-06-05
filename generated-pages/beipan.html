@@ -806,6 +806,9 @@ function restoreStateC(snapshot) {
 }
 
 async function lockStateB(snapshot) {
+  // 鎖定時清除草稿（不論是自己送出還是被他人強制鎖定）
+  localStorage.removeItem(getDraftKey());
+
   // 1. 還原 givf 盤數
   if (snapshot.givf) {
     snapshot.givf.forEach((d, i) => { if (givfDishes[i]) givfDishes[i].plan = d.plan; });
@@ -1312,10 +1315,24 @@ function saveDraft() {
     bulkLot[cfg.id]   = document.getElementById(`bulk-lot-${cfg.id}`)?.value   ?? '';
   });
 
+  // 補存 batch 記憶體物件（就地校正的 _calibratedFrom / remaining 不在 DOM 裡）
+  const batchData = {};
+  [...reagentConfig, gm508Config].forEach(cfg => {
+    batchData[cfg.id] = cfg.batches.map(b => ({
+      lot:             b.lot,
+      remaining:       b.remaining,
+      unopened:        b.unopened,
+      _calibratedFrom: b._calibratedFrom,
+      _exhaustedVol:   b._exhaustedVol,
+      markedExhausted: b.markedExhausted,
+      _manuallyOpened: b._manuallyOpened,
+    }));
+  });
+
   localStorage.setItem(getDraftKey(), JSON.stringify({
     note: document.getElementById('beipan-note-input')?.value || '',
     glue: document.getElementById('glue-plan-input')?.value || '',
-    givf, matrix, bulkSmall, bulkLot, cards,
+    givf, matrix, bulkSmall, bulkLot, cards, batchData,
   }));
 }
 
@@ -1348,6 +1365,27 @@ function loadDraft() {
     const noteInp = document.getElementById('beipan-note-input');
     if (noteInp) noteInp.value = draft.note;
   }
+  // 先把 batch 記憶體物件寫回（就地校正的 _calibratedFrom / remaining）
+  if (draft.batchData) {
+    [...reagentConfig, gm508Config].forEach(cfg => {
+      const savedBatches = draft.batchData[cfg.id];
+      if (!savedBatches) return;
+      savedBatches.forEach(sb => {
+        const batch = cfg.batches.find(b => b.lot === sb.lot);
+        if (!batch) return;
+        batch.remaining       = sb.remaining       ?? batch.remaining;
+        batch.unopened        = sb.unopened        ?? batch.unopened;
+        batch._manuallyOpened = sb._manuallyOpened ?? batch._manuallyOpened;
+        if (sb._calibratedFrom !== undefined) batch._calibratedFrom = sb._calibratedFrom;
+        else delete batch._calibratedFrom;
+        if (sb._exhaustedVol !== undefined) batch._exhaustedVol = sb._exhaustedVol;
+        else delete batch._exhaustedVol;
+        if (sb.markedExhausted !== undefined) batch.markedExhausted = sb.markedExhausted;
+        else delete batch.markedExhausted;
+      });
+    });
+  }
+
   // 還原卡片狀態（在 recalcAllNeeded 觸發重繪後覆蓋）
   if (draft.cards) {
     const allIds = reagentConfig.map(c => c.id).concat(['aoa-508']);
@@ -2531,7 +2569,6 @@ async function submitBeipan() {
   if (_lockCurrentStaff && _lockTodayStr) {
     window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff).catch(() => {});
   }
-  localStorage.removeItem(getDraftKey());
   showToast('備盤結果已儲存 ✓', 'ok');
   await lockStateB(payload);
 }
