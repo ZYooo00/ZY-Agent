@@ -1697,6 +1697,13 @@ function onBatchSelect(cardId, status) {
     return hasStock && (b.expiry || '') < (selectedBatch.expiry || '');
   });
 
+  // 未開封提醒：若選取的批號尚未開瓶（remaining=0 且無開封日），提示需先登記開瓶
+  const isUnopened = (selectedBatch.remaining === 0) && !selectedBatch.openDate && (selectedBatch.unopened || 0) > 0;
+  if (isUnopened) {
+    showToast('⚠️ 此批號尚未開封，請先點「登記新開瓶」再送出備盤', 'warn', 5000);
+    return;
+  }
+
   if (hasEarlierWithStock) {
     showToast('⚠️ 上方仍有效期較早的批號尚有庫存，此選擇供參考確認', 'warn', 4000);
   }
