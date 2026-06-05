@@ -1,9 +1,18 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05i'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05j'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05j',
+    date: '2026-06-05',
+    changes: [
+      '備盤：取消開瓶改為逐瓶扣回（-1 瓶），避免多瓶全部一次清零',
+      '備盤：修正殘液校正後若執行「丟棄殘液」，校正日誌計算改用 _exhaustedVol 而非已歸零的 remaining，防止產生假資料',
+      '備盤：混批「超出剩餘量」警告改為動態讀取選中批號，修正原本固定比對第一筆的邏輯錯誤',
+    ]
+  },
   {
     version: '26.06.05i',
     date: '2026-06-05',

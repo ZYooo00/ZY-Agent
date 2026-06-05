@@ -1573,7 +1573,8 @@ function onFirstVolInput(id) {
   const needed = parseFloat(cfg?.needed) || 0;
   const secondVol = parseFloat(Math.max(0, needed - firstVol).toFixed(1));
   if (secondVolEl) secondVolEl.textContent = firstVol > 0 ? String(secondVol) : '—';
-  const firstBatch = cfg?.batches?.[0];
+  const selectedLot = document.querySelector(`input[name="r-${id}"]:checked`)?.value;
+  const firstBatch = cfg?.batches?.find(b => b.lot === selectedLot) ?? cfg?.batches?.[0];
   const firstRem = firstBatch ? (firstBatch.remaining || 0) : 0;
   const firstOver = firstVol > 0 && firstVol > firstRem;
 
@@ -1744,9 +1745,9 @@ function cancelOpenBottle(cardId, lot) {
   if (!b || (b._manuallyOpened || 0) <= 0) return;  // 防連擊
 
   const vol = b.bottleVol || cfg.bottleVol || 0;
-  b.unopened  = (b.unopened || 0) + b._manuallyOpened;
-  b.remaining = parseFloat(Math.max(0, b.remaining - vol * b._manuallyOpened).toFixed(1));
-  b._manuallyOpened = 0;
+  b.unopened  = (b.unopened || 0) + 1;
+  b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
+  b._manuallyOpened = Math.max(0, (b._manuallyOpened || 1) - 1);
   delete b._calibratedFrom; // 取消開瓶後殘液恢復原始值，校正記憶一併清除
   // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
   if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
@@ -2204,7 +2205,10 @@ async function submitBeipan() {
   [...reagentConfig, gm508Config].forEach(cfg => {
     (cfg.batches || []).forEach(batch => {
       if (batch._calibratedFrom === undefined) return;
-      const diff = batch.remaining - batch._calibratedFrom;
+      const actualCurrentVol = (batch.markedExhausted && batch._exhaustedVol !== undefined)
+        ? batch._exhaustedVol
+        : batch.remaining;
+      const diff = actualCurrentVol - batch._calibratedFrom;
       if (Math.abs(diff) <= 0.01) return;
       logEntries.push({
         source: 'beipan', action: 'adjust',
