@@ -1452,6 +1452,22 @@ function initDraftListeners() {
   });
 }
 
+// 賦予 Radio 按鈕再次點擊可取消的功能
+function initRadioToggle() {
+  document.addEventListener('click', function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'radio') {
+      if (e.target.dataset.wasChecked === 'true') {
+        e.target.checked = false;
+        e.target.dataset.wasChecked = 'false';
+        e.target.dispatchEvent(new Event('change'));
+      } else {
+        document.querySelectorAll(`input[name="${e.target.name}"]`).forEach(r => r.dataset.wasChecked = 'false');
+        e.target.dataset.wasChecked = 'true';
+      }
+    }
+  });
+}
+
 // ── Build GM508 standalone collapsible card HTML ──
 function buildGM508HTML(savedState) {
   const gm = gm508Config;
@@ -1698,7 +1714,19 @@ function onBatchSelect(cardId, status) {
   const banner      = document.getElementById(cardId + '-warn-banner');
   const mixNote     = document.getElementById(cardId + '-mix-note');
   const secondPanel = document.getElementById(cardId + '-second');
-  const isInsuff    = (status === 'insufficient');
+
+  const selectedLot = document.querySelector(`input[name="r-${cardId}"]:checked`)?.value;
+
+  // 取消選取：收起所有警告與混批面板
+  if (!selectedLot) {
+    if (banner)      banner.classList.add('hidden');
+    if (mixNote)     mixNote.classList.add('hidden');
+    if (secondPanel) secondPanel.classList.add('hidden');
+    if (typeof scheduleDraftSave === 'function') scheduleDraftSave();
+    return;
+  }
+
+  const isInsuff = (status === 'insufficient');
   if (banner)    banner.classList.toggle('hidden', !isInsuff);
   if (mixNote)   mixNote.classList.toggle('hidden', !isInsuff);
   if (isInsuff && secondPanel && secondPanel.classList.contains('hidden')) {
@@ -1706,9 +1734,6 @@ function onBatchSelect(cardId, status) {
   }
 
   const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
-  if (!cfg) return;
-  const selectedLot = document.querySelector(`input[name="r-${cardId}"]:checked`)?.value;
-  if (!selectedLot) return;
   const selectedBatch = cfg.batches.find(b => b.lot === selectedLot);
   if (!selectedBatch) return;
 
@@ -2955,6 +2980,7 @@ onReady(async function() {
   buildAllBatchCards();
   loadDraft();
   initDraftListeners();
+  initRadioToggle();
 
   // Phase 7：啟動編輯互斥鎖（今日備盤尚未送出才需要）
   initBeipanLock(todayStr);
