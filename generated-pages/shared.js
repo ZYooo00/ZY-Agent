@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.05i'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.05j'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.05j',
+    date: '2026-06-05',
+    changes: [
+      '【修正】備盤：需用量為零時送出後，鎖定畫面批號 radio 跳到最後一個批號的問題（根本原因：lockStateB last-write-wins，現改為 first-wins）',
+    ]
+  },
   {
     version: '26.06.05i',
     date: '2026-06-05',

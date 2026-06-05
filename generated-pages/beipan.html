@@ -849,11 +849,13 @@ async function lockStateB(snapshot) {
   }
   recalcAllNeeded();
 
-  // 4. 還原批號 radio 選取
+  // 4. 還原批號 radio 選取（first-wins：每個 reagentId 只設一次，避免 last-write 跳到錯誤批號）
   if (snapshot.batches) {
+    const _radioSet = new Set();
     snapshot.batches.forEach(b => {
+      if (_radioSet.has(b.reagentId)) return;
       const radio = document.querySelector(`input[name="r-${b.reagentId}"][value="${b.selectedLot}"]`);
-      if (radio) radio.checked = true;
+      if (radio) { radio.checked = true; _radioSet.add(b.reagentId); }
     });
   }
 
@@ -2394,7 +2396,12 @@ async function submitBeipan() {
     if (needed <= 0 && !hasManualOps) {
       // 無消耗也無手動操作（例如休假日）：仍需將現有批號狀態原封不動存入快照
       // 否則隔天 initBatchesFromFirebase 找不到快照資料，會誤把已開封瓶重置成「未開封」
-      cfg.batches.filter(b => !b.blocked).forEach(batch => {
+      // 使用者選取的批號排第一，確保 lockStateB first-wins 後顯示正確批號
+      const _userPickedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || null;
+      const _batchesForSnap = [...cfg.batches.filter(b => !b.blocked)].sort((a, b) =>
+        a.lot === _userPickedLot ? -1 : b.lot === _userPickedLot ? 1 : 0
+      );
+      _batchesForSnap.forEach(batch => {
         updatedBatches.push({
           reagentId: cfg.id, reagentName: cfg.name,
           selectedLot: batch.lot,
