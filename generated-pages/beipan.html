@@ -675,6 +675,20 @@ function previewBeipan() {
     }
   }
 
+  // 攔截 0：混批第一批取用量超出帳面剩餘 → 硬阻擋（應先殘液校正）
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    const panel = document.getElementById(cfg.id + '-second');
+    if (!panel || panel.classList.contains('hidden')) continue;
+    const fv = parseFloat(document.getElementById(cfg.id + '-first-vol')?.value);
+    if (isNaN(fv) || fv <= 0) continue;
+    const selLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+    const b = cfg.batches.find(x => x.lot === selLot);
+    if (b && fv > (b.remaining || 0)) {
+      showToast(`「${cfg.name}」第一批取用量 (${fv}mL) 超出帳面剩餘 (${b.remaining||0}mL)，如實際殘液較多請先使用「✏️ 殘液校正」更新帳面`, 'warn', 7000);
+      return;
+    }
+  }
+
   // 攔截 1：有未開封批號 → 強制阻擋，不進入確認視窗
   if (unopenedLots.length > 0) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -729,7 +743,7 @@ async function openHistoryModal() {
     const batchMap = {};
     (snap.batches || []).forEach(b => {
       if (!batchMap[b.reagentId]) batchMap[b.reagentId] = { name: b.reagentName, lots: [] };
-      if (b.selectedLot && !batchMap[b.reagentId].lots.includes(b.selectedLot))
+      if (b.selectedLot && b.selectedLot !== 'null' && !batchMap[b.reagentId].lots.includes(b.selectedLot))
         batchMap[b.reagentId].lots.push(b.selectedLot);
     });
     const batchRows = Object.values(batchMap).map(g => {
@@ -813,13 +827,15 @@ function restoreStateC(snapshot) {
     const lblCls = b.reagentId === 'h5gt' ? 'text-purple-400' :
                    b.reagentId === 'gxtl' ? 'text-blue-400' :
                    b.reagentId === 'aoa-508' ? 'text-amber-500' : 'text-slate-500';
-    // 同品項若有多個批次（混批），收集所有 lot
+    // 同品項若有多個批次（混批），收集所有 lot（過濾 null/undefined）
     const lots = (snapshot.batches || [])
       .filter(x => x.reagentId === b.reagentId)
-      .map(x => x.selectedLot);
+      .map(x => x.selectedLot)
+      .filter(Boolean);
+    const lotText = lots.length > 0 ? lots.join(' + ') : '—';
     cards.push(`<div class="${bgCls} rounded-lg p-3">
       <span class="${lblCls} text-xs block">${b.reagentName}</span>
-      <span class="font-mono font-semibold text-slate-800">${lots.join(' + ')}</span>
+      <span class="font-mono font-semibold text-slate-800">${lotText}</span>
     </div>`);
   });
 
@@ -1276,9 +1292,9 @@ function buildBatchRow(b, needed, cardId, checked) {
     } else if (!b.markedExhausted) {
       // 狀態 B：正常開封 → 依條件顯示丟棄 / 取消（兩者可同時出現但不與 A 共存）
       if (b.remaining > 0) {
-        actionBtns += `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">🗑️ 丟棄殘液</button>`;
+        actionBtns += `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">✅ 標記為空瓶（正常用盡）</button>`;
       }
-      if (b.openDate && !b._isAutoLot && b.remaining > 0) {
+      if (b.openDate && !b._isAutoLot && !b.markedExhausted) {
         actionBtns += `<button onclick="calibrateResidual('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-violet-500 hover:text-violet-700 font-medium transition-colors">✏️ 殘液校正</button>`;
       }
       if ((b._manuallyOpened || 0) > 0) {
@@ -1288,7 +1304,7 @@ function buildBatchRow(b, needed, cardId, checked) {
   }
 
   return `<tr class="${rowBg} transition-colors">
-    <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
+    <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" value="${b.lot}" ${checked?'checked':''} ${isEmpty?'disabled title="帳面已耗盡，如需修正請至庫存總覽→手動調整"':''} onchange="onBatchSelect('${cardId}','${badge.status}')"></td>
     <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
     <td class="px-3 py-3 text-slate-500 tabular">${b.openDate || '—'}</td>
     <td class="px-3 py-3 tabular">
@@ -1358,6 +1374,8 @@ function saveDraft() {
       _exhaustedVol:   b._exhaustedVol,
       markedExhausted: b.markedExhausted,
       _manuallyOpened: b._manuallyOpened,
+      _isAutoLot:      b._isAutoLot,
+      _autoJinhuoId:   b._autoJinhuoId,
     }));
   });
 
@@ -1403,7 +1421,12 @@ function loadDraft() {
       const savedBatches = draft.batchData[cfg.id];
       if (!savedBatches) return;
       savedBatches.forEach(sb => {
-        const batch = cfg.batches.find(b => b.lot === sb.lot);
+        let batch = cfg.batches.find(b => b.lot === sb.lot);
+        if (!batch && sb._isAutoLot) {
+          // P4-2：草稿裡記錄的 _isAutoLot 批號（本 session 手動新增），重新插入記憶體陣列
+          batch = { lot: sb.lot, blocked: false };
+          cfg.batches.push(batch);
+        }
         if (!batch) return;
         batch.remaining       = sb.remaining       ?? batch.remaining;
         batch.unopened        = sb.unopened        ?? batch.unopened;
@@ -1416,6 +1439,8 @@ function loadDraft() {
         else delete batch._exhaustedVol;
         if (sb.markedExhausted !== undefined) batch.markedExhausted = sb.markedExhausted;
         else delete batch.markedExhausted;
+        if (sb._isAutoLot) batch._isAutoLot = true;
+        if (sb._autoJinhuoId) batch._autoJinhuoId = sb._autoJinhuoId;
       });
     });
   }
@@ -1436,6 +1461,12 @@ function loadDraft() {
       }
     });
   }
+  // 草稿還原後喚醒警告 Banner（觸發已選中 radio 的 change 事件）
+  setTimeout(() => {
+    document.querySelectorAll('#state-b input[type="radio"]:checked').forEach(r => {
+      r.dispatchEvent(new Event('change'));
+    });
+  }, 150);
 }
 
 function scheduleDraftSave() {
@@ -1490,7 +1521,7 @@ function buildGM508HTML(savedState) {
   const activeLots = gm.batches.filter(b => {
     if (b.blocked) return false;
     const s = calcBadge(b, gm.needed).status;
-    return s !== 'expired' && s !== 'open_expired';
+    return s !== 'expired' && s !== 'open_expired' && s !== 'empty';
   });
   const gm508PrimaryLot    = savedState?.selectedLot || '';
   const gm508SecondHidden  = savedState?.mixOpen ? '' : 'hidden ';
@@ -1615,7 +1646,7 @@ function buildBatchCardHTML(cfg, savedState) {
   const activeLots = cfg.batches.filter(b => {
     if (b.blocked) return false;
     const s = calcBadge(b, cfg.needed).status;
-    return s !== 'expired' && s !== 'open_expired';
+    return s !== 'expired' && s !== 'open_expired' && s !== 'empty';
   });
   const primaryLot     = savedState?.selectedLot || '';
   const lotOpts        = activeLots
@@ -1729,9 +1760,6 @@ function onBatchSelect(cardId, status) {
   const isInsuff = (status === 'insufficient');
   if (banner)    banner.classList.toggle('hidden', !isInsuff);
   if (mixNote)   mixNote.classList.toggle('hidden', !isInsuff);
-  if (isInsuff && secondPanel && secondPanel.classList.contains('hidden')) {
-    secondPanel.classList.remove('hidden');
-  }
 
   const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   const selectedBatch = cfg.batches.find(b => b.lot === selectedLot);
@@ -1842,8 +1870,8 @@ function openModal(r, cardId, preSelectLot) {
               reagentConfig.find(c => c.id === cardId) ||
               reagentConfig.find(c => c.name === r) || null;
   const needed  = cfg?.needed || 0;
-  // 包含 open_expired 批號（開封逾期但廠商效期未到），讓用戶可選同批號開新瓶
-  const batches = cfg ? cfg.batches.filter(b => !b.blocked && calcBadge(b, needed).status !== 'expired') : [];
+  // 包含 open_expired 批號（開封逾期但廠商效期未到），讓用戶可選同批號開新瓶；過濾無未開封瓶的批號
+  const batches = cfg ? cfg.batches.filter(b => !b.blocked && calcBadge(b, needed).status !== 'expired' && (b.unopened > 0 || b.lot === preSelectLot)) : [];
   // 預設選「最近到期但仍有效」的批號
   const defaultBatch = batches.slice().sort((a, b) => {
     const da = effectiveExpiry(a), db = effectiveExpiry(b);
@@ -1899,19 +1927,19 @@ function confirmOpenBottle() {
     let openExpiry = null;
     if (_openDays > 0) {
       const _exp = new Date(openDateVal);
-      _exp.setDate(_exp.getDate() + _openDays);
+      _exp.setDate(_exp.getDate() + _openDays - 1);
       openExpiry = _fmt(_exp);
     }
     const bottleVol = cfg.bottleVol || 0;
+    // 自動補建進貨記錄（確保 F5 後不消失）
+    const jinhuoId = `beipan-newlot-${cfg.id}-${newLot}-${Date.now()}`;
+
     const newBatch = {
       lot: newLot, expiry: expiryVal, openDate: openDateVal, openExpiry,
       remaining: bottleVol, unopened: 0, bottleVol, blocked: false,
-      _manuallyOpened: 1, _isAutoLot: true,
+      _manuallyOpened: 1, _isAutoLot: true, _autoJinhuoId: jinhuoId,
     };
     cfg.batches.unshift(newBatch);
-
-    // 自動補建進貨記錄（確保 F5 後不消失）
-    const jinhuoId = `beipan-newlot-${cfg.id}-${newLot}-${Date.now()}`;
     const autoJinhuo = {
       id: jinhuoId, productId: cfg.id, productName: cfg.name,
       lotNumber: newLot, expiryDate: expiryVal,
@@ -1941,10 +1969,11 @@ function confirmOpenBottle() {
     batch.remaining  = parseFloat((batch.remaining + openVol).toFixed(1));
     batch._manuallyOpened = (batch._manuallyOpened || 0) + 1;
     if (batch._calibratedFrom !== undefined) batch._calibratedFrom = parseFloat((batch._calibratedFrom + openVol).toFixed(1));
-    batch.openDate = _fmt(_today);
+    const openDateVal2 = document.getElementById('modal-open-date')?.value || _fmt(_today);
+    batch.openDate = openDateVal2;
     if (_openDays > 0) {
-      const _exp = new Date(_today);
-      _exp.setDate(_exp.getDate() + _openDays);
+      const _exp = new Date(openDateVal2);
+      _exp.setDate(_exp.getDate() + _openDays - 1);
       batch.openExpiry = _fmt(_exp);
     }
   }
@@ -1974,6 +2003,38 @@ function cancelOpenBottle(cardId, lot) {
   const b = cfg.batches.find(x => x.lot === lot);
   if (!b || (b._manuallyOpened || 0) <= 0) return;  // 防連擊
 
+  if (b._isAutoLot) {
+    // P4-2：新開瓶批號（本 session 手動輸入）→ Firebase 作廢 + 從記憶體移除
+    if (b._autoJinhuoId) {
+      window._fb?.saveJinhuoRecord?.({ id: b._autoJinhuoId, isVoided: true })
+        .catch(e => console.warn('[cancelOpenBottle] Firebase void 失敗', e));
+      try {
+        const cached = JSON.parse(localStorage.getItem('jinhuo-records') || '[]');
+        const idx = cached.findIndex(r => r.id === b._autoJinhuoId);
+        if (idx !== -1) { cached[idx].isVoided = true; localStorage.setItem('jinhuo-records', JSON.stringify(cached)); }
+      } catch(e) {}
+    }
+    cfg.batches = cfg.batches.filter(x => x.lot !== lot);
+    // 清空已刪批號的選取狀態，防止重建卡片時出現殭屍面板
+    const savedStateCancel = getCardState(cardId);
+    if (savedStateCancel.selectedLot === lot) {
+      savedStateCancel.selectedLot = null;
+      savedStateCancel.mixOpen = false;
+      savedStateCancel.firstVol = '';
+    }
+    if (cardId === 'aoa-508') {
+      const el = document.getElementById('card-aoa-508');
+      if (el) el.innerHTML = buildGM508HTML(savedStateCancel);
+    } else {
+      const el = document.getElementById('card-' + cardId);
+      if (el) el.innerHTML = buildBatchCardHTML(cfg, savedStateCancel);
+    }
+    onBatchSelect(cardId, 'none');
+    showToast('已取消並作廢新批號進貨記錄 ✓', 'ok');
+    scheduleDraftSave();
+    return;
+  }
+
   const vol = b.bottleVol || cfg.bottleVol || 0;
   b.unopened  = (b.unopened || 0) + 1;
   b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
@@ -1991,14 +2052,8 @@ function cancelOpenBottle(cardId, lot) {
     if (el) el.innerHTML = buildBatchCardHTML(cfg, savedStateCancel);
   }
 
-  // 重新驗證 badge，庫存低於需用量時自動展開混批面板並顯示警示
   const badge = calcBadge(b, cfg.needed);
   onBatchSelect(cardId, badge.status);
-
-  // 若此批號為備盤時手動新增，提醒人員至進貨記錄作廢，避免產生幽靈庫存
-  if (b._isAutoLot) {
-    showToast('已取消開瓶。若此為本次手動輸入的新批號，請至「進貨記錄」將其作廢，以免庫存異常。', 'warn');
-  }
   scheduleDraftSave();
 }
 
@@ -2288,19 +2343,19 @@ function buildAllBulkCards() {
 
 // ── 今日需用：依盤數 × 每盤用量全算 ──
 function recalcAllNeeded() {
-  // 讀 GIVF 列實際值（空白時 fallback 到 plan）
+  // 讀 GIVF 列實際值（備盤欄位預填值，清空代表使用者明確選 0）
   function givfVal(i) {
     const inp = document.querySelector('#givf-row-' + i + ' input[type="number"]');
-    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (givfDishes[i]?.plan ?? 0);
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : 0;
   }
-  // 讀矩陣 H5GT / GxTL 值
+  // 讀矩陣 H5GT / GxTL 值（同上，清空 = 0）
   function mxH5(i) {
     const inp = document.querySelector('#mrow-' + i + ' .cell-h5gt input');
-    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (matrixDishes[i]?.h5gt ?? 0);
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : 0;
   }
   function mxGx(i) {
     const inp = document.querySelector('#mrow-' + i + ' .cell-gxtl input');
-    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : (matrixDishes[i]?.gxtl ?? 0);
+    return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : 0;
   }
 
   // GIVF 盤子索引：0=OPU 1=De 2=TE 3=AOA弘優 4=AOA508 5=COC 6=精蟲(台) 7=G-IVF pH 8=多配mL
@@ -2319,7 +2374,7 @@ function recalcAllNeeded() {
 
   // Glue 獨立卡片
   const glueInp = document.getElementById('glue-plan-input');
-  const gluePanCount = (glueInp && glueInp.value !== '') ? (parseFloat(glueInp.value) || 0) : gluePlan;
+  const gluePanCount = (glueInp && glueInp.value !== '') ? (parseFloat(glueInp.value) || 0) : 0;
 
   // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
   const givfNeeded = opu*3 + (de+te+aoaCi+aoa508+coc)*0.6 + spermTai*0.7 + givfPh*1 + givfMulti;
@@ -2433,6 +2488,12 @@ async function submitBeipan() {
   const logEntries = [];
   const updatedBatches = [];
 
+  // P4-3：提交前快照，Firebase 失敗時可回滾，避免雙重扣除
+  const _batchSnapshot = new Map();
+  for (const c of [...reagentConfig, gm508Config]) {
+    _batchSnapshot.set(c.id, c.batches.map(b => ({ lot: b.lot, remaining: b.remaining, unopened: b.unopened })));
+  }
+
   // ── 前置迴圈：所有有 _calibratedFrom 的批次，不論有無被選中備盤，都先寫入校正日誌
   // 必須在扣除迴圈之前處理，否則若批次未進入 orderedBatches 校正紀錄會靜默遺失
   [...reagentConfig, gm508Config].forEach(cfg => {
@@ -2462,24 +2523,18 @@ async function submitBeipan() {
     // needed=0 時仍需檢查是否有手動開瓶或報廢動作，有的話必須寫入日誌
     const hasManualOps = cfg.batches.some(b => (b._manuallyOpened || 0) > 0 || b.markedExhausted);
     if (needed <= 0 && !hasManualOps) {
-      // 無消耗也無手動操作（例如休假日）：仍需將現有批號狀態原封不動存入快照
-      // 否則隔天 initBatchesFromFirebase 找不到快照資料，會誤把已開封瓶重置成「未開封」
-      // 使用者選取的批號排第一，確保 lockStateB first-wins 後顯示正確批號
+      // P2-2：只存使用者選取的批號（避免次日還原時出現多餘批號噪音）
       const _userPickedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || null;
-      const _batchesForSnap = [...cfg.batches.filter(b => !b.blocked)].sort((a, b) =>
-        a.lot === _userPickedLot ? -1 : b.lot === _userPickedLot ? 1 : 0
-      );
-      _batchesForSnap.forEach(batch => {
-        updatedBatches.push({
-          reagentId: cfg.id, reagentName: cfg.name,
-          selectedLot: batch.lot,
-          remaining: batch.remaining, unopened: batch.unopened || 0,
-          bottlesOpened: 0, usedQty: 0,
-          bottleVol: batch.bottleVol || 0,
-          expiryDate: batch.expiry || null,
-          openExpiryDate: batch.openExpiry || null,
-          openDate: batch.openDate || null,
-        });
+      const _pickedBatch = _userPickedLot ? cfg.batches.find(b => b.lot === _userPickedLot && !b.blocked) : null;
+      updatedBatches.push({
+        reagentId: cfg.id, reagentName: cfg.name,
+        selectedLot: _userPickedLot,
+        remaining: _pickedBatch?.remaining ?? 0, unopened: _pickedBatch?.unopened ?? 0,
+        bottlesOpened: 0, usedQty: 0,
+        bottleVol: _pickedBatch?.bottleVol || 0,
+        expiryDate: _pickedBatch?.expiry || null,
+        openExpiryDate: _pickedBatch?.openExpiry || null,
+        openDate: _pickedBatch?.openDate || null,
       });
       return;
     }
@@ -2487,13 +2542,10 @@ async function submitBeipan() {
     // 找出使用者選取的主要批號（via radio value）
     const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
 
-    // 排序：選取批號優先，其次依原始順序（非 blocked、非 expired）
-    const orderedBatches = [];
-    if (selectedLot) {
-      const sel = cfg.batches.find(b => b.lot === selectedLot && !b.blocked && calcBadge(b, needed).status !== 'expired' && calcBadge(b, needed).status !== 'open_expired');
-      if (sel) orderedBatches.push(sel);
-    }
-    cfg.batches.filter(b => !b.blocked && b.lot !== selectedLot && calcBadge(b, needed).status !== 'expired' && calcBadge(b, needed).status !== 'open_expired').forEach(b => orderedBatches.push(b));
+    // P0-1：包含所有未 blocked 批號（含過期），確保快照完整，選取批號排第一
+    const orderedBatches = cfg.batches
+      .filter(b => !b.blocked)
+      .sort((a, b) => a.lot === selectedLot ? -1 : b.lot === selectedLot ? 1 : 0);
 
     // 讀取混批備註（若面板展開且有填寫）
     const _secondPanel = document.getElementById(cfg.id + '-second');
@@ -2503,68 +2555,59 @@ async function submitBeipan() {
     // 混批手動取用量（選填）— 若有填寫，改用精確兩批模式（禁止 cascade）
     const _firstVolRaw = (_secondPanel && !_secondPanel.classList.contains('hidden'))
       ? parseFloat(document.getElementById(cfg.id + '-first-vol')?.value) : NaN;
-    const _useManualVol = !isNaN(_firstVolRaw) && _firstVolRaw > 0;
-    let _appliedManualFirst = false;
+    // P0-1：>= 0 讓 firstVol=0 也觸發精確模式（阻止 cascade fallback）
+    const _useManualVol = !isNaN(_firstVolRaw) && _firstVolRaw >= 0;
+    const _secondLotId = (_useManualVol && _secondPanel && !_secondPanel.classList.contains('hidden'))
+      ? (document.getElementById(cfg.id + '-second-lot')?.value || '') : '';
     let _isFirstBatch = true;
 
-    // 手動模式：orderedBatches 只保留第一批 + 明確選取的第二批，杜絕 cascade 吃掉其他批號
-    if (_useManualVol) {
-      const _secondLotId = document.getElementById(cfg.id + '-second-lot')?.value;
-      const _secondBatch = cfg.batches.find(b => b.lot === _secondLotId && b !== orderedBatches[0]);
-      if (_secondBatch && !orderedBatches.includes(_secondBatch)) {
-        orderedBatches.splice(1, orderedBatches.length - 1, _secondBatch);
-      } else if (orderedBatches.length > 2) {
-        orderedBatches.splice(2);
-      }
-    }
-
     for (const batch of orderedBatches) {
-      const _batchOpened = batch._manuallyOpened || 0;
-      const _batchExhausted = batch.markedExhausted;
-      // needed 已滿足，且此批號無手動開瓶也無報廢 → 跳過（continue 而非 break，讓後面批號有機會處理）
-      if (needed <= 0 && _batchOpened === 0 && !_batchExhausted) continue;
+      const isSelectedFirst  = (batch.lot === selectedLot);
+      const isSelectedSecond = _useManualVol && !!_secondLotId
+                               && batch.lot === _secondLotId && !isSelectedFirst;
+      const isSelected = isSelectedFirst || isSelectedSecond;
 
       let rem = batch.remaining;
       let unop = batch.unopened;
-      let opened = batch._manuallyOpened || 0;  // 手動點「登記新開瓶」的瓶數
+      let opened = batch._manuallyOpened || 0;
       batch._manuallyOpened = 0;
 
-      // 手動分配模式：第一批記錄使用者實際抽取量（不受帳面限制），newRem 最低歸零
-      let deduct, newRem;
-      if (_useManualVol && !_appliedManualFirst) {
-        deduct = parseFloat(_firstVolRaw.toFixed(1));
-        newRem = parseFloat(Math.max(0, rem - deduct).toFixed(1));
-        needed = parseFloat(Math.max(0, needed - deduct).toFixed(1));
-        _appliedManualFirst = true;
-      } else {
-        deduct = parseFloat(Math.min(needed, rem).toFixed(1));
-        newRem = parseFloat((rem - deduct).toFixed(1));
-        needed = parseFloat((needed - deduct).toFixed(1));
+      let deduct = 0;
+      if (isSelected) {
+        if (_useManualVol) {
+          if (isSelectedFirst)  deduct = parseFloat(_firstVolRaw.toFixed(1));
+          if (isSelectedSecond) deduct = parseFloat(Math.min(needed, rem).toFixed(1));
+        } else {
+          if (isSelectedFirst) deduct = parseFloat(Math.min(needed, rem).toFixed(1));
+        }
+      }
+      const newRem = parseFloat(Math.max(0, rem - deduct).toFixed(1));
+      if (deduct > 0) needed = parseFloat(Math.max(0, needed - deduct).toFixed(1));
+
+      if (deduct > 0 || opened > 0) {
+        const _baseNote = opened > 0
+          ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
+          : (_forceOverride && newRem === 0 && needed > 0)
+            ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
+            : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+        const _fullNote = (_isFirstBatch && _mixNote)
+          ? `${_baseNote}；混批備註：${_mixNote}`
+          : _baseNote;
+        _isFirstBatch = false;
+        logEntries.push({
+          source: 'beipan', action: 'beipan',
+          productId: cfg.id, productName: cfg.name,
+          lotNumber: batch.lot,
+          expiryDate: batch.expiry || null,
+          openExpiryDate: batch.openExpiry || null,
+          qtyDelta: -deduct, unit: 'mL',
+          bottlesOpened: opened,
+          operator,
+          note: _fullNote,
+        });
       }
 
-      const _baseNote = opened > 0
-        ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
-        : (_forceOverride && newRem === 0 && needed > 0)
-          ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
-          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
-      const _fullNote = (_isFirstBatch && _mixNote)
-        ? `${_baseNote}；混批備註：${_mixNote}`
-        : _baseNote;
-      _isFirstBatch = false;
-
-      logEntries.push({
-        source: 'beipan', action: 'beipan',
-        productId: cfg.id, productName: cfg.name,
-        lotNumber: batch.lot,
-        expiryDate: batch.expiry || null,
-        openExpiryDate: batch.openExpiry || null,
-        qtyDelta: -deduct, unit: 'mL',
-        bottlesOpened: opened,
-        operator,
-        note: _fullNote,
-      });
-
-      // _exhaustedVol 是點擊「已耗盡」時預先保存的原始殘液量
+      // discardVol 對所有 markedExhausted 批號有效（不受 isSelected 限制）
       const discardVol = batch.markedExhausted ? (batch._exhaustedVol || 0) : 0;
       if (discardVol > 0) {
         logEntries.push({
@@ -2577,13 +2620,14 @@ async function submitBeipan() {
           bottlesOpened: 0, operator,
           note: `標記耗盡：殘液 ${discardVol} mL 報廢`,
         });
-        newRem = 0;
       }
 
+      // P0-1：所有批號都進快照，確保次日狀態完整還原
+      const finalRem = discardVol > 0 ? 0 : newRem;
       updatedBatches.push({
         reagentId: cfg.id, reagentName: cfg.name,
         selectedLot: batch.lot,
-        remaining: newRem, unopened: unop,
+        remaining: finalRem, unopened: unop,
         bottlesOpened: opened, usedQty: deduct,
         bottleVol: batch.bottleVol || 0,
         expiryDate: batch.expiry || null,
@@ -2591,8 +2635,7 @@ async function submitBeipan() {
         openDate: batch.openDate || null,
       });
 
-      // 更新記憶體中的 batch（供後續欄位顯示）
-      batch.remaining = newRem;
+      batch.remaining = finalRem;
       batch.unopened  = unop;
     }
   });
@@ -2645,9 +2688,19 @@ async function submitBeipan() {
     note: userNote || null,
     givf: givfSnap,
     matrix: matrixSnap,
-    glue: parseFloat(document.getElementById('glue-plan-input')?.value) || gluePlan,
+    glue: parseFloat(document.getElementById('glue-plan-input')?.value) || 0,
     bulk: bulkSnap,
   };
+  // P4-1：送出前最終鎖定驗證（Race Condition 防禦）
+  if (_lockCurrentStaff && _lockTodayStr) {
+    const lockCheck = await window._fb?.acquireBeipanLock?.(_lockTodayStr, _lockCurrentStaff);
+    if (lockCheck && !lockCheck.success) {
+      window._beipanSubmitting = false;
+      showToast('您的編輯權限已被他人接手，無法送出，請重新整理頁面', 'warn');
+      return;
+    }
+  }
+
   try {
     await window._fb.saveBeipanSnapshot(payload);
     const now = new Date().toISOString();
@@ -2667,8 +2720,19 @@ async function submitBeipan() {
     await Promise.all(allLogs);
   } catch(e) {
     console.error('[beipan] Firebase 儲存失敗', e);
-    showToast('儲存失敗，請重試', 'warn');
+    // P4-3：回滾記憶體（防止雙重扣除）+ 釋放鎖 + 重建 UI
+    for (const c of [...reagentConfig, gm508Config]) {
+      const snap = _batchSnapshot.get(c.id) || [];
+      c.batches.forEach(b => {
+        const orig = snap.find(x => x.lot === b.lot);
+        if (orig) { b.remaining = orig.remaining; b.unopened = orig.unopened; }
+      });
+    }
+    window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff)
+      .catch(err => console.warn('[beipan] 釋放鎖失敗', err));
+    recalcAllNeeded();
     window._beipanSubmitting = false;
+    showToast('網路連線異常，儲存失敗！資料已回復原狀，請確認網路後重新送出。', 'warn', 6000);
     return;
   }
   window._beipanSubmitting = false;
@@ -2855,7 +2919,7 @@ async function onStaffSelect() {
   }
 
   const result = await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName);
-  if (!result || result.success) {
+  if (result && result.success) {
     _lockCurrentStaff = staffName;
     setBeipanFormDisabled(false);
     hideLockBanner();

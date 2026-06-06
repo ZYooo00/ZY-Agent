@@ -461,7 +461,7 @@ const givfDishes = [
   { key:'coc',     name:'COC',      unit:'盤', suggest: t => 0 },
   { key:'sperm',   name:'精蟲',     unit:'台',  suggest: t => t.szu },
   { key:'givf_ph', name:'G-IVF pH', unit:'盤', suggest: t => 0, manual: true },
-  { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 2.0, note:'評估受精與 STD 台數' },
+  { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 0, note:'評估受精與 STD 台數' },
 ];
 
 // ── 資料：胚胎矩陣 ──
@@ -473,7 +473,7 @@ const matrixDishes = [
   { key:'glue',     name:'Glue',      h5: t => t.fbt + t.bt, gx: t => 0 },
   { key:'geri_fbt', name:'Geri-FBT',  h5: t => t.fbt, gx: t => 0     },
   { key:'ph',       name:'pH 盤',     h5: t => 0,     gx: t => 0,     manual: true },
-  { key:'multi',    name:'多配',      h5: t => 2.0,   gx: t => 2.0,   isMl: true  },
+  { key:'multi',    name:'多配',      h5: t => 0,     gx: t => 0,     isMl: true  },
 ];
 
 // ── 填充人員選單 ──
