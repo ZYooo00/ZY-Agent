@@ -581,7 +581,7 @@
       <div id="glue-route-b-panel" class="border border-slate-200 rounded-xl p-3 mb-2">
         <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
           <input type="radio" name="glue-addon-route" value="b" onchange="onGlueRouteChange()">
-          路線 B：開啟備用批號
+          路線 B：開封新瓶（同批或換批）
         </label>
         <div id="glue-route-b-select" class="hidden mt-2 ml-5">
           <label class="text-xs text-slate-600">選擇要開封的批號</label>
@@ -3366,7 +3366,11 @@ function _showGlueExtended(openBatch, isExpired, deltaMl, glueCfg) {
   backups.forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.lot;
-    opt.textContent = `批號 ${b.lot}（效期 ${b.expiry || '—'}）｜未開封 ${b.unopened} 瓶`;
+    const isAlreadyOpen = !!b.openDate;
+    const statusText = isAlreadyOpen
+      ? `再開一瓶（還剩 ${b.unopened} 瓶未開）`
+      : `新批首開（共 ${b.unopened} 瓶）`;
+    opt.textContent = `批號 ${b.lot}（效期 ${b.expiry || '—'}）｜${statusText}`;
     select.appendChild(opt);
   });
   if (backups.length === 0) {
