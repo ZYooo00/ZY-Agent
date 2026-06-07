@@ -1,7 +1,7 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.07'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.07b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
   {

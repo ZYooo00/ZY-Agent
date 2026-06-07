@@ -614,8 +614,6 @@
 })();
 
 // ── State switching ──
-let _forceOverride = false;
-
 function previewBeipan() {
   const s1 = document.getElementById('beipan-staff-1')?.value || '';
   const s2 = document.getElementById('beipan-staff-2')?.value || '';
@@ -649,7 +647,6 @@ function previewBeipan() {
 
   // ── 批號精準驗證：針對使用者選取的批號，而非加總全部批次的總庫存 ──
   const unopenedLots = [];
-  const insufficientLots = [];
 
   for (const cfg of [...reagentConfig, gm508Config]) {
     const needed = parseFloat(cfg.needed) || 0;
@@ -666,16 +663,10 @@ function previewBeipan() {
     // 硬阻擋：選了完全未開封的批號（remaining=0 且無開封日），必須先登記新開瓶
     if (rem === 0 && !batch.openDate) {
       unopenedLots.push(`【${cfg.name}】批號 ${batch.lot}`);
-      continue;
-    }
-
-    // 軟提醒：已開封但帳面量不足今日需用，交由現場判斷
-    if (rem < needed) {
-      insufficientLots.push(`【${cfg.name}】批號 ${batch.lot}（帳面剩餘 ${rem.toFixed(1)} mL，需用 ${needed.toFixed(1)} mL）`);
     }
   }
 
-  // 攔截 0：混批第一批取用量超出帳面剩餘 → 硬阻擋（應先殘液校正）
+  // 攔截 0：混批第一批取用量超出帳面剩餘 → 硬阻擋（應先修改剩餘量）
   for (const cfg of [...reagentConfig, gm508Config]) {
     const panel = document.getElementById(cfg.id + '-second');
     if (!panel || panel.classList.contains('hidden')) continue;
@@ -684,27 +675,50 @@ function previewBeipan() {
     const selLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
     const b = cfg.batches.find(x => x.lot === selLot);
     if (b && fv > (b.remaining || 0)) {
-      showToast(`「${cfg.name}」第一批取用量 (${fv}mL) 超出帳面剩餘 (${b.remaining||0}mL)，如實際殘液較多請先使用「✏️ 殘液校正」更新帳面`, 'warn', 7000);
+      showToast(`「${cfg.name}」第一批取用量 (${fv}mL) 超出帳面剩餘 (${b.remaining||0}mL)，如實際殘液較多請先使用「✏️ 修改剩餘量」更新帳面`, 'warn', 7000);
       return;
     }
   }
 
-  // 攔截 1：有未開封批號 → 強制阻擋，不進入確認視窗
+  // 攔截 1：有未開封批號 → 強制阻擋
   if (unopenedLots.length > 0) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast(`⚠️ 以下批號尚未開封，請先點擊「登記新開瓶」：\n${unopenedLots.join('\n')}`, 'warn', 6000);
     return;
   }
 
-  // 攔截 2：帳面量不足 → 確認視窗，讓現場決定
-  if (insufficientLots.length > 0) {
-    const msg = `以下選取批號的帳面剩餘量不足今日需用量：\n${insufficientLots.map(s => '• ' + s).join('\n')}\n\n` +
-      `若現場瓶內實際液量足夠（帳面是估算誤差），請點「確定」強制送出。\n` +
-      `若尚未開立新瓶，請點「取消」後先點「登記新開瓶」補充。`;
-    if (!window.confirm(msg)) return;
-    _forceOverride = true;
-  } else {
-    _forceOverride = false;
+  // 攔截 2（新版）：帳面量不足 → 紅色硬阻擋，不允許強制送出
+  const hardBlockLots = [];
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    const needed = parseFloat(cfg.needed) || 0;
+    if (needed <= 0) continue;
+    const selectedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+    if (!selectedLot) continue;
+    const batch = cfg.batches.find(b => b.lot === selectedLot);
+    if (!batch) continue;
+    const rem = batch.remaining || 0;
+    if (rem >= needed) continue;
+
+    // 若混批面板已開啟，計算第一批 + 第二批合計可用量
+    const secondPanel = document.getElementById(cfg.id + '-second');
+    const mixOpen = secondPanel && !secondPanel.classList.contains('hidden');
+    if (mixOpen) {
+      const fvRaw = parseFloat(document.getElementById(cfg.id + '-first-vol')?.value);
+      const firstVol = (!isNaN(fvRaw) && fvRaw >= 0) ? fvRaw : rem; // 未填預設抽完第一批
+      const secondLotId = document.getElementById(cfg.id + '-second-lot')?.value;
+      const secondBatch = secondLotId ? cfg.batches.find(b => b.lot === secondLotId) : null;
+      const secondRem = secondBatch ? (secondBatch.remaining || 0) : 0;
+      const totalVol = parseFloat((firstVol + secondRem).toFixed(1));
+      if (totalVol >= needed) continue; // 混批合計足夠，放行
+    }
+    hardBlockLots.push(`【${cfg.name}】帳面剩餘 ${rem.toFixed(1)} mL，今日需用 ${needed.toFixed(1)} mL`);
+  }
+  if (hardBlockLots.length > 0) {
+    showToast(
+      `體積不足，無法送出：\n${hardBlockLots.join('\n')}\n請先「修改剩餘量」確認實際量，或登記新開瓶補充`,
+      'warn', 8000
+    );
+    return;
   }
 
   const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
@@ -939,7 +953,7 @@ async function lockStateB(snapshot) {
   });
 
   // 8. 隱藏操作性按鈕
-  ['previewBeipan','openModal','toggleSecondBatch','onFirstVolInput','toggleExhausted','replaceExpiredBottle','refreshGupanData'].forEach(fn => {
+  ['previewBeipan','openModal','toggleSecondBatch','onFirstVolInput','toggleExhausted','modifyRemaining','replaceExpiredBottle','refreshGupanData'].forEach(fn => {
     document.querySelectorAll(`#state-b button[onclick*="${fn}"]`).forEach(b => b.classList.add('hidden'));
   });
   // 隱藏底部送出區
@@ -958,22 +972,45 @@ function switchState(s) {
   });
 }
 
-// ── Fix 8v2：殘液就地校正 ──
-function calibrateResidual(cardId, lot) {
+// ── 修改剩餘量（整合殘液校正 + 標記空瓶）──
+function modifyRemaining(cardId, lot) {
   const cfg = (cardId === 'aoa-508') ? gm508Config : reagentConfig.find(c => c.id === cardId);
   if (!cfg) return;
   const batch = cfg.batches.find(b => b.lot === lot);
   if (!batch) return;
 
-  const input = prompt(`【殘液校正】${cfg.name}  批號 ${lot}\n請輸入瓶內實際殘液量（mL）：`, batch.remaining.toFixed(1));
+  const input = prompt(`【修改剩餘量】${cfg.name}  批號 ${lot}\n請輸入實際剩餘量（mL），輸入 0 表示已空瓶：`, batch.remaining.toFixed(1));
   if (input === null) return;
 
   const newVal = parseFloat(parseFloat(input).toFixed(1));
   if (isNaN(newVal) || newVal < 0) { showToast('請輸入有效數字', 'warn'); return; }
-  if (newVal === 0) { showToast('若已無殘液，請使用「🗑️ 丟棄殘液」按鈕', 'warn'); return; }
 
-  if (batch._calibratedFrom === undefined) batch._calibratedFrom = batch.remaining;
-  batch.remaining = newVal;
+  if (newVal === 0) {
+    // 輸入 0 = 標記空瓶（markedExhausted 流程）
+    if (!batch.markedExhausted) {
+      batch._exhaustedVol   = batch.remaining;
+      batch.markedExhausted = true;
+      batch.remaining       = 0;
+      // 清空混批第一批取用量輸入，避免從空瓶抽水
+      const firstVolInput = document.getElementById(cardId + '-first-vol');
+      if (firstVolInput && parseFloat(firstVolInput.value) > 0) {
+        firstVolInput.value = '';
+        onFirstVolInput(cardId);
+      }
+      // 視覺解綁：disabled radio 不會自動清除勾勾，需程式碼主動解綁
+      const currentChecked = document.querySelector(`input[name="r-${cardId}"]:checked`);
+      if (currentChecked && currentChecked.value === lot) {
+        currentChecked.checked = false;
+        onBatchSelect(cardId, 'none');
+      }
+    }
+    showToast('已標記為空瓶（備盤送出時生效）');
+  } else {
+    // 輸入 > 0 = 殘液校正
+    if (batch._calibratedFrom === undefined) batch._calibratedFrom = batch.remaining;
+    batch.remaining = newVal;
+    showToast(`殘液暫存校正：${newVal.toFixed(1)} mL（備盤送出時生效）`);
+  }
 
   const savedState = getCardState(cardId);
   if (cardId === 'aoa-508') {
@@ -983,7 +1020,6 @@ function calibrateResidual(cardId, lot) {
     const el = document.getElementById('card-' + cardId);
     if (el) el.innerHTML = buildBatchCardHTML(cfg, savedState);
   }
-  showToast(`殘液暫存校正：${newVal.toFixed(1)} mL（備盤送出時生效）`);
   scheduleDraftSave();
 }
 
@@ -1291,11 +1327,8 @@ function buildBatchRow(b, needed, cardId, checked) {
       actionBtns = `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-amber-600 font-medium transition-colors">↺ 復原殘液</button>`;
     } else if (!b.markedExhausted) {
       // 狀態 B：正常開封 → 依條件顯示丟棄 / 取消（兩者可同時出現但不與 A 共存）
-      if (b.remaining > 0) {
-        actionBtns += `<button onclick="toggleExhausted('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-slate-400 hover:text-red-500 transition-colors">✅ 標記為空瓶（正常用盡）</button>`;
-      }
       if (b.openDate && !b._isAutoLot && !b.markedExhausted) {
-        actionBtns += `<button onclick="calibrateResidual('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-violet-500 hover:text-violet-700 font-medium transition-colors">✏️ 殘液校正</button>`;
+        actionBtns += `<button onclick="modifyRemaining('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-violet-500 hover:text-violet-700 font-medium transition-colors">✏️ 修改剩餘量</button>`;
       }
       if ((b._manuallyOpened || 0) > 0) {
         actionBtns += `<button onclick="cancelOpenBottle('${cardId}','${escapedLot}')" class="mt-1 block text-xs text-blue-400 hover:text-blue-600 transition-colors">↩ 取消開瓶</button>`;
@@ -1562,7 +1595,7 @@ function buildGM508HTML(savedState) {
     </div>
     <div id="gm508-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
       <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      <span class="text-xs font-semibold text-amber-800">此批號不足今日需用量，已自動展開第二批次</span>
+      <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請手動展開「混批」</span>
     </div>
     <div class="hidden">
       <input type="text" id="gm508-patient-id">
@@ -1690,7 +1723,7 @@ function buildBatchCardHTML(cfg, savedState) {
   </div>
   <div id="${cfg.id}-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
     <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
-    <span class="text-xs font-semibold text-amber-800">此批號不足今日需用量，已自動展開第二批次</span>
+    <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請手動展開「混批」</span>
   </div>
   <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
     <button onclick="toggleSecondBatch('${cfg.id}')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
@@ -2460,9 +2493,6 @@ async function submitBeipan() {
   }
 
   const operator = (staff2 && staff2 !== staff1) ? `${staff1}+${staff2}` : staff1;
-  const _wasForceOverride = _forceOverride;
-  _forceOverride = false;
-
   // 混批第二批號驗證：第二批號未開封屬於真實阻擋（不同於帳面誤差的 Soft Warning）
   for (const cfg of [...reagentConfig, gm508Config]) {
     const panel = document.getElementById(cfg.id + '-second');
@@ -2587,9 +2617,7 @@ async function submitBeipan() {
       if (deduct > 0 || opened > 0) {
         const _baseNote = opened > 0
           ? `[${batch.lot}] 扣除 ${deduct}mL（開 ${opened} 瓶新）；剩餘 ${newRem}mL，未開 ${unop} 瓶`
-          : (_forceOverride && newRem === 0 && needed > 0)
-            ? `[${batch.lot}] 扣除 ${deduct}mL（吸收估算誤差）；剩餘歸零，未開 ${unop} 瓶`
-            : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
+          : `[${batch.lot}] 扣除 ${deduct}mL；剩餘 ${newRem}mL，未開 ${unop} 瓶`;
         const _fullNote = (_isFirstBatch && _mixNote)
           ? `${_baseNote}；混批備註：${_mixNote}`
           : _baseNote;
