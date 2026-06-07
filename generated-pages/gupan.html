@@ -110,6 +110,31 @@
   /* ── 鎖定確認卡片 ── */
   .confirm-info { background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:14px 16px; }
 
+  /* ── 長按提示圖示 ── */
+  .hint-icon {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:13px; height:13px; border-radius:50%;
+    border:1.5px solid #94A3B8; color:#94A3B8;
+    font-size:8px; font-weight:700; line-height:1;
+    cursor:pointer; user-select:none;
+    vertical-align:middle; margin-left:3px;
+    flex-shrink:0;
+  }
+  .hint-icon:active { background:#F1F5F9; border-color:#64748B; color:#64748B; }
+
+  /* ── 長按提示浮層 ── */
+  #hint-popup {
+    position:fixed; z-index:9999;
+    background:#1E293B; color:#F8FAFC;
+    font-size:12px; line-height:1.55; border-radius:9px;
+    padding:9px 13px; max-width:230px;
+    box-shadow:0 4px 16px rgba(0,0,0,.28);
+    pointer-events:none; opacity:0;
+    transition:opacity .15s;
+    white-space:pre-wrap;
+  }
+  #hint-popup.visible { opacity:1; }
+
 </style>
 </head>
 
@@ -347,7 +372,7 @@
           <input type="number" class="bulk-field" id="oil-spindle" placeholder="0" min="0" oninput="calcOil()">
         </div>
         <div>
-          <div class="text-xs text-slate-500 mb-1.5">Bx 幾盤</div>
+          <div class="text-xs text-slate-500 mb-1.5">Biopsy 操作盤 幾盤</div>
           <input type="number" class="bulk-field" id="oil-bx" placeholder="0" min="0" oninput="calcOil()">
         </div>
       </div>
@@ -466,9 +491,9 @@ const givfDishes = [
 
 // ── 資料：胚胎矩陣 ──
 const matrixDishes = [
-  { key:'geri_szu', name:'Geri-受精', h5: t => t.szu, gx: t => t.szu },
-  { key:'d0',       name:'D0',        h5: t => 0,     gx: t => 0     },
-  { key:'bx',       name:'Bx',        h5: t => t.tbx, gx: t => 0     },
+  { key:'geri_szu', name:'Geri-受精', tooltip:'先以每個受精客戶皆為雙線培養建議', h5: t => t.szu, gx: t => t.szu },
+  { key:'d0',       name:'D0',        tooltip:'Geri 空位不夠時選備', h5: t => 0, gx: t => 0 },
+  { key:'bx',       name:'Bx Keep',   tooltip:'不 PGS 者 ≥5# 要備', h5: t => t.tbx, gx: t => 0 },
   { key:'tb',       name:'TB',        h5: t => t.fbt + t.tbx, gx: t => 0 },
   { key:'glue',     name:'Glue',      h5: t => t.fbt + t.bt, gx: t => 0 },
   { key:'geri_fbt', name:'Geri-FBT',  h5: t => t.fbt, gx: t => 0     },
@@ -580,7 +605,9 @@ function buildMatrixTable() {
 
     return `
     <tr id="mx-row-${d.key}" class="mb-1">
-      <td class="py-2 text-sm text-slate-700 font-medium" style="min-width:76px; padding-left:4px">${d.name}</td>
+      <td class="py-2 text-sm text-slate-700 font-medium" style="min-width:76px; padding-left:4px">
+        <span style="display:inline-flex;align-items:center;gap:0">${d.name}${d.tooltip ? `<span class="hint-icon" data-hint="${d.tooltip}">!</span>` : ''}</span>
+      </td>
       <td class="cell-h5gt py-2 px-2 text-center" style="min-width:96px">
         <div class="suggest-tag text-slate-400 mb-1">
           <span id="mx-sug-h5-${d.key}">${h5SugTxt}</span>${d.isMl && !d.manual ? ' mL' : ''}
@@ -976,6 +1003,57 @@ function closeNav() {
   document.getElementById('nav-drawer').classList.remove('open');
   document.getElementById('nav-overlay').classList.remove('open');
 }
+
+// ══════════════════════════════════════════
+// 長按提示（.hint-icon）
+// ══════════════════════════════════════════
+(function() {
+  const popup = document.createElement('div');
+  popup.id = 'hint-popup';
+  document.body.appendChild(popup);
+
+  function show(el) {
+    const text = el.dataset.hint;
+    if (!text) return;
+    popup.textContent = text;
+    popup.classList.add('visible');
+    const r = el.getBoundingClientRect();
+    let left = r.left - 100;
+    if (left < 8) left = 8;
+    if (left + 240 > window.innerWidth) left = window.innerWidth - 244;
+    let top = r.bottom + 8;
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+  }
+
+  function hide() {
+    clearTimeout(timer);
+    timer = null;
+    popup.classList.remove('visible');
+  }
+
+  // 觸控：按住立刻顯示，放開立刻消失
+  document.addEventListener('touchstart', e => {
+    const el = e.target.closest('.hint-icon');
+    if (!el) return;
+    e.preventDefault(); // 防止觸發 click
+    show(el);
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => hide(), { passive: true });
+  document.addEventListener('touchcancel', () => hide(), { passive: true });
+  document.addEventListener('touchmove', () => hide(), { passive: true });
+
+  // 桌面：按住顯示，放開消失
+  document.addEventListener('mousedown', e => {
+    const el = e.target.closest('.hint-icon');
+    if (!el) return;
+    show(el);
+  });
+
+  document.addEventListener('mouseup', () => hide());
+  document.addEventListener('mouseleave', () => hide());
+})();
 
 // ══════════════════════════════════════════
 // INIT
