@@ -1571,16 +1571,16 @@ function buildGM508HTML(savedState) {
   const gm = gm508Config;
 
   // Build sorted batch rows (same logic as buildBatchCardHTML)
-  const openExpiredBatches = gm.batches.filter(b => !b.blocked && calcBadge(b, gm.needed).status === 'open_expired');
+  // v9d：open_expired 納入 validBatches，統一按 FEFO 排序 → 自然置頂，消除開新瓶後的跳位
   const validBatches = gm.batches
-    .filter(b => { if (b.blocked) return false; const s = calcBadge(b, gm.needed).status; return s !== 'expired' && s !== 'open_expired'; })
+    .filter(b => { if (b.blocked) return false; const s = calcBadge(b, gm.needed).status; return s !== 'expired'; })
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
   const expiredBatches = gm.batches.filter(b => b.blocked || calcBadge(b, gm.needed).status === 'expired');
   const shownExpired = expiredBatches.length === 0 ? [] : (() => {
     const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
     return withRem.length > 0 ? [withRem[0]] : [expiredBatches[expiredBatches.length - 1]];
   })();
-  const orderedBatches = [...validBatches, ...openExpiredBatches, ...shownExpired];
+  const orderedBatches = [...validBatches, ...shownExpired];
   const batchRows = orderedBatches.length
     ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'aoa-508', savedState?.selectedLot === b.lot)).join('')
     : `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`;
@@ -1675,15 +1675,12 @@ function buildGM508HTML(savedState) {
 
 // ── Build a full batch card HTML ──
 function buildBatchCardHTML(cfg, savedState) {
-  // open_expired 批號：開封逾期但廠商效期未到且仍有未開封瓶（中間層）
-  const openExpiredBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'open_expired');
-
-  // 有效批號（未過期、非 open_expired）依 effectiveExpiry 升冪排列
+  // v9d：open_expired 納入有效批號池，統一按 FEFO 排序 → 自然置頂，消除跳位現象
   const validBatches = cfg.batches
     .filter(b => {
       if (b.blocked) return false;
       const s = calcBadge(b, cfg.needed).status;
-      return s !== 'expired' && s !== 'open_expired' && s !== 'empty';
+      return s !== 'expired' && s !== 'empty';
     })
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
 
@@ -1698,8 +1695,8 @@ function buildBatchCardHTML(cfg, savedState) {
     return [expiredBatches[expiredBatches.length - 1]];
   })();
 
-  // 依序排列：有效 → 開封逾期(可替換) → 帳面已用盡(可選) → 完全過期(鎖死)
-  const orderedForDisplay = [...validBatches, ...openExpiredBatches, ...emptyBatches, ...shownExpired];
+  // 依序排列：可用批號(FEFO，含 open_expired) → 帳面已用盡 → 完全過期
+  const orderedForDisplay = [...validBatches, ...emptyBatches, ...shownExpired];
   let firstActive = true;
   const rows = orderedForDisplay.map(b => {
     const bs = calcBadge(b, cfg.needed).status;
