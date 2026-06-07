@@ -1091,13 +1091,14 @@ function effectiveExpiry(b) {
 function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
   // open_expired: 開封瓶逾期，但廠商效期未到且同批號仍有未開封瓶可替換
-  if ((b.remaining || 0) > 0 && b.openExpiry && daysUntilExpiry(b.openExpiry) <= 0 &&
+  if ((b.remaining || 0) > 0 && b.openExpiry && daysUntilExpiry(b.openExpiry) < 0 &&
       b.expiry && daysUntilExpiry(b.expiry) > 0 && (b.unopened || 0) > 0) {
     return { status:'open_expired', cls:'badge-crit', text:'🔴 開封逾期' };
   }
   const days = daysUntilExpiry(effectiveExpiry(b));
   if (days !== null) {
-    if (days <= 0)  return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
+    if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
+    if (days === 0) return { status:'expire1',    cls:'badge-warn', text:'🟠 今日到期（明起停用）' };
     if (days === 1) return { status:'expire1',    cls:'badge-warn', text:'🟠 明天到期（今日最後）' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
@@ -2053,6 +2054,8 @@ function confirmOpenBottle() {
     const openVol = batch.bottleVol || cfg.bottleVol || 0;
     batch.unopened  -= 1;
     batch.remaining  = parseFloat((batch.remaining + openVol).toFixed(1));
+    // v9c：新瓶已開，批號在物理上已復活，撕掉空瓶標籤（_exhaustedVol 保留供日誌使用）
+    if (_openWasExhaust) batch.markedExhausted = false;
     batch._manuallyOpened = (batch._manuallyOpened || 0) + 1;
     if (batch._calibratedFrom !== undefined) batch._calibratedFrom = parseFloat((batch._calibratedFrom + openVol).toFixed(1));
     const openDateVal2 = document.getElementById('modal-open-date')?.value || _fmt(_today);
@@ -2597,9 +2600,9 @@ async function submitBeipan() {
   [...reagentConfig, gm508Config].forEach(cfg => {
     (cfg.batches || []).forEach(batch => {
       if (batch._calibratedFrom === undefined) return;
-      const actualCurrentVol = (batch.markedExhausted && batch._exhaustedVol !== undefined)
-        ? batch._exhaustedVol
-        : batch.remaining;
+      // v9c：把 _exhaustedVol 加回 remaining，才能與 _calibratedFrom 公平比較
+      // 若當次有自動作廢殘液，_calibratedFrom 已連動位移，_exhaustedVol 那段需加回來消除誤差
+      const actualCurrentVol = batch.remaining + (batch._exhaustedVol || 0);
       const diff = actualCurrentVol - batch._calibratedFrom;
       if (Math.abs(diff) <= 0.01) return;
       logEntries.push({
@@ -2703,8 +2706,8 @@ async function submitBeipan() {
         });
       }
 
-      // discardVol 對所有 markedExhausted 批號有效（不受 isSelected 限制）
-      const discardVol = batch.markedExhausted ? (batch._exhaustedVol || 0) : 0;
+      // v9c：discardVol 直接讀 _exhaustedVol，不看 markedExhausted（開新瓶後標籤已被清除）
+      const discardVol = batch._exhaustedVol || 0;
       if (discardVol > 0) {
         logEntries.push({
           source: 'beipan', action: 'discard',
@@ -2718,8 +2721,8 @@ async function submitBeipan() {
         });
       }
 
-      // P0-1：所有批號都進快照，確保次日狀態完整還原
-      const finalRem = discardVol > 0 ? 0 : newRem;
+      // v9c：絕對信任數學計算，不再以 discardVol > 0 強制歸零
+      const finalRem = newRem;
       updatedBatches.push({
         reagentId: cfg.id, reagentName: cfg.name,
         selectedLot: batch.lot,
@@ -2836,9 +2839,9 @@ async function submitBeipan() {
     return;
   }
   window._beipanSubmitting = false;
-  // v9b：成功後清除殘留 Stack 狀態，防止後續操作誤觸
+  // v9b/v9c：成功後清除殘留狀態，防止後續操作誤觸
   for (const c of [...reagentConfig, gm508Config]) {
-    c.batches.forEach(b => { delete b._prevDates; delete b._pendingTriggeredExhaust; });
+    c.batches.forEach(b => { delete b._prevDates; delete b._pendingTriggeredExhaust; delete b._exhaustedVol; b.markedExhausted = false; });
   }
   // 釋放編輯鎖定（備盤已送出，不再需要鎖）
   stopHeartbeat();
