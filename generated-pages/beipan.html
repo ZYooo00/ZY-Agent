@@ -456,6 +456,12 @@
                 </tr>
               </tbody>
             </table>
+            <!-- v10：Glue 追加按鈕（備盤鎖定後由 lockStateB 控制顯示） -->
+            <button id="glue-addon-btn"
+              class="hidden mt-2 text-xs px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 font-medium transition-colors"
+              onclick="openGlueAddonModal()">
+              ＋ 追加 Glue（下午備盤）
+            </button>
             </div>
           </div>
 
@@ -523,6 +529,82 @@
     </div>
 
   </main>
+</div>
+
+<!-- ════ MODAL：Glue 追加備盤（v10 B+）════ -->
+<div id="glue-addon-overlay"
+  class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+  onclick="if(event.target===this)closeGlueAddonModal()">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onclick="event.stopPropagation()">
+    <h3 class="font-heading text-lg font-bold text-slate-800 mb-1">追加 Glue 備盤</h3>
+    <p class="text-xs text-slate-500 mb-4">僅追加今日備盤中的 Glue 盤數，其他試劑不受影響</p>
+
+    <div class="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
+      <div class="flex justify-between text-slate-600">
+        <span>今日已備 Glue</span>
+        <span id="glue-addon-current" class="font-medium">0 盤</span>
+      </div>
+      <div class="flex justify-between text-slate-600 mt-1">
+        <span>EmbryoGlue 帳面剩餘</span>
+        <span id="glue-addon-remaining" class="font-medium">—</span>
+      </div>
+    </div>
+
+    <label class="block text-sm font-medium text-slate-700 mb-1">追加幾個盤？</label>
+    <input type="number" id="glue-addon-input" min="1" max="20"
+      class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none"
+      placeholder="輸入追加盤數">
+    <p class="text-xs text-slate-400 mt-1 mb-4">每盤消耗 0.9 mL EmbryoGlue</p>
+
+    <!-- 異常路線區域（體積不足或批號過期時展開） -->
+    <div id="glue-addon-extended" class="hidden">
+      <div id="glue-addon-warn"
+        class="mb-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+      </div>
+
+      <!-- 路線 A：帳實不符 -->
+      <div id="glue-route-a-panel" class="hidden border border-slate-200 rounded-xl p-3 mb-2">
+        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+          <input type="radio" name="glue-addon-route" value="a" onchange="onGlueRouteChange()">
+          路線 A：帳面有誤（原廠溢裝或前次少扣）
+        </label>
+        <div id="glue-route-a-input" class="hidden mt-2 ml-5">
+          <label class="text-xs text-slate-600">實際剩餘量（mL）</label>
+          <input type="number" id="glue-actual-remaining" min="0" step="0.1"
+            class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm mt-1 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+            placeholder="例如：2.0">
+          <p class="text-xs text-slate-400 mt-1">系統將先寫一筆庫存調整日誌，再扣除追加用量</p>
+        </div>
+      </div>
+
+      <!-- 路線 B：選備用批號 -->
+      <div id="glue-route-b-panel" class="border border-slate-200 rounded-xl p-3 mb-2">
+        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+          <input type="radio" name="glue-addon-route" value="b" onchange="onGlueRouteChange()">
+          路線 B：開啟備用批號
+        </label>
+        <div id="glue-route-b-select" class="hidden mt-2 ml-5">
+          <label class="text-xs text-slate-600">選擇要開封的批號</label>
+          <select id="glue-backup-batch-select"
+            class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-sm mt-1 focus:ring-2 focus:ring-amber-400 focus:outline-none">
+            <option value="">— 請選擇 —</option>
+          </select>
+          <p class="text-xs text-slate-400 mt-1">舊瓶殘液保留至明日備盤時處理</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mt-3">
+      <button onclick="closeGlueAddonModal()"
+        class="flex-1 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50">
+        取消
+      </button>
+      <button id="glue-addon-submit-btn" onclick="submitGlueAddon()"
+        class="flex-1 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors">
+        確認追加
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ════ MODAL：確認送出備盤 ════ -->
@@ -988,6 +1070,18 @@ async function lockStateB(snapshot) {
   if (submitArea) submitArea.classList.add('hidden');
 
   switchState('b');
+
+  // v10：存快照供追加使用（覆蓋兩條路徑：送出 + F5 重載）
+  window._lastBeipanPayload = JSON.parse(JSON.stringify(snapshot));
+  // v10：判斷是否顯示 Glue 追加按鈕（_glueAddonDone = 防 F5 殭屍復活）
+  const _glueAddonBtn = document.getElementById('glue-addon-btn');
+  if (_glueAddonBtn) {
+    if (snapshot._glueAddonDone) {
+      _glueAddonBtn.classList.add('hidden');
+    } else {
+      _glueAddonBtn.classList.remove('hidden');
+    }
+  }
 }
 
 function switchState(s) {
@@ -3203,6 +3297,232 @@ function openNav() {
 function closeNav() {
   document.getElementById('nav-drawer').classList.remove('open');
   document.getElementById('nav-overlay').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════
+//  v10：Glue 追加備盤（Option B+）
+// ════════════════════════════════════════════════════════════
+
+function openGlueAddonModal() {
+  const glueCfg = reagentConfig.find(c => c.id === 'glue');
+  const openBatch = glueCfg?.batches?.find(b => !b.blocked && (b.remaining || 0) > 0);
+  const remMl = openBatch ? openBatch.remaining : 0;
+  const badge = openBatch ? calcBadge(openBatch, 0) : null;
+  const isExpired = badge && (badge.status === 'expired' || badge.status === 'open_expired');
+
+  document.getElementById('glue-addon-current').textContent = `${gluePlan} 盤`;
+  document.getElementById('glue-addon-remaining').textContent =
+    remMl > 0 ? `${remMl.toFixed(1)} mL` : '無有效開封批號';
+  document.getElementById('glue-addon-input').value = '';
+  document.getElementById('glue-addon-extended').classList.add('hidden');
+  document.getElementById('glue-route-a-input').classList.add('hidden');
+  document.getElementById('glue-route-b-select').classList.add('hidden');
+  document.querySelectorAll('input[name="glue-addon-route"]').forEach(r => r.checked = false);
+
+  // 若批號已過期或無開封批號，直接展開路線 B
+  if (!openBatch || isExpired) {
+    _showGlueExtended(openBatch, isExpired, 0, glueCfg);
+    const rbB = document.querySelector('input[name="glue-addon-route"][value="b"]');
+    if (rbB) { rbB.checked = true; onGlueRouteChange(); }
+  }
+
+  document.getElementById('glue-addon-overlay').classList.remove('hidden');
+}
+
+function closeGlueAddonModal() {
+  document.getElementById('glue-addon-overlay').classList.add('hidden');
+}
+
+function onGlueRouteChange() {
+  const selected = document.querySelector('input[name="glue-addon-route"]:checked')?.value;
+  document.getElementById('glue-route-a-input').classList.toggle('hidden', selected !== 'a');
+  document.getElementById('glue-route-b-select').classList.toggle('hidden', selected !== 'b');
+}
+
+function _showGlueExtended(openBatch, isExpired, deltaMl, glueCfg) {
+  const warnEl = document.getElementById('glue-addon-warn');
+
+  if (!openBatch || isExpired) {
+    const reason = !openBatch ? '目前無有效開封批號'
+      : `批號${calcBadge(openBatch, 0).text.replace(/[🔴❌🟠🗑️⚠️🔄]/gu, '').trim()}`;
+    warnEl.textContent = `⚠️ ${reason}，需選擇備用批號繼續追加。`;
+  } else {
+    const short = parseFloat((deltaMl - openBatch.remaining).toFixed(1));
+    warnEl.textContent = `⚠️ 帳面剩餘 ${openBatch.remaining.toFixed(1)} mL，追加需 ${deltaMl} mL，不足 ${short} mL。`;
+  }
+
+  // 路線 A 僅在批號存在且未過期時顯示
+  document.getElementById('glue-route-a-panel').classList.toggle('hidden', !openBatch || isExpired);
+
+  // 路線 B：只列出未過期的未開封批號
+  const select = document.getElementById('glue-backup-batch-select');
+  select.innerHTML = '<option value="">— 請選擇 —</option>';
+  const backups = (glueCfg?.batches || []).filter(b => {
+    if (b.blocked) return false;
+    if ((b.remaining || 0) > 0 || b.openDate) return false; // 排除已開封批號
+    return calcBadge(b, 0).status !== 'expired';
+  });
+  backups.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.lot;
+    opt.textContent = `批號 ${b.lot}（效期 ${b.expiry || '—'}）`;
+    select.appendChild(opt);
+  });
+  if (backups.length === 0) {
+    select.innerHTML = '<option value="">⚠️ 無可用備用批號，請至庫存頁登記後再操作</option>';
+  }
+
+  document.getElementById('glue-addon-extended').classList.remove('hidden');
+}
+
+async function submitGlueAddon() {
+  const delta = parseInt(document.getElementById('glue-addon-input').value);
+  if (!delta || delta <= 0) { showToast('請輸入追加盤數', 'warn'); return; }
+  const deltaMl = parseFloat((delta * 0.9).toFixed(1));
+
+  const glueCfg = reagentConfig.find(c => c.id === 'glue');
+  const openBatch = glueCfg?.batches?.find(b => !b.blocked && (b.remaining || 0) > 0);
+  const badge = openBatch ? calcBadge(openBatch, 0) : null;
+  const isExpired = badge && (badge.status === 'expired' || badge.status === 'open_expired');
+  const needsExtended = !openBatch || isExpired || openBatch.remaining < deltaMl;
+
+  // 需要擴展路線但尚未展開 → 先展開讓使用者選擇
+  if (needsExtended && document.getElementById('glue-addon-extended').classList.contains('hidden')) {
+    _showGlueExtended(openBatch, isExpired, deltaMl, glueCfg);
+    return;
+  }
+
+  const operator = document.getElementById('beipan-staff-1')?.value || '—';
+  document.getElementById('glue-addon-submit-btn').disabled = true;
+
+  try {
+    if (!needsExtended) {
+      await _glueAddonNormal(openBatch, delta, deltaMl, operator, glueCfg);
+      return;
+    }
+
+    const route = document.querySelector('input[name="glue-addon-route"]:checked')?.value;
+    if (!route) { showToast('請選擇處理路線', 'warn'); return; }
+
+    if (route === 'a') {
+      const actualRem = parseFloat(document.getElementById('glue-actual-remaining').value);
+      if (isNaN(actualRem) || actualRem <= 0) { showToast('請輸入實際剩餘量', 'warn'); return; }
+      if (actualRem < deltaMl) { showToast(`實際剩餘 ${actualRem} mL 仍不足追加所需 ${deltaMl} mL`, 'warn'); return; }
+      await _glueAddonRouteA(openBatch, actualRem, delta, deltaMl, operator, glueCfg);
+    } else {
+      const selectedLot = document.getElementById('glue-backup-batch-select').value;
+      if (!selectedLot) { showToast('請選擇備用批號', 'warn'); return; }
+      const backupBatch = glueCfg.batches.find(b => b.lot === selectedLot);
+      if (!backupBatch) { showToast('找不到指定批號，請重新整理頁面', 'warn'); return; }
+      if (calcBadge(backupBatch, 0).status === 'expired') { showToast('所選批號已過期，請重新選擇', 'warn'); return; }
+      await _glueAddonRouteB(backupBatch, delta, deltaMl, operator, glueCfg);
+    }
+  } catch(e) {
+    console.error('[glueAddon] 儲存失敗', e);
+    showToast('網路異常，追加失敗，請重試', 'warn');
+  } finally {
+    document.getElementById('glue-addon-submit-btn').disabled = false;
+  }
+}
+
+async function _glueAddonNormal(openBatch, delta, deltaMl, operator, glueCfg) {
+  await _commitGlueAddon({
+    targetBatch: openBatch,
+    newRemaining: parseFloat((openBatch.remaining - deltaMl).toFixed(1)),
+    delta, deltaMl, operator, glueCfg, bottlesOpened: 0
+  });
+}
+
+async function _glueAddonRouteA(openBatch, actualRem, delta, deltaMl, operator, glueCfg) {
+  const adjustDelta = parseFloat((actualRem - openBatch.remaining).toFixed(1));
+  await window._fb.fsLog({
+    id: `${Date.now()}-glue-adjust`,
+    ts: new Date().toISOString(),
+    source: 'beipan', action: 'adjust',
+    productId: 'glue', productName: 'EmbryoGlue',
+    lotNumber: openBatch.lot,
+    qtyDelta: adjustDelta, unit: 'mL',
+    operator,
+    note: `追加備盤前殘液校正：帳面 ${openBatch.remaining} mL → 實際 ${actualRem} mL`,
+  });
+  await _commitGlueAddon({
+    targetBatch: openBatch,
+    newRemaining: parseFloat((actualRem - deltaMl).toFixed(1)),
+    delta, deltaMl, operator, glueCfg, bottlesOpened: 0
+  });
+}
+
+async function _glueAddonRouteB(backupBatch, delta, deltaMl, operator, glueCfg) {
+  const _fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _today = new Date();
+  const todayStr = _fmtD(_today);
+  const _openDays = PRODUCTS.find(p => p.id === 'glue')?.openExpiryDays || 14;
+  const _expD = new Date(_today);
+  _expD.setDate(_expD.getDate() + _openDays - 1);
+  const openExpiry = _fmtD(_expD);
+  const bottleVol = backupBatch.bottleVol || glueCfg.bottleVol || 10;
+
+  await window._fb.fsLog({
+    id: `${Date.now()}-glue-open`,
+    ts: new Date().toISOString(),
+    source: 'beipan', action: 'open_bottle',
+    productId: 'glue', productName: 'EmbryoGlue',
+    lotNumber: backupBatch.lot,
+    expiryDate: backupBatch.expiry || null,
+    openExpiryDate: openExpiry,
+    operator,
+    note: '追加備盤時開封新瓶',
+  });
+
+  backupBatch.openDate = todayStr;
+  backupBatch.openExpiry = openExpiry;
+
+  await _commitGlueAddon({
+    targetBatch: backupBatch,
+    newRemaining: parseFloat((bottleVol - deltaMl).toFixed(1)),
+    delta, deltaMl, operator, glueCfg, bottlesOpened: 1
+  });
+}
+
+async function _commitGlueAddon({ targetBatch, newRemaining, delta, deltaMl, operator, glueCfg, bottlesOpened }) {
+  targetBatch.remaining = newRemaining;
+
+  if (window._lastBeipanPayload) {
+    window._lastBeipanPayload.glue = (window._lastBeipanPayload.glue || 0) + delta;
+    window._lastBeipanPayload._glueAddonDone = true;
+    const snapBatch = window._lastBeipanPayload.batches?.find(
+      b => b.reagentId === 'glue' && b.selectedLot === targetBatch.lot
+    );
+    if (snapBatch) snapBatch.remaining = newRemaining;
+    await window._fb.saveBeipanSnapshot(window._lastBeipanPayload);
+  }
+
+  await window._fb.fsLog({
+    id: `${Date.now()}-glue-addon`,
+    ts: new Date().toISOString(),
+    source: 'beipan', action: 'beipan_addon',
+    productId: 'glue', productName: 'EmbryoGlue',
+    lotNumber: targetBatch.lot,
+    expiryDate: targetBatch.expiry || null,
+    openExpiryDate: targetBatch.openExpiry || null,
+    qtyDelta: -deltaMl, unit: 'mL',
+    bottlesOpened, operator,
+    note: `追加備盤：Glue +${delta} 盤（${deltaMl} mL）`,
+    addons: [{ reagentId: 'glue', deltaPlates: delta, deltaMl }],
+  });
+
+  gluePlan += delta;
+  const cell = document.getElementById('glue-plan-cell');
+  if (cell) cell.textContent = gluePlan;
+
+  const savedState = getCardState('glue');
+  const cardEl = document.getElementById('card-glue');
+  if (cardEl && glueCfg) cardEl.innerHTML = buildBatchCardHTML(glueCfg, savedState);
+  setBeipanFormDisabled(true);
+
+  showToast(`Glue 已追加 ${delta} 盤（${deltaMl} mL）✓`, 'ok', 4000);
+  closeGlueAddonModal();
+  document.getElementById('glue-addon-btn')?.classList.add('hidden');
 }
 </script>
 </body>
