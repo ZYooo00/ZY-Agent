@@ -1080,6 +1080,7 @@ async function lockStateB(snapshot) {
       _glueAddonBtn.classList.add('hidden');
     } else {
       _glueAddonBtn.classList.remove('hidden');
+      _glueAddonBtn.disabled = false; // setBeipanFormDisabled(true) 會把所有 button disabled，這裡補回來
     }
   }
 }
