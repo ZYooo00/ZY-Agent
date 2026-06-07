@@ -1073,15 +1073,15 @@ async function lockStateB(snapshot) {
 
   // v10：存快照供追加使用（覆蓋兩條路徑：送出 + F5 重載）
   window._lastBeipanPayload = JSON.parse(JSON.stringify(snapshot));
-  // v10：判斷是否顯示 Glue 追加按鈕（_glueAddonDone = 防 F5 殭屍復活）
+  // v10：顯示 Glue 追加按鈕，還原已追加次數
   const _glueAddonBtn = document.getElementById('glue-addon-btn');
   if (_glueAddonBtn) {
-    if (snapshot._glueAddonDone) {
-      _glueAddonBtn.classList.add('hidden');
-    } else {
-      _glueAddonBtn.classList.remove('hidden');
-      _glueAddonBtn.disabled = false; // setBeipanFormDisabled(true) 會把所有 button disabled，這裡補回來
-    }
+    const _addonCount = snapshot._glueAddonCount || 0;
+    _glueAddonBtn.classList.remove('hidden');
+    _glueAddonBtn.disabled = false; // setBeipanFormDisabled(true) 會把所有 button disabled，這裡補回來
+    _glueAddonBtn.textContent = _addonCount > 0
+      ? `＋ 追加 Glue（下午備盤）〔已追加 ${_addonCount} 次〕`
+      : '＋ 追加 Glue（下午備盤）';
   }
 }
 
@@ -3355,18 +3355,18 @@ function _showGlueExtended(openBatch, isExpired, deltaMl, glueCfg) {
   // 路線 A 僅在批號存在且未過期時顯示
   document.getElementById('glue-route-a-panel').classList.toggle('hidden', !openBatch || isExpired);
 
-  // 路線 B：只列出未過期的未開封批號
+  // 路線 B：列出有未開封瓶數（unopened > 0）且未過期的批號
   const select = document.getElementById('glue-backup-batch-select');
   select.innerHTML = '<option value="">— 請選擇 —</option>';
   const backups = (glueCfg?.batches || []).filter(b => {
     if (b.blocked) return false;
-    if ((b.remaining || 0) > 0 || b.openDate) return false; // 排除已開封批號
+    if ((b.unopened || 0) <= 0) return false; // 必須有未開封的瓶子
     return calcBadge(b, 0).status !== 'expired';
   });
   backups.forEach(b => {
     const opt = document.createElement('option');
     opt.value = b.lot;
-    opt.textContent = `批號 ${b.lot}（效期 ${b.expiry || '—'}）`;
+    opt.textContent = `批號 ${b.lot}（效期 ${b.expiry || '—'}）｜未開封 ${b.unopened} 瓶`;
     select.appendChild(opt);
   });
   if (backups.length === 0) {
@@ -3457,11 +3457,17 @@ async function _glueAddonRouteB(backupBatch, delta, deltaMl, operator, glueCfg) 
   const _fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const _today = new Date();
   const todayStr = _fmtD(_today);
-  const _openDays = PRODUCTS.find(p => p.id === 'glue')?.openExpiryDays || 14;
-  const _expD = new Date(_today);
-  _expD.setDate(_expD.getDate() + _openDays - 1);
-  const openExpiry = _fmtD(_expD);
   const bottleVol = backupBatch.bottleVol || glueCfg.bottleVol || 10;
+
+  // 判斷是否為全新批號（從未開封）或是同批號再開一瓶（已有 openDate）
+  const isFirstOpen = !backupBatch.openDate;
+  let openExpiry = backupBatch.openExpiry || null;
+  if (isFirstOpen) {
+    const _openDays = PRODUCTS.find(p => p.id === 'glue')?.openExpiryDays || 14;
+    const _expD = new Date(_today);
+    _expD.setDate(_expD.getDate() + _openDays - 1);
+    openExpiry = _fmtD(_expD);
+  }
 
   await window._fb.fsLog({
     id: `${Date.now()}-glue-open`,
@@ -3472,15 +3478,21 @@ async function _glueAddonRouteB(backupBatch, delta, deltaMl, operator, glueCfg) 
     expiryDate: backupBatch.expiry || null,
     openExpiryDate: openExpiry,
     operator,
-    note: '追加備盤時開封新瓶',
+    note: isFirstOpen ? '追加備盤時開封新批號' : '追加備盤時開封同批號新瓶',
   });
 
-  backupBatch.openDate = todayStr;
-  backupBatch.openExpiry = openExpiry;
+  // 更新批號開封狀態與未開封瓶數
+  if (isFirstOpen) {
+    backupBatch.openDate = todayStr;
+    backupBatch.openExpiry = openExpiry;
+  }
+  backupBatch.unopened = Math.max(0, (backupBatch.unopened || 1) - 1);
 
+  // 既有殘液 + 新瓶體積，再扣除追加用量
+  const baseRem = backupBatch.remaining || 0;
   await _commitGlueAddon({
     targetBatch: backupBatch,
-    newRemaining: parseFloat((bottleVol - deltaMl).toFixed(1)),
+    newRemaining: parseFloat((baseRem + bottleVol - deltaMl).toFixed(1)),
     delta, deltaMl, operator, glueCfg, bottlesOpened: 1
   });
 }
@@ -3490,7 +3502,7 @@ async function _commitGlueAddon({ targetBatch, newRemaining, delta, deltaMl, ope
 
   if (window._lastBeipanPayload) {
     window._lastBeipanPayload.glue = (window._lastBeipanPayload.glue || 0) + delta;
-    window._lastBeipanPayload._glueAddonDone = true;
+    window._lastBeipanPayload._glueAddonCount = (window._lastBeipanPayload._glueAddonCount || 0) + 1;
     const snapBatch = window._lastBeipanPayload.batches?.find(
       b => b.reagentId === 'glue' && b.selectedLot === targetBatch.lot
     );
@@ -3521,9 +3533,13 @@ async function _commitGlueAddon({ targetBatch, newRemaining, delta, deltaMl, ope
   if (cardEl && glueCfg) cardEl.innerHTML = buildBatchCardHTML(glueCfg, savedState);
   setBeipanFormDisabled(true);
 
+  // 更新按鈕文字顯示已追加次數（不隱藏，可繼續追加）
+  const _newCount = window._lastBeipanPayload?._glueAddonCount || 1;
+  const _addonBtn = document.getElementById('glue-addon-btn');
+  if (_addonBtn) _addonBtn.textContent = `＋ 追加 Glue（下午備盤）〔已追加 ${_newCount} 次〕`;
+
   showToast(`Glue 已追加 ${delta} 盤（${deltaMl} mL）✓`, 'ok', 4000);
   closeGlueAddonModal();
-  document.getElementById('glue-addon-btn')?.classList.add('hidden');
 }
 </script>
 </body>
