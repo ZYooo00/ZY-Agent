@@ -687,6 +687,33 @@ function previewBeipan() {
     return;
   }
 
+  // v9b 攔截 2a：混批面板開啟時，嚴格驗證 firstVol 輸入（防空白、防負數、防超扣）
+  for (const cfg of [...reagentConfig, gm508Config]) {
+    const secondPanel = document.getElementById(cfg.id + '-second');
+    if (!secondPanel || secondPanel.classList.contains('hidden')) continue;
+    const firstVolInput = document.getElementById(cfg.id + '-first-vol')?.value ?? '';
+    const secondLotId   = document.getElementById(cfg.id + '-second-lot')?.value ?? '';
+    if (firstVolInput === '') {
+      showToast(`【${cfg.name}】已開啟混批，請輸入第一批取用量`, 'warn'); return;
+    }
+    if (!secondLotId) {
+      showToast(`【${cfg.name}】已開啟混批，請選擇第二批號`, 'warn'); return;
+    }
+    const fvRaw = parseFloat(firstVolInput);
+    if (fvRaw < 0) {
+      showToast(`【${cfg.name}】第一批取用量不可為負數`, 'warn'); return;
+    }
+    const _selLot   = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value;
+    const _selBatch = _selLot ? cfg.batches.find(b => b.lot === _selLot) : null;
+    if (_selBatch && fvRaw > (_selBatch.remaining || 0)) {
+      showToast(`【${cfg.name}】第一批取用量 ${fvRaw}mL 不得大於帳面剩餘量 ${(_selBatch.remaining||0)}mL`, 'warn'); return;
+    }
+    const _cfgNeeded = parseFloat(cfg.needed) || 0;
+    if (fvRaw > _cfgNeeded && _cfgNeeded > 0) {
+      showToast(`【${cfg.name}】第一批取用量 ${fvRaw}mL 不得大於今日需用量 ${_cfgNeeded}mL`, 'warn'); return;
+    }
+  }
+
   // 攔截 2（新版）：帳面量不足 → 紅色硬阻擋，不允許強制送出
   const hardBlockLots = [];
   for (const cfg of [...reagentConfig, gm508Config]) {
@@ -1407,8 +1434,11 @@ function saveDraft() {
       _exhaustedVol:   b._exhaustedVol,
       markedExhausted: b.markedExhausted,
       _manuallyOpened: b._manuallyOpened,
-      _isAutoLot:      b._isAutoLot,
-      _autoJinhuoId:   b._autoJinhuoId,
+      _isAutoLot:             b._isAutoLot,
+      _autoJinhuoId:          b._autoJinhuoId,
+      _exhaustedByExpiry:     b._exhaustedByExpiry,
+      _prevDates:             b._prevDates,
+      _pendingTriggeredExhaust: b._pendingTriggeredExhaust,
     }));
   });
 
@@ -1474,6 +1504,9 @@ function loadDraft() {
         else delete batch.markedExhausted;
         if (sb._isAutoLot) batch._isAutoLot = true;
         if (sb._autoJinhuoId) batch._autoJinhuoId = sb._autoJinhuoId;
+        if (sb._exhaustedByExpiry !== undefined) batch._exhaustedByExpiry = sb._exhaustedByExpiry;
+        if (sb._prevDates)                        batch._prevDates         = sb._prevDates;
+        if (sb._pendingTriggeredExhaust !== undefined) batch._pendingTriggeredExhaust = sb._pendingTriggeredExhaust;
       });
     });
   }
@@ -1997,6 +2030,26 @@ function confirmOpenBottle() {
       showToast('此批號已無未開封瓶可供開啟', 'warn');
       closeModal(); return;
     }
+    // ── v9b：判斷此次開瓶是否伴隨殘液作廢 ──
+    let _openWasExhaust = false;
+    const _badgeStatus = calcBadge(batch, cfg.needed)?.status;
+    if (_badgeStatus === 'open_expired' && (batch.remaining || 0) > 0) {
+      // 路徑 A：正常登記新開瓶，批號已開封逾期 → 自動作廢殘液
+      batch._exhaustedVol      = batch.remaining;
+      batch.remaining          = 0;
+      batch.markedExhausted    = true;
+      batch._exhaustedByExpiry = true;
+      _openWasExhaust          = true;
+      showToast(`原過期殘液 ${batch._exhaustedVol}mL 已自動作廢，新瓶開封成功 ✓`, 'ok', 5000);
+    } else if (batch._pendingTriggeredExhaust) {
+      // 路徑 B：紅色按鈕已先清零，橋接標記接力
+      _openWasExhaust = true;
+      delete batch._pendingTriggeredExhaust;
+    }
+    // ── Stack 備份舊開封日（綁定作廢紀錄，支援無限次取消還原）──
+    batch._prevDates = batch._prevDates || [];
+    batch._prevDates.push({ date: batch.openDate, exp: batch.openExpiry, triggeredExhaust: _openWasExhaust });
+
     const openVol = batch.bottleVol || cfg.bottleVol || 0;
     batch.unopened  -= 1;
     batch.remaining  = parseFloat((batch.remaining + openVol).toFixed(1));
@@ -2073,8 +2126,20 @@ function cancelOpenBottle(cardId, lot) {
   b.remaining = parseFloat(Math.max(0, b.remaining - vol).toFixed(1));
   b._manuallyOpened = Math.max(0, (b._manuallyOpened || 1) - 1);
   if (b._calibratedFrom !== undefined) b._calibratedFrom = parseFloat(Math.max(0, b._calibratedFrom - vol).toFixed(1));
-  // remaining 歸零代表本 session 首次開瓶，清除開封日；否則保留舊開封日
-  if (b.remaining === 0) { b.openDate = null; b.openExpiry = null; }
+  // v9b：Stack Pop — 精準還原開封日與廢液狀態
+  if (b._prevDates && b._prevDates.length > 0) {
+    const lastState = b._prevDates.pop();
+    b.openDate    = lastState.date;
+    b.openExpiry  = lastState.exp;
+    if (lastState.triggeredExhaust) {
+      b.remaining          = parseFloat((b.remaining + (b._exhaustedVol || 0)).toFixed(1));
+      b._exhaustedVol      = undefined;
+      b.markedExhausted    = false;
+      b._exhaustedByExpiry = false;
+    }
+  } else if (b.remaining === 0) {
+    b.openDate = null; b.openExpiry = null;
+  }
 
   const savedStateCancel = getCardState(cardId);
   if (cardId === 'aoa-508') {
@@ -2111,6 +2176,9 @@ function toggleExhausted(cardId, lot) {
     batch.remaining       = batch._exhaustedVol || 0;
     batch._exhaustedVol   = undefined;
     batch.markedExhausted = false;
+    // v9b：清除因關閉 Modal 而殘留的橋接標記，保持狀態乾淨
+    delete batch._exhaustedByExpiry;
+    delete batch._pendingTriggeredExhaust;
   }
   const savedStateExhausted = getCardState(cardId);
   if (cardId === 'aoa-508') {
@@ -2134,11 +2202,11 @@ function replaceExpiredBottle(cardId, lot) {
   const batch = cfg.batches.find(b => b.lot === lot);
   if (!batch) return;
   if (!batch.markedExhausted) {
-    batch._exhaustedVol   = batch.remaining;
-    batch.remaining       = 0;
-    batch.markedExhausted = true;
-    // 不在此處設 _exhaustedByExpiry，讓使用者保留「↺ 復原殘液」的機會
-    // 避免誤點後批號被永久鎖死無法還原
+    batch._exhaustedVol            = batch.remaining;
+    batch.remaining                = 0;
+    batch.markedExhausted          = true;
+    batch._exhaustedByExpiry       = true;
+    batch._pendingTriggeredExhaust = true;  // 橋接：告知 confirmOpenBottle 此次有殘液作廢
   }
   const savedStateReplace = getCardState(cardId);
   if (cardId === 'aoa-508') {
@@ -2521,7 +2589,7 @@ async function submitBeipan() {
   // P4-3：提交前快照，Firebase 失敗時可回滾，避免雙重扣除
   const _batchSnapshot = new Map();
   for (const c of [...reagentConfig, gm508Config]) {
-    _batchSnapshot.set(c.id, c.batches.map(b => ({ lot: b.lot, remaining: b.remaining, unopened: b.unopened })));
+    _batchSnapshot.set(c.id, c.batches.map(b => ({ lot: b.lot, remaining: b.remaining, unopened: b.unopened, _manuallyOpened: b._manuallyOpened })));
   }
 
   // ── 前置迴圈：所有有 _calibratedFrom 的批次，不論有無被選中備盤，都先寫入校正日誌
@@ -2719,6 +2787,9 @@ async function submitBeipan() {
     glue: parseFloat(document.getElementById('glue-plan-input')?.value) || 0,
     bulk: bulkSnap,
   };
+  // v9b：送出期間凍結 UI，防止 Ghost Click 污染記憶體
+  setBeipanFormDisabled(true);
+
   // P4-1：送出前最終鎖定驗證（Race Condition 防禦）
   if (_lockCurrentStaff && _lockTodayStr) {
     const lockCheck = await window._fb?.acquireBeipanLock?.(_lockTodayStr, _lockCurrentStaff);
@@ -2753,17 +2824,22 @@ async function submitBeipan() {
       const snap = _batchSnapshot.get(c.id) || [];
       c.batches.forEach(b => {
         const orig = snap.find(x => x.lot === b.lot);
-        if (orig) { b.remaining = orig.remaining; b.unopened = orig.unopened; }
+        if (orig) { b.remaining = orig.remaining; b.unopened = orig.unopened; b._manuallyOpened = orig._manuallyOpened; }
       });
     }
     window._fb?.releaseBeipanLock?.(_lockTodayStr, _lockCurrentStaff)
       .catch(err => console.warn('[beipan] 釋放鎖失敗', err));
     recalcAllNeeded();
     window._beipanSubmitting = false;
+    setBeipanFormDisabled(false);  // v9b：失敗時解除 UI 凍結，讓操作者可重試
     showToast('網路連線異常，儲存失敗！資料已回復原狀，請確認網路後重新送出。', 'warn', 6000);
     return;
   }
   window._beipanSubmitting = false;
+  // v9b：成功後清除殘留 Stack 狀態，防止後續操作誤觸
+  for (const c of [...reagentConfig, gm508Config]) {
+    c.batches.forEach(b => { delete b._prevDates; delete b._pendingTriggeredExhaust; });
+  }
   // 釋放編輯鎖定（備盤已送出，不再需要鎖）
   stopHeartbeat();
   if (_lockCurrentStaff && _lockTodayStr) {
