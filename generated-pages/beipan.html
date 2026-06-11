@@ -866,7 +866,8 @@ async function openHistoryModal() {
     const batchMap = {};
     (snap.batches || []).forEach(b => {
       if (!batchMap[b.reagentId]) batchMap[b.reagentId] = { name: b.reagentName, lots: [] };
-      if (b.selectedLot && b.selectedLot !== 'null' && !batchMap[b.reagentId].lots.includes(b.selectedLot))
+      const isVisible = b.isUserSelected !== false || b.usedQty > 0 || b.bottlesOpened > 0;
+      if (isVisible && b.selectedLot && b.selectedLot !== 'null' && !batchMap[b.reagentId].lots.includes(b.selectedLot))
         batchMap[b.reagentId].lots.push(b.selectedLot);
     });
     const batchRows = Object.values(batchMap).map(g => {
@@ -2828,6 +2829,7 @@ async function submitBeipan() {
       updatedBatches.push({
         reagentId: cfg.id, reagentName: cfg.name,
         selectedLot: batch.lot,
+        isUserSelected: isSelected,
         remaining: finalRem, unopened: unop,
         bottlesOpened: opened, usedQty: deduct,
         bottleVol: batch.bottleVol || 0,
