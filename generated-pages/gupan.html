@@ -119,6 +119,11 @@
     cursor:pointer; user-select:none;
     vertical-align:middle; margin-left:3px;
     flex-shrink:0;
+    position:relative;
+  }
+  /* 擴大觸控感應區（視覺大小不變） */
+  .hint-icon::before {
+    content:''; position:absolute; inset:-8px;
   }
   .hint-icon:active { background:#F1F5F9; border-color:#64748B; color:#64748B; }
 
@@ -486,7 +491,7 @@ const givfDishes = [
   { key:'coc',     name:'COC',      unit:'盤', suggest: t => 0 },
   { key:'sperm',   name:'精蟲',     unit:'台',  suggest: t => t.szu },
   { key:'givf_ph', name:'G-IVF pH', unit:'盤', suggest: t => 0, manual: true },
-  { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 0, note:'評估受精與 STD 台數' },
+  { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 2, note:'評估受精與 STD 台數' },
 ];
 
 // ── 資料：胚胎矩陣 ──
@@ -498,7 +503,7 @@ const matrixDishes = [
   { key:'glue',     name:'Glue',      h5: t => t.fbt + t.bt, gx: t => 0 },
   { key:'geri_fbt', name:'Geri-FBT',  h5: t => t.fbt, gx: t => 0     },
   { key:'ph',       name:'pH 盤',     h5: t => 0,     gx: t => 0,     manual: true },
-  { key:'multi',    name:'多配',      h5: t => 0,     gx: t => 0,     isMl: true  },
+  { key:'multi',    name:'多配',      h5: t => 2,     gx: t => 2,     isMl: true  },
 ];
 
 // ── 填充人員選單 ──
@@ -955,11 +960,11 @@ async function saveConfirmedData(now, t, staffA, staffB) {
 
   function effGivf(d) {
     const v = parseFloat(document.getElementById(`givf-in-${d.key}`)?.value);
-    return isNaN(v) ? d.suggest(taiVals) : v;
+    return isNaN(v) ? 0 : v;
   }
   function effMatrix(d, side) {
     const v = parseFloat(document.getElementById(`mx-in-${side}-${d.key}`)?.value);
-    return isNaN(v) ? (side === 'h5' ? d.h5(taiVals) : d.gx(taiVals)) : v;
+    return isNaN(v) ? 0 : v;
   }
 
   const givf = {};
@@ -1017,13 +1022,16 @@ function closeNav() {
     if (!text) return;
     popup.textContent = text;
     popup.classList.add('visible');
-    const r = el.getBoundingClientRect();
+    const r  = el.getBoundingClientRect();
+    const pr = popup.getBoundingClientRect(); // 取 popup 實際高度
     let left = r.left - 100;
     if (left < 8) left = 8;
     if (left + 240 > window.innerWidth) left = window.innerWidth - 244;
-    let top = r.bottom + 8;
+    // 優先顯示在上方；上方空間不足時 fallback 到下方
+    let top = r.top - pr.height - 8;
+    if (top < 8) top = r.bottom + 8;
     popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
+    popup.style.top  = top  + 'px';
   }
 
   function hide() {

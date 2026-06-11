@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.07g'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.11'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.11',
+    date: '2026-06-11',
+    changes: [
+      '【修正】估盤：未填入數值的欄位確認送出時改為傳 0，不再自動帶入建議數值，避免估盤值誤流入備盤頁面',
+      '【修正】估盤：多配欄位建議數值還原為 2 mL（H5GT、GxTL、GIVF 三欄皆適用）',
+    ],
+  },
   {
     version: '26.06.07',
     date: '2026-06-07',

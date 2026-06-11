@@ -1314,18 +1314,26 @@ async function initBatchesFromFirebase() {
       });
     }
 
+    // 快照日期（用於計算快照後新增的入庫量）
+    const snapDate = latestBeipan?.date || null;
+
     // 過濾有效紀錄（排除作廢 & QC 未完成）
     const valid = jinhuoRecords.filter(r => !r.isVoided && r.qcStatus !== 'pending');
 
     // 依 productId + lotNumber 分組加總收到瓶數
+    // receivedAfterSnap：快照日期之後新入庫的量（入庫未被快照記錄，需補加入 unopened）
     const lotMap = {};
     valid.forEach(r => {
       if (!r.productId || !r.lotNumber) return;
       const key = r.productId + '_' + r.lotNumber;
       if (!lotMap[key]) {
-        lotMap[key] = { productId: r.productId, lot: r.lotNumber, expiry: r.expiryDate || null, totalReceived: 0 };
+        lotMap[key] = { productId: r.productId, lot: r.lotNumber, expiry: r.expiryDate || null, totalReceived: 0, receivedAfterSnap: 0 };
       }
-      lotMap[key].totalReceived += (r.receivedQty || 0);
+      const qty = r.receivedQty || 0;
+      lotMap[key].totalReceived += qty;
+      if (snapDate && r.receivedAt && r.receivedAt > snapDate) {
+        lotMap[key].receivedAfterSnap += qty;
+      }
     });
 
     // 注入各 config（beipan 快照有資料時，以快照的 remaining/unopened 為準）
@@ -1339,8 +1347,10 @@ async function initBatchesFromFirebase() {
           openExpiry: snap?.openExpiryDate || null,
           openDate: snap?.openDate || null,
           remaining: snap != null ? snap.remaining : 0,
-          // Math.min 確保快照瓶數不超過當前有效進貨總數（防止作廢進貨後幽靈瓶數殘留）
-          unopened: snap != null ? Math.min(snap.unopened, l.totalReceived) : l.totalReceived,
+          // snap.unopened + 快照後新入庫量，並確保不超過總入庫量（防作廢進貨後幽靈瓶數殘留）
+          unopened: snap != null
+            ? Math.min(snap.unopened + l.receivedAfterSnap, l.totalReceived)
+            : l.totalReceived,
           bottleVol: cfg.bottleVol || 0,
         };
       }).sort((a, b) => {
