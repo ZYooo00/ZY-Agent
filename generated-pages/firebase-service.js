@@ -247,6 +247,31 @@ export async function getKucunChangelog(productId = null, limitCount = 200) {
   });
 }
 
+export async function getManualKucunLogsAfter(afterIso) {
+  if (!afterIso) return [];
+  try {
+    const db = _db || (isFirestoreAvailable() ? _db : null);
+    if (!db) return [];
+    const q = query(collection(db, COLLECTIONS.changelog), where('source', '==', 'manual'));
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => d.data())
+      .filter(e => {
+        const logTime = e.tsRaw ||
+                        (typeof e.ts === 'string' ? e.ts : e.ts?.toDate?.().toISOString()) ||
+                        '';
+        return (
+          logTime > afterIso &&
+          ['use', 'discard', 'adjust'].includes(e.action) &&
+          e.productId && e.lotNumber
+        );
+      });
+  } catch (e) {
+    console.warn('[getManualKucunLogsAfter]', e);
+    return [];
+  }
+}
+
 // ─── pandian_snapshots ────────────────────────────────────────
 export async function savePandianSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");

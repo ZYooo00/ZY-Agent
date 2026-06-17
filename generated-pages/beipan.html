@@ -16,12 +16,14 @@
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
   import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
-           acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock } from './firebase-service.js?v=8';
+           acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
+           getManualKucunLogsAfter } from './firebase-service.js?v=9';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
-                 acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock };
+                 acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
+                 getManualKucunLogsAfter };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -1186,11 +1188,29 @@ function effectiveExpiry(b) {
 
 function calcBadge(b, needed) {
   if (b.blocked) return { status:'blocked', cls:'badge-none', text:'❌ 已過期' };
-  // open_expired: 開封瓶逾期，但廠商效期未到且同批號仍有未開封瓶可替換
-  if ((b.remaining || 0) > 0 && b.openExpiry && daysUntilExpiry(b.openExpiry) < 0 &&
-      b.expiry && daysUntilExpiry(b.expiry) > 0 && (b.unopened || 0) > 0) {
+
+  const hasOpen = (b.remaining || 0) > 0;
+
+  // open_expired: 開封瓶逾期，但廠商效期未到（有/無備用瓶皆適用）
+  if (hasOpen && b.openExpiry && daysUntilExpiry(b.openExpiry) < 0 &&
+      b.expiry && daysUntilExpiry(b.expiry) > 0) {
     return { status:'open_expired', cls:'badge-crit', text:'🔴 開封逾期' };
   }
+
+  // 廠商效期：今天 ≥ 效期日 → 封鎖（備盤後明天才使用，當天效期已不夠）
+  const mfgDays = b.expiry ? daysUntilExpiry(b.expiry) : null;
+  if (mfgDays !== null && mfgDays <= 0) {
+    return { status:'expired', cls:'badge-none', text:'❌ 已過期' };
+  }
+
+  // 開封效期：今天 > openExpiry → 封鎖；今天 = openExpiry → 仍可備（當天使用）
+  if (hasOpen && b.openExpiry) {
+    const openDays = daysUntilExpiry(b.openExpiry);
+    if (openDays !== null && openDays < 0) {
+      return { status:'expired', cls:'badge-none', text:'❌ 已過期' };
+    }
+  }
+
   const days = daysUntilExpiry(effectiveExpiry(b));
   if (days !== null) {
     if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
@@ -1318,6 +1338,20 @@ async function initBatchesFromFirebase() {
     // 快照日期（用於計算快照後新增的入庫量）
     const snapDate = latestBeipan?.date || null;
 
+    // 路線 A+：cutoff 優先用精確的 submittedAt，舊快照 fallback 到 snapDate
+    const kucunCutoff = latestBeipan?.submittedAt || snapDate;
+    const kucunLogs = kucunCutoff
+      ? await window._fb.getManualKucunLogsAfter(kucunCutoff)
+      : [];
+
+    // 建立 kucun 手動異動 delta map（瓶為單位，只影響 unopened）
+    const kucunDeltaMap = {};
+    kucunLogs.forEach(e => {
+      const key = e.productId + '_' + e.lotNumber;
+      if (!kucunDeltaMap[key]) kucunDeltaMap[key] = { unopenedDelta: 0 };
+      kucunDeltaMap[key].unopenedDelta += (e.qtyDelta ?? e.qty ?? 0);
+    });
+
     // 過濾有效紀錄（排除作廢 & QC 未完成）
     const valid = jinhuoRecords.filter(r => !r.isVoided && r.qcStatus !== 'pending');
 
@@ -1337,21 +1371,22 @@ async function initBatchesFromFirebase() {
       }
     });
 
-    // 注入各 config（beipan 快照有資料時，以快照的 remaining/unopened 為準）
+    // 注入各 config（beipan 快照有資料時，以快照的 remaining/unopened 為準；再疊加 kucun 手動異動）
     [...reagentConfig, gm508Config].forEach(cfg => {
       const lots = Object.values(lotMap).filter(l => l.productId === cfg.id);
       cfg.batches = lots.map(l => {
-        const snap = beipanMap[cfg.id + '_' + l.lot];
+        const snap  = beipanMap[cfg.id + '_' + l.lot];
+        const delta = kucunDeltaMap[cfg.id + '_' + l.lot] || { unopenedDelta: 0 };
+        const baseUnopened = snap != null
+          ? Math.min(snap.unopened + l.receivedAfterSnap, l.totalReceived)
+          : l.totalReceived;
         return {
           lot: l.lot,
           expiry: l.expiry,
           openExpiry: snap?.openExpiryDate || null,
           openDate: snap?.openDate || null,
-          remaining: snap != null ? snap.remaining : 0,
-          // snap.unopened + 快照後新入庫量，並確保不超過總入庫量（防作廢進貨後幽靈瓶數殘留）
-          unopened: snap != null
-            ? Math.min(snap.unopened + l.receivedAfterSnap, l.totalReceived)
-            : l.totalReceived,
+          remaining: snap != null ? snap.remaining : 0,  // mL 只由備盤 ✏️ 調整，kucun 不碰
+          unopened: Math.max(0, baseUnopened + delta.unopenedDelta),
           bottleVol: cfg.bottleVol || 0,
         };
       }).sort((a, b) => {
@@ -1383,7 +1418,10 @@ function buildBatchRow(b, needed, cardId, checked) {
   const badgeHtml = `<span class="${badge.cls} text-xs px-2 py-0.5 rounded-full font-medium">${badge.text}</span>`;
 
   if (isOpenExpired) {
-    // 開封逾期：開封瓶已過期，廠商效期未到且仍有未開封瓶 → 顯示可操作按鈕
+    // 開封逾期：有備用瓶 → 開新品；無備用瓶（最後一瓶）→ 丟棄殘液
+    const openExpiredBtn = (b.unopened || 0) > 0
+      ? `<button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 點此開新品</button>`
+      : `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🗑️ 丟棄殘液</button>`;
     return `<tr class="bg-red-50 transition-colors">
       <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
       <td class="px-3 py-3 font-mono font-semibold text-slate-800">${b.lot}</td>
@@ -1396,9 +1434,7 @@ function buildBatchRow(b, needed, cardId, checked) {
         <div class="font-semibold text-red-600">${b.remaining > 0 ? b.remaining.toFixed(1) + ' mL' : '—'}</div>
         <div class="text-xs text-slate-500">+${b.unopened || 0} 瓶未開封</div>
       </td>
-      <td class="px-3 py-3">
-        <button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 點此開新品</button>
-      </td>
+      <td class="px-3 py-3">${openExpiredBtn}</td>
       <td class="px-3 py-3">${badgeHtml}</td>
     </tr>`;
   }
@@ -2727,18 +2763,20 @@ async function submitBeipan() {
     // needed=0 時仍需檢查是否有手動開瓶或報廢動作，有的話必須寫入日誌
     const hasManualOps = cfg.batches.some(b => (b._manuallyOpened || 0) > 0 || b.markedExhausted);
     if (needed <= 0 && !hasManualOps) {
-      // P2-2：只存使用者選取的批號（避免次日還原時出現多餘批號噪音）
+      // 修正幽靈瓶：存所有非封鎖批號的完整狀態，避免 selectedLot: null 導致次日從進貨紀錄腦補數量
       const _userPickedLot = document.querySelector(`input[name="r-${cfg.id}"]:checked`)?.value || null;
-      const _pickedBatch = _userPickedLot ? cfg.batches.find(b => b.lot === _userPickedLot && !b.blocked) : null;
-      updatedBatches.push({
-        reagentId: cfg.id, reagentName: cfg.name,
-        selectedLot: _userPickedLot,
-        remaining: _pickedBatch?.remaining ?? 0, unopened: _pickedBatch?.unopened ?? 0,
-        bottlesOpened: 0, usedQty: 0,
-        bottleVol: _pickedBatch?.bottleVol || 0,
-        expiryDate: _pickedBatch?.expiry || null,
-        openExpiryDate: _pickedBatch?.openExpiry || null,
-        openDate: _pickedBatch?.openDate || null,
+      cfg.batches.filter(b => !b.blocked).forEach(batch => {
+        updatedBatches.push({
+          reagentId: cfg.id, reagentName: cfg.name,
+          selectedLot: batch.lot,
+          isUserSelected: batch.lot === _userPickedLot,
+          remaining: batch.remaining ?? 0, unopened: batch.unopened ?? 0,
+          bottlesOpened: 0, usedQty: 0,
+          bottleVol: batch.bottleVol || 0,
+          expiryDate: batch.expiry || null,
+          openExpiryDate: batch.openExpiry || null,
+          openDate: batch.openDate || null,
+        });
       });
       return;
     }
@@ -2886,7 +2924,7 @@ async function submitBeipan() {
   });
 
   const payload = {
-    date: dateStr, operator, batches: updatedBatches,
+    date: dateStr, submittedAt: new Date().toISOString(), operator, batches: updatedBatches,
     threshold: { orange_days: 3, red_days: 1 },
     note: userNote || null,
     givf: givfSnap,

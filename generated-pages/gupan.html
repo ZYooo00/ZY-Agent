@@ -15,9 +15,9 @@
 <script src="design.js" defer></script>
 <!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft } from './firebase-service.js?v=7';
+  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords } from './firebase-service.js?v=7';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft };
+  window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -271,6 +271,12 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
     等待核對人確認
+  </div>
+  <div id="banner-qc" class="banner banner-amber hidden" style="position:sticky; top:56px; z-index:21;">
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    <span id="banner-qc-text">⚠️ 102 有新批號待 QC，請多估一盤 TE 盤</span>
   </div>
   <div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1062,6 +1068,23 @@ function closeNav() {
 })();
 
 // ══════════════════════════════════════════
+// QC 待處理橫幅
+async function checkQcBanner() {
+  try {
+    const jin = await (window._fb?.getJinhuoRecords?.() ||
+      Promise.resolve(JSON.parse(localStorage.getItem('jinhuo-records') || '[]')));
+    const hasLeibai = jin.some(r => r.productId === '102'    && !r.isVoided && r.qcStatus === 'pending');
+    const hasMingmei = jin.some(r => r.productId === '102-mm' && !r.isVoided && r.qcStatus === 'pending');
+    const hasPending = hasLeibai || hasMingmei;
+    if (hasPending) {
+      const vendor = hasLeibai && hasMingmei ? '磊柏 / 明美' : hasLeibai ? '磊柏' : '明美';
+      const textEl = document.getElementById('banner-qc-text');
+      if (textEl) textEl.textContent = `⚠️ ${vendor} 的 102 有新批號待 QC，請多估一盤 TE 盤`;
+    }
+    document.getElementById('banner-qc')?.classList.toggle('hidden', !hasPending);
+  } catch(e) { console.warn('[gupan] QC banner check failed', e); }
+}
+
 // INIT
 // ══════════════════════════════════════════
 (async function init() {
@@ -1082,6 +1105,7 @@ function closeNav() {
     isInitializing = false;
   }
   startRealtimeSync();
+  checkQcBanner();
 
   const formEl = document.getElementById('page-gupan');
   formEl.addEventListener('input',  saveToStorage);
