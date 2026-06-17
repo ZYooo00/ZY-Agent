@@ -757,8 +757,9 @@ function calcProductInfo(product, data) {
 
   if (beipanBatch) {
     // 跨批次加總：同品項可能有多個批次（混批或新舊交替），只取 find() 第一筆會遺漏其餘批次的未開封瓶數
-    const hasOpenBottle = beipanBatches.some(b => (b.remaining ?? 0) > 0);
-    const unopened      = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
+    // 用 .filter().length 而非 .some()，因為可能同時有多罐開封中（e.g., Lot A 剩 3mL、Lot B 剩 5mL）
+    const openedCount = beipanBatches.filter(b => (b.remaining ?? 0) > 0).length;
+    const unopened    = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
     if (pandianItem && pandianDate > beipanDate) {
       // 有更新的盤點覆蓋備盤：以盤點為基準，加上盤點後進貨與手動異動
       const newIncoming = jinhuo
@@ -775,7 +776,7 @@ function calcProductInfo(product, data) {
         .reduce((s, r) => s + (r.receivedQty||0), 0);
       const beipanCutoff = beipan?.submittedAt || beipanDate;
       const manualDelta  = calcManualDelta(beipanCutoff);
-      const baseBottles  = (hasOpenBottle ? 1 : 0) + unopened;
+      const baseBottles  = openedCount + unopened;
       stockNum    = Math.max(0, baseBottles + newIncoming + manualDelta);
       stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
       stockSource  = 'beipan';
@@ -837,15 +838,12 @@ function calcProductInfo(product, data) {
     });
   const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
 
-  // ── 修正當前備盤批號的庫存數（用備盤快照取代進貨量）──
-  if (beipanBatch && beipanBatch.selectedLot) {
-    const currLot = lots.find(l => l.lot === beipanBatch.selectedLot);
-    if (currLot) {
-      const rem = beipanBatch.remaining ?? 0;
-      const unop = beipanBatch.unopened ?? 0;
-      currLot.qty = (rem > 0 ? 1 : 0) + unop;
-    }
-  }
+  // ── 修正備盤批號的庫存數（用備盤快照取代進貨量，須涵蓋所有批次）──
+  beipanBatches.forEach(bb => {
+    if (!bb.selectedLot) return;
+    const currLot = lots.find(l => l.lot === bb.selectedLot);
+    if (currLot) currLot.qty = ((bb.remaining ?? 0) > 0 ? 1 : 0) + (bb.unopened ?? 0);
+  });
 
   // ── Status ──
   let status = (stockSource || lots.length>0) ? 'ok' : 'none';
