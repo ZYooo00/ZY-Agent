@@ -723,7 +723,8 @@ function calcProductInfo(product, data) {
   let stockDisplay = null;
   let stockNum     = null;
   let stockSource  = null;
-  const beipanBatch  = beipan?.batches?.find(b => b.reagentId === product.id);
+  const beipanBatches = (beipan?.batches || []).filter(b => b.reagentId === product.id);
+  const beipanBatch   = beipanBatches[0] || null; // for the if (beipanBatch) check
   const pandianItem  = product.gupanId
     ? pandian?.allValues?.find(v => v.id === product.gupanId)
     : null;
@@ -755,8 +756,9 @@ function calcProductInfo(product, data) {
     .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
 
   if (beipanBatch) {
-    const remaining = beipanBatch.remaining ?? 0;
-    const unopened  = beipanBatch.unopened  ?? 0;
+    // 跨批次加總：同品項可能有多個批次（混批或新舊交替），只取 find() 第一筆會遺漏其餘批次的未開封瓶數
+    const hasOpenBottle = beipanBatches.some(b => (b.remaining ?? 0) > 0);
+    const unopened      = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
     if (pandianItem && pandianDate > beipanDate) {
       // 有更新的盤點覆蓋備盤：以盤點為基準，加上盤點後進貨與手動異動
       const newIncoming = jinhuo
@@ -773,7 +775,7 @@ function calcProductInfo(product, data) {
         .reduce((s, r) => s + (r.receivedQty||0), 0);
       const beipanCutoff = beipan?.submittedAt || beipanDate;
       const manualDelta  = calcManualDelta(beipanCutoff);
-      const baseBottles  = (remaining > 0 ? 1 : 0) + unopened;
+      const baseBottles  = (hasOpenBottle ? 1 : 0) + unopened;
       stockNum    = Math.max(0, baseBottles + newIncoming + manualDelta);
       stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
       stockSource  = 'beipan';
