@@ -838,12 +838,29 @@ function calcProductInfo(product, data) {
     });
   const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
 
-  // ── 修正備盤批號的庫存數（用備盤快照取代進貨量，須涵蓋所有批次）──
-  beipanBatches.forEach(bb => {
-    if (!bb.selectedLot) return;
-    const currLot = lots.find(l => l.lot === bb.selectedLot);
-    if (currLot) currLot.qty = ((bb.remaining ?? 0) > 0 ? 1 : 0) + (bb.unopened ?? 0);
-  });
+  // ── 修正備盤批號的庫存數（只在備盤為基準時執行，避免以舊備盤覆蓋更新的盤點數據）──
+  if (stockSource === 'beipan') {
+    const bpCutoff = beipan?.submittedAt || beipanDate;
+    beipanBatches.forEach(bb => {
+      if (!bb.selectedLot) return;
+      const currLot = lots.find(l => l.lot === bb.selectedLot);
+      if (!currLot) return;
+      const snapQty     = ((bb.remaining ?? 0) > 0 ? 1 : 0) + (bb.unopened ?? 0);
+      const lotIncoming = jinhuo
+        .filter(r => r.productId === product.id && r.lotNumber === bb.selectedLot
+                  && !r.isVoided && (r.receivedAt||'') > beipanDate)
+        .reduce((s, r) => s + (r.receivedQty||0), 0);
+      const lotDelta = (changelog || [])
+        .filter(log => {
+          const t = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
+          return log.productId === product.id && log.lotNumber === bb.selectedLot
+              && log.source === 'manual' && ['use','discard','adjust'].includes(log.action)
+              && t > bpCutoff;
+        })
+        .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
+      currLot.qty = Math.max(0, snapQty + lotIncoming + lotDelta);
+    });
+  }
 
   // ── Status ──
   let status = (stockSource || lots.length>0) ? 'ok' : 'none';
