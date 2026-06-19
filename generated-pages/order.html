@@ -15,7 +15,7 @@
   <script src="design.js" defer></script>
   <!-- Firebase bridge -->
   <script type="module">
-    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=7';
+    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=10';
     try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
     window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog };
     window.__fbDone = true;
