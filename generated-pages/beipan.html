@@ -3273,7 +3273,12 @@ onReady(async function() {
   let todayBeipan = null;
   try { todayBeipan = await window._fb.getLatestBeipan(); } catch(e) {}
   if (!todayBeipan) {
-    try { todayBeipan = JSON.parse(localStorage.getItem('beipan-result') || 'null'); } catch(e) {}
+    try {
+      const stored = JSON.parse(localStorage.getItem('beipan-result') || 'null');
+      todayBeipan = Array.isArray(stored)
+        ? stored.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null
+        : stored;
+    } catch(e) {}
   }
 
   if (todayBeipan?.date === todayStr) {

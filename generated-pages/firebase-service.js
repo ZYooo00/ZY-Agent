@@ -315,7 +315,11 @@ export async function getLatestBeipan() {
       if (!snap.empty) return snap.docs[0].data();
     } catch (e) { console.warn("[getLatestBeipan]", e); }
   }
-  return JSON.parse(localStorage.getItem("beipan-result") || "null");
+  const stored = JSON.parse(localStorage.getItem("beipan-result") || "null");
+  if (Array.isArray(stored)) {
+    return stored.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null;
+  }
+  return stored;
 }
 
 export async function getBeipanHistory(limitCount = 5) {
