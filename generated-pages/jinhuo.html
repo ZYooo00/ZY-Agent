@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>°ö¾i²GºŞ²z¨t²Î ¡X ¶i³f°O¿ı</title>
+<title>åŸ¹é¤Šæ¶²ç®¡ç†ç³»çµ± â€” é€²è²¨è¨˜éŒ„</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#9590D0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <!-- Firebase bridge -->
 <script type="module">
   import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog } from './firebase-service.js?v=11';
-  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] ªì©l¤Æ¥¢±Ñ', e); }
+  try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] åˆå§‹åŒ–å¤±æ•—', e); }
   window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, fsLog };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
@@ -44,7 +44,7 @@
   #html5qr-code-full-region { width:min(88vw,340px) !important; border-radius:14px; overflow:hidden; }
   #html5qr-code-full-region img[alt="Info icon"] { display:none !important; }
 
-  /* ¨¾¤î¤â¾÷ÂsÄı¾¹¤U©Ô­«·s¾ã²z */
+  /* é˜²æ­¢æ‰‹æ©Ÿç€è¦½å™¨ä¸‹æ‹‰é‡æ–°æ•´ç† */
   html, body { overscroll-behavior: none; }
 
   /* Step 2: confirm bottom sheet */
@@ -56,14 +56,14 @@
   }
   #scan-step2.open { transform:translateY(0); }
 
-  /* ¢w¢w Tab bar ¢w¢w */
+  /* â”€â”€ Tab bar â”€â”€ */
   .tab-bar { display:flex; gap:4px; margin-bottom:16px; border-bottom:2px solid #E2E8F0; }
   .tab-btn { flex:1; padding:10px 4px; font-size:14px; font-weight:600; color:#94A3B8;
              border:none; background:none; cursor:pointer; transition:color .15s;
              border-bottom:2px solid transparent; margin-bottom:-2px; }
   .tab-btn.active { color:#9590D0; border-bottom-color:#9590D0; }
 
-  /* ¢w¢w Pending task card ¢w¢w */
+  /* â”€â”€ Pending task card â”€â”€ */
   .pending-card { background:white; border:1px solid #E2E4F4; border-radius:12px;
                   padding:12px 14px; margin-bottom:10px;
                   box-shadow:0 1px 4px rgba(0,0,0,.05); }
@@ -81,7 +81,7 @@
   .pending-empty-icon { font-size:40px; margin-bottom:8px; }
   .pending-empty-text { font-size:14px; }
 
-  /* ¢w¢w Tray inline qty stepper ¢w¢w */
+  /* â”€â”€ Tray inline qty stepper â”€â”€ */
   .qty-stepper { display:inline-flex; align-items:center; gap:4px; background:#F1F5F9; border-radius:8px; padding:2px 4px; }
   .qty-btn { width:22px; height:22px; border:none; border-radius:6px; background:transparent; cursor:pointer;
              font-size:14px; line-height:1; color:#64748B; display:flex; align-items:center; justify-content:center;
@@ -89,7 +89,7 @@
   .qty-btn:hover { background:#E2E8F0; color:#1E293B; }
   .qty-num { min-width:24px; text-align:center; font-size:13px; font-weight:700; color:#1E293B; }
 
-  /* ¢w¢w scan-step2 PC centered modal ¢w¢w */
+  /* â”€â”€ scan-step2 PC centered modal â”€â”€ */
   @media(min-width:768px){
     #scan-step2 {
       position:fixed; bottom:auto; top:50%; left:50%; right:auto;
@@ -147,7 +147,7 @@
     #void-modal.open, #edit-modal.open { transform:translateX(-50%) translateY(-50%); opacity:1; pointer-events:all; }
   }
 
-  /* §@¼o°O¿ı¼Ë¦¡ */
+  /* ä½œå»¢è¨˜éŒ„æ¨£å¼ */
   .record-voided { opacity:0.55; }
   .record-voided .record-name { text-decoration:line-through; color:#94a3b8; }
   .record-voided .record-meta { color:#94a3b8; }
@@ -190,27 +190,27 @@
 </style>
 </head>
 <body>
-<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">?? ´ú¸Õ¼Ò¦¡ ¡X ©Ò¦³°Ê§@¥u¼vÅT´ú¸Õ¸ê®Æ¡A¤£¼vÅT¥¿¦¡®w¦s</div>');}})()</script>
+<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">âš ï¸ æ¸¬è©¦æ¨¡å¼ â€” æ‰€æœ‰å‹•ä½œåªå½±éŸ¿æ¸¬è©¦è³‡æ–™ï¼Œä¸å½±éŸ¿æ­£å¼åº«å­˜</div>');}})()</script>
 
 <!-- MOBILE NAV OVERLAY + DRAWER -->
 <div id="nav-overlay" onclick="closeNav()"></div>
 <div id="nav-drawer">
   <div class="flex items-center gap-2 px-2 mb-4 pb-4 border-b border-slate-100">
     <img src="icon-192.png" class="w-7 h-7 rounded-lg" alt="logo">
-    <span class="heading font-semibold text-slate-800 text-sm">°ö¾i²GºŞ²z¨t²Î</span>
+    <span class="heading font-semibold text-slate-800 text-sm">åŸ¹é¤Šæ¶²ç®¡ç†ç³»çµ±</span>
   </div>
   <div class="space-y-0.5">
-    <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>©ú¤é¦ô½L</div>
-    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>©ú¤é³Æ½L</div>
-    <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>½LÂIºŞ²z</div>
-    <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>­q³fºŞ²z</div>
-    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>¶i³f°O¿ı</div>
-    <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>®w¦sÁ`Äı</div>
+    <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>æ˜æ—¥ä¼°ç›¤</div>
+    <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>æ˜æ—¥å‚™ç›¤</div>
+    <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>ç›¤é»ç®¡ç†</div>
+    <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>è¨‚è²¨ç®¡ç†</div>
+    <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>é€²è²¨è¨˜éŒ„</div>
+    <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>åº«å­˜ç¸½è¦½</div>
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
     <div class="sidebar-link text-slate-400 cursor-default">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      «á¥x³]©w
+      å¾Œå°è¨­å®š
     </div>
   </div>
 </div>
@@ -222,7 +222,7 @@
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
     <img src="icon-192.png" class="w-7 h-7 rounded-lg flex-shrink-0" alt="logo">
-    <span class="font-heading font-semibold text-slate-800 text-base">°ö¾i²GºŞ²z¨t²Î</span>
+    <span class="font-heading font-semibold text-slate-800 text-base">åŸ¹é¤Šæ¶²ç®¡ç†ç³»çµ±</span>
   </div>
   <div class="flex items-center gap-3">
     <span class="text-sm text-slate-500 tabular hidden md:block" id="today-display"></span>
@@ -237,16 +237,16 @@
   <!-- DESKTOP SIDEBAR -->
   <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-52 bg-white border-r border-slate-200 z-20 flex-col py-4 overflow-y-auto">
     <div class="px-3 space-y-0.5">
-      <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>©ú¤é¦ô½L</div>
-      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>©ú¤é³Æ½L</div>
-      <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>½LÂIºŞ²z</div>
-      <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>­q³fºŞ²z</div>
-      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>¶i³f°O¿ı</div>
-      <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>®w¦sÁ`Äı</div>
+      <div class="sidebar-link" onclick="location.href='gupan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>æ˜æ—¥ä¼°ç›¤</div>
+      <div class="sidebar-link" onclick="location.href='beipan.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>æ˜æ—¥å‚™ç›¤</div>
+      <div class="sidebar-link" onclick="location.href='pandian.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>ç›¤é»ç®¡ç†</div>
+      <div class="sidebar-link" onclick="location.href='order.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>è¨‚è²¨ç®¡ç†</div>
+      <div class="sidebar-link" onclick="location.href='jinhuo.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>é€²è²¨è¨˜éŒ„</div>
+      <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>åº«å­˜ç¸½è¦½</div>
     </div>
     <div class="mt-auto px-3 pt-4 border-t border-slate-100">
       <div class="sidebar-link">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>«á¥x³]©w
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>å¾Œå°è¨­å®š
       </div>
     </div>
   </aside>
@@ -259,21 +259,21 @@
       <div>
         <h1 class="heading text-2xl font-bold text-slate-800 flex items-center gap-2">
           <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-          ¶i³f°O¿ı
+          é€²è²¨è¨˜éŒ„
         </h1>
-        <p class="text-sm text-slate-500 mt-1">±½½Xµn°O¦¬³f§å¸¹¡A¦Û°Ê§ó·s®w¦s¨Ã¤ñ¹ï«İ¦¬²M³æ</p>
+        <p class="text-sm text-slate-500 mt-1">æƒç¢¼ç™»è¨˜æ”¶è²¨æ‰¹è™Ÿï¼Œè‡ªå‹•æ›´æ–°åº«å­˜ä¸¦æ¯”å°å¾…æ”¶æ¸…å–®</p>
       </div>
       <div class="flex items-center gap-2" id="header-action-area">
         <button onclick="startScan()" class="hidden md:flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-dark transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>±½½X¦¬³f
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.243m-4.243 0l3.536 3.536M12 12L8.464 8.464M12 12v.01"/></svg>æƒç¢¼æ”¶è²¨
         </button>
       </div>
     </div>
 
     <!-- Tab bar -->
     <div class="tab-bar">
-      <button id="tab-btn-pending" class="tab-btn active" onclick="switchTab('pending')">?? «İ¦¬¥ô°È</button>
-      <button id="tab-btn-history" class="tab-btn" onclick="switchTab('history')">?? ¾ú¥v¬ö¿ı</button>
+      <button id="tab-btn-pending" class="tab-btn active" onclick="switchTab('pending')">ğŸ“¦ å¾…æ”¶ä»»å‹™</button>
+      <button id="tab-btn-history" class="tab-btn" onclick="switchTab('history')">ğŸ•’ æ­·å²ç´€éŒ„</button>
     </div>
 
     <!-- Tab 1: Pending -->
@@ -281,24 +281,24 @@
       <div id="pending-list"></div>
     </div>
 
-    <!-- Tab 2: History¡]§t filter bar + records¡Aªì©lÁôÂÃ¡^ -->
+    <!-- Tab 2: Historyï¼ˆå« filter bar + recordsï¼Œåˆå§‹éš±è—ï¼‰ -->
     <div id="tab-history" style="display:none">
       <!-- Filter bar -->
       <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
         <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-        <span class="text-sm text-slate-500 font-medium">¿z¿ï¡G</span>
+        <span class="text-sm text-slate-500 font-medium">ç¯©é¸ï¼š</span>
         <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-vendor" onchange="renderRecords()">
-          <option value="">©Ò¦³¼t°Ó</option>
+          <option value="">æ‰€æœ‰å» å•†</option>
         </select>
         <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="filter-date" onchange="renderRecords()">
-          <option value="30">³Ìªñ 30 ¤Ñ</option>
-          <option value="7">³Ìªñ 7 ¤Ñ</option>
-          <option value="90">³Ìªñ 3 ­Ó¤ë</option>
-          <option value="0">¥ş³¡</option>
+          <option value="30">æœ€è¿‘ 30 å¤©</option>
+          <option value="7">æœ€è¿‘ 7 å¤©</option>
+          <option value="90">æœ€è¿‘ 3 å€‹æœˆ</option>
+          <option value="0">å…¨éƒ¨</option>
         </select>
         <select class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" id="sort-mode" onchange="renderRecords()">
-          <option value="date">¨Ì¤é´Á</option>
-          <option value="vendor">¨Ì¼t°Ó</option>
+          <option value="date">ä¾æ—¥æœŸ</option>
+          <option value="vendor">ä¾å» å•†</option>
         </select>
         <span class="text-xs text-slate-400 ml-auto tabular" id="record-count"></span>
       </div>
@@ -314,43 +314,43 @@
   <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v14M5 12h14"/></svg>
 </div>
 
-<!-- ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      SCAN MODAL  (Step 1 + Step 2)
-ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="scan-modal">
 
   <!-- Step 1: Camera -->
   <div id="scan-step1">
     <div class="mb-3 flex items-center justify-between w-full max-w-[360px]">
-      <span class="text-white font-semibold heading">±½´y¦¬³f±ø½X</span>
+      <span class="text-white font-semibold heading">æƒææ”¶è²¨æ¢ç¢¼</span>
       <div class="flex items-center gap-2">
-        <button id="scan-manual-btn" onclick="openManualEntry()" class="px-3 py-1.5 rounded-lg border border-white/50 text-white text-xs font-medium hover:bg-white/20 transition-colors">¤â°Ê¿é¤J</button>
+        <button id="scan-manual-btn" onclick="openManualEntry()" class="px-3 py-1.5 rounded-lg border border-white/50 text-white text-xs font-medium hover:bg-white/20 transition-colors">æ‰‹å‹•è¼¸å…¥</button>
         <button onclick="stopScan()" class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/15 text-white hover:bg-white/25">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
     </div>
     <div id="html5qr-code-full-region"></div>
-    <!-- Zoom ·Æ±ì¡G±Ò°Ê¬Û¾÷«á¤~Åã¥Ü¡A¤£¤ä´© zoom ªº¸Ë¸m·|¦Û°ÊÁôÂÃ -->
+    <!-- Zoom æ»‘æ¡¿ï¼šå•Ÿå‹•ç›¸æ©Ÿå¾Œæ‰é¡¯ç¤ºï¼Œä¸æ”¯æ´ zoom çš„è£ç½®æœƒè‡ªå‹•éš±è— -->
     <div id="zoom-wrap" class="hidden mt-3 w-full max-w-[360px] flex items-center gap-3 px-2">
-      <span class="text-white/60 text-xs whitespace-nowrap">?? ÁY©ñ</span>
+      <span class="text-white/60 text-xs whitespace-nowrap">ğŸ” ç¸®æ”¾</span>
       <input id="zoom-slider" type="range" min="1" max="4" step="0.1" value="1"
         class="flex-1 accent-white" oninput="applyZoom(this.value)">
-      <span id="zoom-val" class="text-white/60 text-xs w-8 text-right">1¡Ñ</span>
+      <span id="zoom-val" class="text-white/60 text-xs w-8 text-right">1Ã—</span>
     </div>
-    <!-- ¤Á´«ÃèÀY¦C¡G¦³¦hÁû«á¸mÃèÀY®É¤~Åã¥Ü -->
+    <!-- åˆ‡æ›é¡é ­åˆ—ï¼šæœ‰å¤šé¡†å¾Œç½®é¡é ­æ™‚æ‰é¡¯ç¤º -->
     <div id="camera-switch-wrap" class="hidden mt-2 w-full max-w-[360px] flex items-center justify-between px-2">
-      <span id="camera-label" class="text-white/45 text-xs truncate max-w-[60%]">¥DÃèÀY</span>
+      <span id="camera-label" class="text-white/45 text-xs truncate max-w-[60%]">ä¸»é¡é ­</span>
       <button onclick="switchCamera()"
         class="px-3 py-1 bg-white/10 border border-white/20 rounded-lg text-white text-xs font-medium hover:bg-white/20 active:bg-white/30 transition-colors whitespace-nowrap">
-        ?? ¤Á´«ÃèÀY
+        ğŸ”„ åˆ‡æ›é¡é ­
       </button>
     </div>
     <div id="scan-status" class="mt-3 w-full max-w-[360px] bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-center">
-      <p class="text-white/60 text-sm">¹ï·Ç¥]¸Ë¤Wªº QR Code ©Î±ø½X</p>
-      <p class="text-white/35 text-xs mt-1">¶ZÂ÷±ø½X¬ù 15¡V20 cm¡A¹ïµJ³Ì²M´·</p>
+      <p class="text-white/60 text-sm">å°æº–åŒ…è£ä¸Šçš„ QR Code æˆ–æ¢ç¢¼</p>
+      <p class="text-white/35 text-xs mt-1">è·é›¢æ¢ç¢¼ç´„ 15â€“20 cmï¼Œå°ç„¦æœ€æ¸…æ™°</p>
     </div>
-    <!-- ©ç·Ó±½½X«ö¶s¡G¼È®ÉÁôÂÃ -->
+    <!-- æ‹ç…§æƒç¢¼æŒ‰éˆ•ï¼šæš«æ™‚éš±è— -->
     <input type="file" id="photo-scan-input" accept="image/*" capture="environment"
       class="hidden" onchange="onPhotoScanFile(this)">
   </div>
@@ -365,7 +365,7 @@
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
-        <h3 class="heading font-semibold text-slate-800 text-base">½T»{¦¬³f</h3>
+        <h3 class="heading font-semibold text-slate-800 text-base">ç¢ºèªæ”¶è²¨</h3>
         <button onclick="stopScan()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -376,52 +376,52 @@
 
       <!-- Product select (when GTIN unmatched or manual entry) -->
       <div id="s2-product-select-wrap" class="hidden mb-3">
-        <label class="sc-label">«~¶µ¦WºÙ *</label>
+        <label class="sc-label">å“é …åç¨± *</label>
         <select id="s2-product" class="sc-input" onchange="onScanProductChange()">
-          <option value="">¿ï¾Ü«~¶µ¡K</option>
+          <option value="">é¸æ“‡å“é …â€¦</option>
         </select>
       </div>
 
       <!-- Order match area -->
       <div id="s2-order-area" class="mb-3"></div>
 
-      <!-- §å¸¹ + ®Ä´Á + ¼Æ¶q + ³æ¦ì¡]¤â¾÷ 2-col¡APC md:4-col¡^ -->
+      <!-- æ‰¹è™Ÿ + æ•ˆæœŸ + æ•¸é‡ + å–®ä½ï¼ˆæ‰‹æ©Ÿ 2-colï¼ŒPC md:4-colï¼‰ -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div>
-          <label class="sc-label">§å¸¹</label>
-          <input type="text" id="s2-lot" class="sc-input" placeholder="±½½X©Î¤â¶ñ">
+          <label class="sc-label">æ‰¹è™Ÿ</label>
+          <input type="text" id="s2-lot" class="sc-input" placeholder="æƒç¢¼æˆ–æ‰‹å¡«">
         </div>
         <div>
-          <label class="sc-label">¼t°Ó®Ä´Á</label>
+          <label class="sc-label">å» å•†æ•ˆæœŸ</label>
           <input type="date" id="s2-expiry" class="sc-input">
         </div>
         <div>
-          <label class="sc-label">¼Æ¶q *</label>
+          <label class="sc-label">æ•¸é‡ *</label>
           <input type="number" id="s2-qty" class="sc-input" min="1" step="1" placeholder="1" inputmode="numeric" onfocus="this.select()" onclick="this.select()">
         </div>
         <div>
-          <label class="sc-label">³æ¦ì</label>
-          <div id="s2-unit" class="sc-input bg-slate-50 flex items-center text-slate-500 text-sm" style="min-height:42px">¡X</div>
+          <label class="sc-label">å–®ä½</label>
+          <div id="s2-unit" class="sc-input bg-slate-50 flex items-center text-slate-500 text-sm" style="min-height:42px">â€”</div>
         </div>
       </div>
 
       <!-- Subtle action links -->
       <div class="flex gap-5 mb-3 text-xs text-slate-400">
-        <button onclick="toggleQualityNote()" class="underline hover:text-orange-500 transition-colors">«~½è / ¥]¸Ë²§±`¡K</button>
-        <button onclick="toggleReject()" class="underline hover:text-red-500 transition-colors">©Ú¦¬¦¹«~¶µ</button>
+        <button onclick="toggleQualityNote()" class="underline hover:text-orange-500 transition-colors">å“è³ª / åŒ…è£ç•°å¸¸â€¦</button>
+        <button onclick="toggleReject()" class="underline hover:text-red-500 transition-colors">æ‹’æ”¶æ­¤å“é …</button>
       </div>
 
       <!-- Quality anomaly note (hidden by default) -->
       <div id="s2-quality-wrap" class="hidden mb-3">
-        <label class="sc-label text-orange-600">²§±`»¡©ú</label>
-        <input type="text" id="s2-quality-note" class="sc-input" placeholder="¦p¡G¥W·l¡B¥]¸Ë¯}·l¡B·Å±±²§±`">
+        <label class="sc-label text-orange-600">ç•°å¸¸èªªæ˜</label>
+        <input type="text" id="s2-quality-note" class="sc-input" placeholder="å¦‚ï¼šå‡¹æã€åŒ…è£ç ´æã€æº«æ§ç•°å¸¸">
       </div>
 
       <!-- Reject reason (hidden by default) -->
       <div id="s2-reject-wrap" class="hidden mb-3 bg-red-50 border border-red-200 rounded-xl p-3">
-        <p class="text-sm font-semibold text-red-700 mb-2">? ©Ú¦¬¡G¦¹«~¶µ¼Æ¶q°O¬° 0</p>
-        <label class="sc-label text-red-700">©Ú¦¬­ì¦] *</label>
-        <input type="text" id="s2-reject-reason" class="sc-input" placeholder="¦p¡G®Ä´Á¤£²Å¡B¥~¥]¸Ë¯}·l">
+        <p class="text-sm font-semibold text-red-700 mb-2">âš  æ‹’æ”¶ï¼šæ­¤å“é …æ•¸é‡è¨˜ç‚º 0</p>
+        <label class="sc-label text-red-700">æ‹’æ”¶åŸå›  *</label>
+        <input type="text" id="s2-reject-reason" class="sc-input" placeholder="å¦‚ï¼šæ•ˆæœŸä¸ç¬¦ã€å¤–åŒ…è£ç ´æ">
       </div>
 
       <!-- Hidden state fields -->
@@ -432,40 +432,40 @@
       <input type="hidden" id="s2-ordered-by">
       <input type="hidden" id="s2-raw">
       <details class="mt-2">
-        <summary class="text-xs text-slate-300 cursor-pointer select-none">­ì©l±ø½X ?</summary>
+        <summary class="text-xs text-slate-300 cursor-pointer select-none">åŸå§‹æ¢ç¢¼ â–¾</summary>
         <p id="s2-raw-display" class="text-[11px] text-slate-400 mt-1 break-all font-mono leading-relaxed"></p>
         <p id="s2-parse-debug" class="text-[11px] text-slate-400 mt-1 break-all font-mono leading-relaxed"></p>
       </details>
 
       <!-- Buttons -->
       <div class="flex gap-3 mt-4">
-        <button onclick="retryScan()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">­«·s±½</button>
-        <button onclick="addToTray()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">¥[¤J¼È¦s</button>
+        <button onclick="retryScan()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">é‡æ–°æƒ</button>
+        <button onclick="addToTray()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">åŠ å…¥æš«å­˜</button>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      TRAY BAR  (sticky above FAB)
-ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tray-bar">
   <div id="tray-bar-inner">
     <div class="flex items-center gap-2 cursor-pointer" onclick="openTrayDrawer()">
       <div class="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" id="tray-count-bubble">0</div>
-      <span class="text-sm font-medium">¥»¦¸¼È¦s <span id="tray-count">0</span> µ§</span>
+      <span class="text-sm font-medium">æœ¬æ¬¡æš«å­˜ <span id="tray-count">0</span> ç­†</span>
     </div>
     <button onclick="openReview()" class="flex items-center gap-1.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors flex-shrink-0">
-      ¼f®Ö &amp; ¤J®w
+      å¯©æ ¸ &amp; å…¥åº«
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
     </button>
   </div>
 </div>
 
-<!-- ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      TRAY DRAWER  (bottom sheet)
-ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tray-overlay" onclick="closeTrayDrawer()"></div>
 <div id="tray-drawer">
   <!-- Drag handle + header -->
@@ -473,7 +473,7 @@
     <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
   </div>
   <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
-    <h3 class="heading font-semibold text-slate-800">¼È¦s²M³æ <span id="tray-drawer-count" class="text-primary">0</span> µ§</h3>
+    <h3 class="heading font-semibold text-slate-800">æš«å­˜æ¸…å–® <span id="tray-drawer-count" class="text-primary">0</span> ç­†</h3>
     <button onclick="closeTrayDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
@@ -482,40 +482,40 @@
   <div id="tray-list" class="px-4 py-2"></div>
   <!-- Footer -->
   <div class="px-4 py-3 border-t border-slate-100 flex gap-3">
-    <button onclick="closeTrayDrawer(); startScan();" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">Ä~Äò±½½X</button>
-    <button onclick="openReview()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">¼f®Ö &amp; ¤J®w ¡÷</button>
+    <button onclick="closeTrayDrawer(); startScan();" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">ç¹¼çºŒæƒç¢¼</button>
+    <button onclick="openReview()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">å¯©æ ¸ &amp; å…¥åº« â†’</button>
   </div>
 </div>
 
-<!-- ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      REVIEW MODAL  (batch confirm)
-ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- VOID SHEET -->
 <div id="void-overlay" onclick="closeVoidSheet()"></div>
 <div id="void-modal">
   <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
     <div>
-      <h2 class="font-semibold text-slate-800 text-base">§@¼o¦¹µ§¬ö¿ı</h2>
+      <h2 class="font-semibold text-slate-800 text-base">ä½œå»¢æ­¤ç­†ç´€éŒ„</h2>
       <p id="void-product-name" class="text-sm text-slate-500 mt-0.5"></p>
     </div>
-    <button onclick="closeVoidSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">?</button>
+    <button onclick="closeVoidSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">âœ•</button>
   </div>
   <div id="void-order-warning" class="hidden mx-5 mt-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700">
-    ? ¦¹µ§¤w¦ê±µ­q³æ¡A§@¼o«á±N¦Û°Ê¦©¦^¤w¦¬¼Æ¶q¡C
+    âš  æ­¤ç­†å·²ä¸²æ¥è¨‚å–®ï¼Œä½œå»¢å¾Œå°‡è‡ªå‹•æ‰£å›å·²æ”¶æ•¸é‡ã€‚
   </div>
   <div class="px-5 py-4 space-y-3">
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">§@¼oªÌ©m¦W *</label>
-      <input id="void-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="½Ğ¿é¤J©m¦W">
+      <label class="text-xs font-medium text-slate-600 mb-1 block">ä½œå»¢è€…å§“å *</label>
+      <input id="void-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="è«‹è¼¸å…¥å§“å">
     </div>
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">§@¼o­ì¦] *</label>
-      <input id="void-reason" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="¨Ò¦p¡G»~«ö¡B«~¶µ¿ù»~">
+      <label class="text-xs font-medium text-slate-600 mb-1 block">ä½œå»¢åŸå›  *</label>
+      <input id="void-reason" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="ä¾‹å¦‚ï¼šèª¤æŒ‰ã€å“é …éŒ¯èª¤">
     </div>
   </div>
   <div class="px-5 pb-6 flex gap-3">
-    <button onclick="closeVoidSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">¨ú®ø</button>
-    <button onclick="confirmVoid()" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded-xl text-sm hover:bg-red-600 transition-colors">½T»{§@¼o</button>
+    <button onclick="closeVoidSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">å–æ¶ˆ</button>
+    <button onclick="confirmVoid()" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded-xl text-sm hover:bg-red-600 transition-colors">ç¢ºèªä½œå»¢</button>
   </div>
 </div>
 
@@ -524,30 +524,30 @@
 <div id="cancel-modal">
   <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
     <div>
-      <h2 class="font-semibold text-slate-800 text-base">?? ¨ú®ø³Ñ¾l«İ¦¬</h2>
+      <h2 class="font-semibold text-slate-800 text-base">ğŸš« å–æ¶ˆå‰©é¤˜å¾…æ”¶</h2>
       <p id="cancel-product-name" class="text-sm text-slate-500 mt-0.5"></p>
     </div>
-    <button onclick="closeCancelSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">?</button>
+    <button onclick="closeCancelSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">âœ•</button>
   </div>
   <div class="px-5 py-4 space-y-3">
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">¨ú®ø¤H­û *</label>
+      <label class="text-xs font-medium text-slate-600 mb-1 block">å–æ¶ˆäººå“¡ *</label>
       <select id="cancel-by" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-        <option value="">½Ğ¿ï¾Ü</option>
+        <option value="">è«‹é¸æ“‡</option>
       </select>
     </div>
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">¨ú®ø®É¶¡ *</label>
+      <label class="text-xs font-medium text-slate-600 mb-1 block">å–æ¶ˆæ™‚é–“ *</label>
       <input id="cancel-at" type="datetime-local" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">¨ú®ø­ì¦]¡]¥i¿ï¡^</label>
-      <input id="cancel-reason" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="¨Ò¡G¼t°Ó³qª¾¯Ê³f¡B¤w§ï¦V¨ä¥L¼t°Ó±ÄÁÊ">
+      <label class="text-xs font-medium text-slate-600 mb-1 block">å–æ¶ˆåŸå› ï¼ˆå¯é¸ï¼‰</label>
+      <input id="cancel-reason" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="ä¾‹ï¼šå» å•†é€šçŸ¥ç¼ºè²¨ã€å·²æ”¹å‘å…¶ä»–å» å•†æ¡è³¼">
     </div>
   </div>
   <div class="px-5 pb-6 flex gap-3">
-    <button onclick="closeCancelSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">ªğ¦^</button>
-    <button onclick="confirmCancelItem()" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded-xl text-sm hover:bg-red-600 transition-colors">½T»{¨ú®ø«İ¦¬</button>
+    <button onclick="closeCancelSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">è¿”å›</button>
+    <button onclick="confirmCancelItem()" class="flex-1 py-2.5 bg-red-500 text-white font-semibold rounded-xl text-sm hover:bg-red-600 transition-colors">ç¢ºèªå–æ¶ˆå¾…æ”¶</button>
   </div>
 </div>
 
@@ -556,41 +556,41 @@
 <div id="edit-modal">
   <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
     <div>
-      <h2 class="font-semibold text-slate-800 text-base">­×§ï¶i³f°O¿ı</h2>
+      <h2 class="font-semibold text-slate-800 text-base">ä¿®æ”¹é€²è²¨è¨˜éŒ„</h2>
       <p id="edit-product-name" class="text-sm text-slate-500 mt-0.5"></p>
     </div>
-    <button onclick="closeEditSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">?</button>
+    <button onclick="closeEditSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">âœ•</button>
   </div>
   <div class="px-5 py-4 space-y-3">
     <div>
-      <label class="text-xs font-medium text-slate-500 mb-1 block">§å¸¹</label>
-      <input id="edit-lot" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="¡X">
+      <label class="text-xs font-medium text-slate-500 mb-1 block">æ‰¹è™Ÿ</label>
+      <input id="edit-lot" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="â€”">
     </div>
     <div>
-      <label class="text-xs font-medium text-slate-500 mb-1 block">®Ä´Á</label>
+      <label class="text-xs font-medium text-slate-500 mb-1 block">æ•ˆæœŸ</label>
       <input id="edit-expiry" type="date" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
     </div>
     <div>
-      <label class="text-xs font-medium text-slate-500 mb-1 block">³Æµù</label>
-      <input id="edit-note" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="¡X">
+      <label class="text-xs font-medium text-slate-500 mb-1 block">å‚™è¨»</label>
+      <input id="edit-note" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="â€”">
     </div>
     <div id="edit-old-expiry-warning" class="hidden bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-      <label class="text-xs font-medium text-orange-700 mb-1 block">®Ä´Á¦­©ó²{¦³®w¦s ¡X »¡©ú­ì¦] *¡]¥²¶ñ¡^</label>
-      <input id="edit-old-expiry-reason" type="text" class="w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="¨Ò¦p¡GFIFO ½T»{¡BÂÂ§å¦¸¸É¥R">
+      <label class="text-xs font-medium text-orange-700 mb-1 block">æ•ˆæœŸæ—©æ–¼ç¾æœ‰åº«å­˜ â€” èªªæ˜åŸå›  *ï¼ˆå¿…å¡«ï¼‰</label>
+      <input id="edit-old-expiry-reason" type="text" class="w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="ä¾‹å¦‚ï¼šFIFO ç¢ºèªã€èˆŠæ‰¹æ¬¡è£œå……">
     </div>
     <hr class="border-slate-100">
     <div>
-      <label class="text-xs font-medium text-slate-600 mb-1 block">­×§ïªÌ©m¦W *</label>
-      <input id="edit-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="½Ğ¿é¤J©m¦W">
+      <label class="text-xs font-medium text-slate-600 mb-1 block">ä¿®æ”¹è€…å§“å *</label>
+      <input id="edit-by" type="text" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="è«‹è¼¸å…¥å§“å">
     </div>
     <div id="edit-history-section" class="hidden">
-      <button onclick="toggleEditHistory()" class="text-xs text-slate-400 underline">¬d¬İ­×§ï¾úµ{</button>
+      <button onclick="toggleEditHistory()" class="text-xs text-slate-400 underline">æŸ¥çœ‹ä¿®æ”¹æ­·ç¨‹</button>
       <div id="edit-history-list" class="hidden mt-2 space-y-1.5"></div>
     </div>
   </div>
   <div class="px-5 pb-6 flex gap-3">
-    <button onclick="closeEditSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">¨ú®ø</button>
-    <button onclick="confirmEdit()" class="flex-1 py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">Àx¦s­×§ï</button>
+    <button onclick="closeEditSheet()" class="flex-1 py-2.5 border border-slate-200 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-50 transition-colors">å–æ¶ˆ</button>
+    <button onclick="confirmEdit()" class="flex-1 py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">å„²å­˜ä¿®æ”¹</button>
   </div>
 </div>
 
@@ -598,17 +598,17 @@
 <div id="link-order-modal">
   <div class="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
     <div>
-      <h2 class="heading font-semibold text-slate-800 text-base">¦ê±µ­q³æ</h2>
+      <h2 class="heading font-semibold text-slate-800 text-base">ä¸²æ¥è¨‚å–®</h2>
       <p id="link-order-product-name" class="text-sm text-slate-500 mt-0.5"></p>
     </div>
-    <button onclick="closeLinkOrderSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">?</button>
+    <button onclick="closeLinkOrderSheet()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">âœ•</button>
   </div>
   <div id="link-order-list" class="px-5 py-4 space-y-2 overflow-y-auto max-h-60"></div>
   <div class="px-5 pb-6 pt-2 flex flex-col gap-2">
-    <button onclick="confirmLink()" class="w-full py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">½T»{¦ê±µ</button>
-    <button id="link-mark-gift-btn" onclick="markAsGift()" class="w-full py-2.5 bg-slate-100 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-200 transition-colors">¼Ğ°O¬°¸Õ¥Î«~</button>
-    <button id="link-cancel-gift-btn" onclick="cancelGift()" class="hidden w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 font-medium rounded-xl text-sm hover:bg-orange-100 transition-colors">¨ú®ø¸Õ¥Î«~¼Ğ°O</button>
-    <button onclick="goToOrderPage()" class="w-full py-2.5 bg-sky-50 text-sky-700 border border-sky-200 font-medium rounded-xl text-sm hover:bg-sky-100 transition-colors">¸É­q³æ¸ê°T ¡÷</button>
+    <button onclick="confirmLink()" class="w-full py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">ç¢ºèªä¸²æ¥</button>
+    <button id="link-mark-gift-btn" onclick="markAsGift()" class="w-full py-2.5 bg-slate-100 text-slate-500 font-medium rounded-xl text-sm hover:bg-slate-200 transition-colors">æ¨™è¨˜ç‚ºè©¦ç”¨å“</button>
+    <button id="link-cancel-gift-btn" onclick="cancelGift()" class="hidden w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 font-medium rounded-xl text-sm hover:bg-orange-100 transition-colors">å–æ¶ˆè©¦ç”¨å“æ¨™è¨˜</button>
+    <button onclick="goToOrderPage()" class="w-full py-2.5 bg-sky-50 text-sky-700 border border-sky-200 font-medium rounded-xl text-sm hover:bg-sky-100 transition-colors">è£œè¨‚å–®è³‡è¨Š â†’</button>
   </div>
 </div>
 
@@ -618,54 +618,54 @@
     <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
   </div>
   <div class="px-5 pt-4 pb-2 flex items-center justify-between border-b border-slate-100">
-    <h2 class="heading font-semibold text-slate-800 text-base">¼f®Ö¥»¦¸¶i³f¡]<span id="review-count">0</span> µ§¡^</h2>
+    <h2 class="heading font-semibold text-slate-800 text-base">å¯©æ ¸æœ¬æ¬¡é€²è²¨ï¼ˆ<span id="review-count">0</span> ç­†ï¼‰</h2>
     <button onclick="closeReview()" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
   <div id="review-content" class="px-5 pt-4 pb-2"></div>
   <div class="px-5 pb-8 pt-3 flex gap-3 border-t border-slate-100">
-    <button onclick="closeReviewToTray()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">ªğ¦^­×§ï</button>
-    <button onclick="batchSaveAll()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">§å¦¸·s¼W</button>
+    <button onclick="closeReviewToTray()" class="flex-1 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors">è¿”å›ä¿®æ”¹</button>
+    <button onclick="batchSaveAll()" class="flex-[2] py-3 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">æ‰¹æ¬¡æ–°å¢</button>
   </div>
 </div>
 
-<!-- ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      102 QC ALERT
-ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="alert-102-overlay">
   <div class="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl">
     <div class="flex items-center gap-3 mb-3">
       <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
         <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
       </div>
-      <h3 class="heading font-semibold text-slate-800">102 ¨ì³f´£¿ô</h3>
+      <h3 class="heading font-semibold text-slate-800">102 åˆ°è²¨æé†’</h3>
     </div>
-    <p class="text-sm text-slate-600 mb-5">¨ì³f«á 3 ¤Ñ¤º¡]Â§«ô¤é¶¶©µ¡^»İ·s¼W <strong>TE QC ½L +1</strong></p>
-    <button onclick="close102Alert()" class="w-full py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">¤F¸Ñ¡A¤w°O¿ı</button>
+    <p class="text-sm text-slate-600 mb-5">åˆ°è²¨å¾Œ 3 å¤©å…§ï¼ˆç¦®æ‹œæ—¥é †å»¶ï¼‰éœ€æ–°å¢ <strong>TE QC ç›¤ +1</strong></p>
+    <button onclick="close102Alert()" class="w-full py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">äº†è§£ï¼Œå·²è¨˜éŒ„</button>
   </div>
 </div>
 
 <script src="shared.js"></script>
 <script>
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // STATE
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let records = [];
 let scanResult = null;
 let html5QrCode = null;
 let sessionTray = JSON.parse(localStorage.getItem('session-tray') || '[]');
-let _cameraDevices = [];  // ªTÁ|¨ìªº«á¸mÃèÀY²M³æ
-let _cameraIdx    = 0;    // ¥Ø«e¨Ï¥ÎªºÃèÀY index
+let _cameraDevices = [];  // æšèˆ‰åˆ°çš„å¾Œç½®é¡é ­æ¸…å–®
+let _cameraIdx    = 0;    // ç›®å‰ä½¿ç”¨çš„é¡é ­ index
 function saveTray() { localStorage.setItem('session-tray', JSON.stringify(sessionTray)); }
 let editingTrayIdx = -1; // -1 = adding new; >=0 = editing tray item at this index
 let isQuickReceiveMode = false;
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // INIT
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function onReady(fn) {
   var domOk = document.readyState !== 'loading';
@@ -688,7 +688,7 @@ onReady(async function() {
 
 function initDate() {
   const now = new Date();
-  const days = ['¤é','¤@','¤G','¤T','¥|','¤­','¤»'];
+  const days = ['æ—¥','ä¸€','äºŒ','ä¸‰','å››','äº”','å…­'];
   const el = document.getElementById('today-display');
   if (el) el.textContent = `${now.getFullYear()}/${p2(now.getMonth()+1)}/${p2(now.getDate())} (${days[now.getDay()]})`;
 }
@@ -701,9 +701,9 @@ function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // LOCAL STORAGE
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function loadRecords() {
   try { records = await window._fb.getJinhuoRecords(); }
@@ -714,9 +714,9 @@ function saveRecords() {
   localStorage.setItem('jinhuo-records', JSON.stringify(records));
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // ORDER HELPERS
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function loadPendingOrdersForProduct(productId) {
   try {
@@ -743,7 +743,7 @@ function loadPendingOrdersForProduct(productId) {
         });
       });
     });
-    // FIFO¡G³ÌÂÂªº­q³æ¥ı³B²z
+    // FIFOï¼šæœ€èˆŠçš„è¨‚å–®å…ˆè™•ç†
     return results.sort((a, b) => (a.orderedAt || '').localeCompare(b.orderedAt || ''));
   } catch { return []; }
 }
@@ -754,7 +754,7 @@ async function updateOrderStatus(orderId, qty, parentId = null) {
     let modifiedOrder = null;
 
     if (parentId) {
-      // ºë½T¼Ò¦¡¡Gª½±µ§ä order.id === parentId ªº¨º±i­q³æ
+      // ç²¾ç¢ºæ¨¡å¼ï¼šç›´æ¥æ‰¾ order.id === parentId çš„é‚£å¼µè¨‚å–®
       const order = history.find(o => o.id === parentId);
       if (order && ['pending', 'partial'].includes(order.status)) {
         const item = order.orders.find(o => o.orderId === orderId);
@@ -768,7 +768,7 @@ async function updateOrderStatus(orderId, qty, parentId = null) {
         }
       }
     } else {
-      // FIFO fallback¡]±½½X¸ô®|µL parentId¡^¡G±q³ÌÂÂ­q³æ©¹«e§ä
+      // FIFO fallbackï¼ˆæƒç¢¼è·¯å¾‘ç„¡ parentIdï¼‰ï¼šå¾æœ€èˆŠè¨‚å–®å¾€å‰æ‰¾
       for (let i = history.length - 1; i >= 0; i--) {
         const order = history[i];
         if (!['pending', 'partial'].includes(order.status)) continue;
@@ -788,19 +788,19 @@ async function updateOrderStatus(orderId, qty, parentId = null) {
   } catch {}
 }
 
-// ¢w¢w¢w CANCEL PENDING SHEET ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€ CANCEL PENDING SHEET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _cancelParentId = null;
 let _cancelItemOrderId = null;
 
 function openCancelSheet(parentId, itemOrderId, itemName, remaining) {
   _cancelParentId = parentId;
   _cancelItemOrderId = itemOrderId;
-  document.getElementById('cancel-product-name').textContent = `${itemName}¡@«İ¦¬ ${remaining} ²~`;
-  // ¶ñ¤H­û¤U©Ô
+  document.getElementById('cancel-product-name').textContent = `${itemName}ã€€å¾…æ”¶ ${remaining} ç“¶`;
+  // å¡«äººå“¡ä¸‹æ‹‰
   const sel = document.getElementById('cancel-by');
-  sel.innerHTML = '<option value="">½Ğ¿ï¾Ü</option>' +
+  sel.innerHTML = '<option value="">è«‹é¸æ“‡</option>' +
     (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option>${n}</option>`).join('');
-  // ¹w³]²{¦b®É¶¡¡]¥x¥_ UTC+8¡^
+  // é è¨­ç¾åœ¨æ™‚é–“ï¼ˆå°åŒ— UTC+8ï¼‰
   const now = new Date(Date.now() + 8*3600000);
   document.getElementById('cancel-at').value = now.toISOString().slice(0,16);
   document.getElementById('cancel-reason').value = '';
@@ -819,16 +819,16 @@ async function confirmCancelItem() {
   const by = document.getElementById('cancel-by').value.trim();
   const at = document.getElementById('cancel-at').value;
   const reason = document.getElementById('cancel-reason').value.trim();
-  if (!by) { showToast('½Ğ¿ï¾Ü¨ú®ø¤H­û', 'warn'); return; }
-  if (!at) { showToast('½Ğ¶ñ¼g¨ú®ø®É¶¡', 'warn'); return; }
+  if (!by) { showToast('è«‹é¸æ“‡å–æ¶ˆäººå“¡', 'warn'); return; }
+  if (!at) { showToast('è«‹å¡«å¯«å–æ¶ˆæ™‚é–“', 'warn'); return; }
   try {
     const history = JSON.parse(localStorage.getItem('order-history') || '[]');
     const order = history.find(o => o.id === _cancelParentId);
-    if (!order) { showToast('§ä¤£¨ì¹ïÀ³­q³æ', 'warn'); return; }
+    if (!order) { showToast('æ‰¾ä¸åˆ°å°æ‡‰è¨‚å–®', 'warn'); return; }
     const item = (order.orders || []).find(o => o.orderId === _cancelItemOrderId);
-    if (!item) { showToast('§ä¤£¨ì¹ïÀ³«~¶µ', 'warn'); return; }
+    if (!item) { showToast('æ‰¾ä¸åˆ°å°æ‡‰å“é …', 'warn'); return; }
     const remaining = (item.orderQty || 0) - (item.receivedQty || 0) - (item.cancelledQty || 0);
-    if (remaining <= 0) { showToast('¦¹«~¶µ¤wµL«İ¦¬¼Æ¶q', 'warn'); return; }
+    if (remaining <= 0) { showToast('æ­¤å“é …å·²ç„¡å¾…æ”¶æ•¸é‡', 'warn'); return; }
     item.cancelledQty = (item.cancelledQty || 0) + remaining;
     item.cancelledBy = by;
     item.cancelledAt = at;
@@ -837,28 +837,28 @@ async function confirmCancelItem() {
     localStorage.setItem('order-history', JSON.stringify(history));
     await window._fb.saveOrder(order);
     closeCancelSheet();
-    showToast('¤w¨ú®ø¦¹«~¶µªº³Ñ¾l«İ¦¬', 'ok');
+    showToast('å·²å–æ¶ˆæ­¤å“é …çš„å‰©é¤˜å¾…æ”¶', 'ok');
     renderExpectedDeliveries();
     renderCancelledHistory();
   } catch(e) {
-    showToast('¨ú®ø¥¢±Ñ¡A½Ğ­«¸Õ', 'warn');
+    showToast('å–æ¶ˆå¤±æ•—ï¼Œè«‹é‡è©¦', 'warn');
   }
 }
 
 async function undoCancelItem(parentId, itemOrderId) {
-  if (!confirm('½T©w­nºM¾P¦¹¨ú®ø¡H«~¶µ±N«ì´_¨ì«İ¦¬²M³æ¡C')) return;
+  if (!confirm('ç¢ºå®šè¦æ’¤éŠ·æ­¤å–æ¶ˆï¼Ÿå“é …å°‡æ¢å¾©åˆ°å¾…æ”¶æ¸…å–®ã€‚')) return;
   try {
     const history = JSON.parse(localStorage.getItem('order-history') || '[]');
     const order = history.find(o => o.id === parentId);
-    if (!order) { showToast('§ä¤£¨ì¹ïÀ³­q³æ', 'warn'); return; }
+    if (!order) { showToast('æ‰¾ä¸åˆ°å°æ‡‰è¨‚å–®', 'warn'); return; }
     const item = (order.orders || []).find(o => o.orderId === itemOrderId);
-    if (!item) { showToast('§ä¤£¨ì¹ïÀ³«~¶µ', 'warn'); return; }
+    if (!item) { showToast('æ‰¾ä¸åˆ°å°æ‡‰å“é …', 'warn'); return; }
     delete item.cancelledQty;
     delete item.cancelledBy;
     delete item.cancelledAt;
     delete item.cancelReason;
     _recalcOrderStatus(order);
-    // ­Y­q³æª¬ºA¬O closed¡AºM¾P«á¥i¯à»İ­n¦^¨ì pending/partial
+    // è‹¥è¨‚å–®ç‹€æ…‹æ˜¯ closedï¼Œæ’¤éŠ·å¾Œå¯èƒ½éœ€è¦å›åˆ° pending/partial
     if (order.status === 'closed') {
       const anyRemaining = order.orders.some(o => {
         const rem = (o.orderQty||0) - (o.receivedQty||0) - (o.cancelledQty||0);
@@ -871,11 +871,11 @@ async function undoCancelItem(parentId, itemOrderId) {
     }
     localStorage.setItem('order-history', JSON.stringify(history));
     await window._fb.saveOrder(order);
-    showToast('¤wºM¾P¨ú®ø¡A«~¶µ«ì´_«İ¦¬', 'ok');
+    showToast('å·²æ’¤éŠ·å–æ¶ˆï¼Œå“é …æ¢å¾©å¾…æ”¶', 'ok');
     renderExpectedDeliveries();
     renderCancelledHistory();
   } catch(e) {
-    showToast('ºM¾P¥¢±Ñ¡A½Ğ­«¸Õ', 'warn');
+    showToast('æ’¤éŠ·å¤±æ•—ï¼Œè«‹é‡è©¦', 'warn');
   }
 }
 
@@ -896,9 +896,9 @@ function getMaxExpiry(productId) {
   return match.reduce((max, r) => r.expiryDate > max ? r.expiryDate : max, '');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // RENDER RECORDS
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildVendorFilter() {
   const sel = document.getElementById('filter-vendor');
@@ -914,7 +914,7 @@ function renderRecords() {
   const dateRange = parseInt(document.getElementById('filter-date')?.value || '30');
   const sortMode = document.getElementById('sort-mode')?.value || 'date';
 
-  // ¨ú®ø«İ¦¬°°¬ö¿ı¡G±q order-history ¼´¥X cancelledQty > 0 ªº«~¶µ¡A²V¤J®É¶¡¶b
+  // å–æ¶ˆå¾…æ”¶å½ç´€éŒ„ï¼šå¾ order-history æ’ˆå‡º cancelledQty > 0 çš„å“é …ï¼Œæ··å…¥æ™‚é–“è»¸
   const cancelPseudo = [];
   try {
     const orderHistory = JSON.parse(localStorage.getItem('order-history') || '[]');
@@ -926,15 +926,15 @@ function renderRecords() {
             isCancelRecord: true,
             productName: item.name,
             receivedAt: item.cancelledAt.slice(0, 10),
-            receivedBy: item.cancelledBy || '¡X',
+            receivedBy: item.cancelledBy || 'â€”',
             cancelledAt: item.cancelledAt,
-            cancelledBy: item.cancelledBy || '¡X',
+            cancelledBy: item.cancelledBy || 'â€”',
             cancelledQty: item.cancelledQty,
             cancelReason: item.cancelReason,
             orderQty: item.orderQty,
             receivedQty: item.receivedQty || 0,
             unit: item.unit || '',
-            vendor: item.vendor || '¥¼ª¾¼t°Ó',
+            vendor: item.vendor || 'æœªçŸ¥å» å•†',
             orderId: item.orderId,
             parentId: order.id,
           });
@@ -952,31 +952,31 @@ function renderRecords() {
   }
 
   const el = document.getElementById('record-count');
-  if (el) el.textContent = `¦@ ${filtered.length} µ§`;
+  if (el) el.textContent = `å…± ${filtered.length} ç­†`;
 
   const container = document.getElementById('records-container');
   if (!filtered.length) {
     container.innerHTML = `
       <div class="text-center py-16 text-slate-400">
         <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-        <p class="text-sm font-medium">©|µL¦¬³f°O¿ı</p>
-        <p class="text-xs mt-1 text-slate-300">ÂI¥k¤U¨¤ + ±½½X·s¼W</p>
+        <p class="text-sm font-medium">å°šç„¡æ”¶è²¨è¨˜éŒ„</p>
+        <p class="text-xs mt-1 text-slate-300">é»å³ä¸‹è§’ + æƒç¢¼æ–°å¢</p>
       </div>`;
     return;
   }
 
   if (sortMode === 'date') {
-    // ²Ä¤@¼h¡G«ö¤é´Á¤À²Õ¡]³Ì·s¦b«e¡^
+    // ç¬¬ä¸€å±¤ï¼šæŒ‰æ—¥æœŸåˆ†çµ„ï¼ˆæœ€æ–°åœ¨å‰ï¼‰
     filtered.sort((a, b) => (b.receivedAt || '') > (a.receivedAt || '') ? 1 : -1);
     const byDate = {};
     filtered.forEach(r => {
-      const key = r.receivedAt || '¡]µL¤é´Á¡^';
+      const key = r.receivedAt || 'ï¼ˆç„¡æ—¥æœŸï¼‰';
       (byDate[key] = byDate[key] || []).push(r);
     });
     const dateKeys = Object.keys(byDate).sort().reverse();
     const _td = new Date();
     const todayKey = `${_td.getFullYear()}-${p2(_td.getMonth()+1)}-${p2(_td.getDate())}`;
-    const days = ['¤é','¤@','¤G','¤T','¥|','¤­','¤»'];
+    const days = ['æ—¥','ä¸€','äºŒ','ä¸‰','å››','äº”','å…­'];
 
     container.innerHTML = dateKeys.map(dateKey => {
       const recs = byDate[dateKey];
@@ -987,29 +987,29 @@ function renderRecords() {
       }
       const isToday = dateKey === todayKey;
 
-      // ²Ä¤G¼h¡G«ö importBatchId ¤À²Õ¡]ÂÂ¸ê®ÆµL¦¹Äæ¦ì«h fallback to receivedAt+receivedBy¡^
+      // ç¬¬äºŒå±¤ï¼šæŒ‰ importBatchId åˆ†çµ„ï¼ˆèˆŠè³‡æ–™ç„¡æ­¤æ¬„ä½å‰‡ fallback to receivedAt+receivedByï¼‰
       const byBatch = {};
       recs.forEach(r => {
-        const batchKey = r.importBatchId || `${r.receivedAt}||${r.receivedBy || r.operator || '¥¼ª¾'}`;
+        const batchKey = r.importBatchId || `${r.receivedAt}||${r.receivedBy || r.operator || 'æœªçŸ¥'}`;
         (byBatch[batchKey] = byBatch[batchKey] || []).push(r);
       });
 
       const batchCards = Object.entries(byBatch).map(([batchKey, bRecs], bi) => {
         const isCancelBatch = bRecs.every(r => r.isCancelRecord);
-        const receiver = bRecs[0].receivedBy || bRecs[0].operator || '¥¼ª¾';
+        const receiver = bRecs[0].receivedBy || bRecs[0].operator || 'æœªçŸ¥';
         const batchId = `batch-${dateKey}-${bi}`;
         const defaultOpen = isToday;
         const timeStr = bRecs[0].importBatchId
           ? new Date(parseInt(bRecs[0].importBatchId.replace('BATCH-', ''))).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false })
           : (isCancelBatch && bRecs[0].cancelledAt ? bRecs[0].cancelledAt.slice(11,16) : '');
-        const headerIcon = isCancelBatch ? '??' : '??';
-        const headerAction = isCancelBatch ? '¨ú®ø«İ¦¬' : '¦¬³f';
+        const headerIcon = isCancelBatch ? 'ğŸš«' : 'ğŸ“¦';
+        const headerAction = isCancelBatch ? 'å–æ¶ˆå¾…æ”¶' : 'æ”¶è²¨';
         const headerBg = isCancelBatch ? 'bg-red-50 hover:bg-red-100' : 'bg-slate-50 hover:bg-slate-100';
         const headerTextColor = isCancelBatch ? 'color:#9F1239' : '';
         const headerBorder = isCancelBatch ? 'border-red-100' : 'border-slate-100';
         const headerTitle = timeStr
-          ? `${headerIcon} ${timeStr} ¡P ${escHtml(receiver)} ${headerAction} ¡P ¦@ ${bRecs.length} «~¶µ`
-          : `${headerIcon} ${escHtml(receiver)} ${headerAction} ¡P ¦@ ${bRecs.length} «~¶µ`;
+          ? `${headerIcon} ${timeStr} Â· ${escHtml(receiver)} ${headerAction} Â· å…± ${bRecs.length} å“é …`
+          : `${headerIcon} ${escHtml(receiver)} ${headerAction} Â· å…± ${bRecs.length} å“é …`;
         return `
         <div class="mb-2 border ${headerBorder} rounded-xl overflow-hidden">
           <button onclick="toggleBatchCard('${batchId}')" class="w-full flex items-center justify-between px-4 py-2.5 ${headerBg} transition-colors text-left">
@@ -1029,7 +1029,7 @@ function renderRecords() {
         <div class="vendor-group-header">
           <div class="flex items-center gap-2">
             <span class="heading font-semibold text-slate-700 text-sm">${dateLabel}</span>
-            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} µ§</span>
+            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} ç­†</span>
           </div>
         </div>
         ${batchCards.join('')}
@@ -1049,9 +1049,9 @@ function renderRecords() {
         <div class="vendor-group-header">
           <div class="flex items-center gap-2">
             <span class="heading font-semibold text-slate-700 text-sm">${vendor}</span>
-            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} µ§</span>
+            <span class="text-xs bg-primary-xlight text-primary-dark font-medium px-2 py-0.5 rounded-full">${recs.length} ç­†</span>
           </div>
-          <span class="text-xs text-slate-400">³Ìªñ¡G${fmt(recs[0].receivedAt)}</span>
+          <span class="text-xs text-slate-400">æœ€è¿‘ï¼š${fmt(recs[0].receivedAt)}</span>
         </div>
         ${recs.map(r => recordRowHtml(r)).join('')}
       </div>`;
@@ -1070,32 +1070,32 @@ function toggleBatchCard(id) {
 
 function recordRowHtml(r) {
   if (r.isCancelRecord) {
-    const fmtDt = s => s ? s.replace('T',' ').slice(0,16) : '¡X';
+    const fmtDt = s => s ? s.replace('T',' ').slice(0,16) : 'â€”';
     return `
   <div class="record-row" style="background:#FFF5F5">
     <div class="flex items-start justify-between gap-2">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 flex-wrap">
           <span class="font-medium text-slate-800 text-sm record-name">${escHtml(r.productName)}</span>
-          <span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">¨ú®ø«İ¦¬</span>
+          <span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">å–æ¶ˆå¾…æ”¶</span>
         </div>
         <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 tabular record-meta">
-          <span>¨ú®ø <b class="text-red-600">${r.cancelledQty}</b> ${r.unit}</span>
-          <span>­ì­q ${r.orderQty}?¤w¦¬ ${r.receivedQty}</span>
-          <span>${escHtml(r.cancelledBy)} ¡P ${fmtDt(r.cancelledAt)}</span>
+          <span>å–æ¶ˆ <b class="text-red-600">${r.cancelledQty}</b> ${r.unit}</span>
+          <span>åŸè¨‚ ${r.orderQty}ãƒ»å·²æ”¶ ${r.receivedQty}</span>
+          <span>${escHtml(r.cancelledBy)} Â· ${fmtDt(r.cancelledAt)}</span>
         </div>
-        ${r.cancelReason ? `<p class="mt-1 text-xs text-slate-400">­ì¦]¡G${escHtml(r.cancelReason)}</p>` : ''}
+        ${r.cancelReason ? `<p class="mt-1 text-xs text-slate-400">åŸå› ï¼š${escHtml(r.cancelReason)}</p>` : ''}
       </div>
       <button onclick="undoCancelItem('${r.parentId}','${r.orderId}')"
         style="flex-shrink:0;padding:4px 10px;background:white;color:#9F1239;border:1px solid #FECDD3;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">
-        ? ºM¾P
+        â†© æ’¤éŠ·
       </button>
     </div>
   </div>`;
   }
   const product = PRODUCTS.find(p => p.id === r.productId);
   const unit = product?.unit || '';
-  const isRejected = r.status === '©Ú¦¬';
+  const isRejected = r.status === 'æ‹’æ”¶';
   const isVoided = !!r.isVoided;
   return `
   <div class="record-row${isVoided ? ' record-voided' : ''}">
@@ -1103,19 +1103,19 @@ function recordRowHtml(r) {
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5 flex-wrap">
           <span class="font-medium text-slate-800 text-sm record-name">${escHtml(r.productName)}</span>
-          ${isVoided ? '<span class="text-xs bg-slate-100 text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded font-medium">¤w§@¼o</span>' : ''}
-          ${isRejected ? '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">©Ú¦¬</span>' : ''}
-          ${!r.orderId && !isRejected && !r.isGift && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium hover:bg-orange-200 transition-colors cursor-pointer">? ¥¼¦ê±µ­q³æ</button>` : ''}
-          ${r.isGift && !isRejected && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded font-medium hover:bg-slate-200 transition-colors cursor-pointer">¸Õ¥Î«~</button>` : ''}
+          ${isVoided ? '<span class="text-xs bg-slate-100 text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded font-medium">å·²ä½œå»¢</span>' : ''}
+          ${isRejected ? '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">æ‹’æ”¶</span>' : ''}
+          ${!r.orderId && !isRejected && !r.isGift && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium hover:bg-orange-200 transition-colors cursor-pointer">âš  æœªä¸²æ¥è¨‚å–®</button>` : ''}
+          ${r.isGift && !isRejected && !isVoided ? `<button onclick="openLinkOrderSheet('${r.id}')" class="text-xs bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded font-medium hover:bg-slate-200 transition-colors cursor-pointer">è©¦ç”¨å“</button>` : ''}
         </div>
         <div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 tabular record-meta">
-          <span>${isRejected ? '<span class="text-red-500">©Ú¦¬ 0</span>' : '¦¬ <b class="text-slate-700">' + r.receivedQty + '</b> ' + unit}</span>
-          <span>§å¸¹¡G${r.lotNumber || '<span class="text-slate-300">¡X</span>'}</span>
-          <span>®Ä´Á¡G${r.expiryDate ? fmt(r.expiryDate) : '<span class="text-slate-300">¡X</span>'}</span>
-          <span>${escHtml(r.receivedBy || r.operator || '¡X')} ¡P ${fmt(r.receivedAt)}</span>
+          <span>${isRejected ? '<span class="text-red-500">æ‹’æ”¶ 0</span>' : 'æ”¶ <b class="text-slate-700">' + r.receivedQty + '</b> ' + unit}</span>
+          <span>æ‰¹è™Ÿï¼š${r.lotNumber || '<span class="text-slate-300">â€”</span>'}</span>
+          <span>æ•ˆæœŸï¼š${r.expiryDate ? fmt(r.expiryDate) : '<span class="text-slate-300">â€”</span>'}</span>
+          <span>${escHtml(r.receivedBy || r.operator || 'â€”')} Â· ${fmt(r.receivedAt)}</span>
         </div>
         ${r.note ? `<p class="mt-1 text-xs text-slate-400">${escHtml(r.note)}</p>` : ''}
-        ${isVoided && r.voidReason ? `<p class="mt-1 text-xs text-slate-400">§@¼o¡G${escHtml(r.voidedBy || '')} ¡X ${escHtml(r.voidReason)}</p>` : ''}
+        ${isVoided && r.voidReason ? `<p class="mt-1 text-xs text-slate-400">ä½œå»¢ï¼š${escHtml(r.voidedBy || '')} â€” ${escHtml(r.voidReason)}</p>` : ''}
       </div>
       ${!isVoided ? `
       <div class="flex gap-0.5">
@@ -1130,7 +1130,7 @@ function recordRowHtml(r) {
   </div>`;
 }
 
-// ¢w¢w¢w VOID SHEET ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€ VOID SHEET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _voidingRecordId = null;
 
 function openVoidSheet(recordId) {
@@ -1138,7 +1138,7 @@ function openVoidSheet(recordId) {
   const record = records.find(r => r.id === recordId);
   if (!record) return;
   document.getElementById('void-product-name').textContent =
-    record.productName + '¡@¦¬ ' + record.receivedQty + ' ' + (record.unit || '');
+    record.productName + 'ã€€æ”¶ ' + record.receivedQty + ' ' + (record.unit || '');
   document.getElementById('void-order-warning').classList.toggle('hidden', !record.orderId);
   document.getElementById('void-by').value = '';
   document.getElementById('void-reason').value = '';
@@ -1155,39 +1155,39 @@ function closeVoidSheet() {
 async function confirmVoid() {
   const voidBy = document.getElementById('void-by').value.trim();
   const voidReason = document.getElementById('void-reason').value.trim();
-  if (!voidBy) { showToast('½Ğ¶ñ¼g§@¼oªÌ©m¦W'); return; }
-  if (!voidReason) { showToast('½Ğ¶ñ¼g§@¼o­ì¦]'); return; }
+  if (!voidBy) { showToast('è«‹å¡«å¯«ä½œå»¢è€…å§“å'); return; }
+  if (!voidReason) { showToast('è«‹å¡«å¯«ä½œå»¢åŸå› '); return; }
   const record = records.find(r => r.id === _voidingRecordId);
   if (!record) return;
 
   const btn = document.querySelector('[onclick="confirmVoid()"]');
-  if (btn) { btn.disabled = true; btn.textContent = '§@¼o¤¤¡K'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'ä½œå»¢ä¸­â€¦'; }
   try {
     if (record.orderId) await rollbackOrderQty(record.orderId, record.receivedQty);
     record.isVoided = true;
     record.voidedBy = voidBy;
     record.voidedAt = new Date().toISOString();
     record.voidReason = voidReason;
-    // voidJinhuoRecord ¤º«Ø¼g¤J kucun_changelog¡A¤£»İ¥t©I¥s appendKucunLog
+    // voidJinhuoRecord å…§å»ºå¯«å…¥ kucun_changelogï¼Œä¸éœ€å¦å‘¼å« appendKucunLog
     await window._fb.voidJinhuoRecord(record.id, voidBy, voidReason, {
       productId: record.productId, productName: record.productName,
       lotNumber: record.lotNumber || null,
       qty: -(record.receivedQty || 0), qtyDelta: -(record.receivedQty || 0),
-      unit: record.unit || '²~', vendor: record.vendor || '',
+      unit: record.unit || 'ç“¶', vendor: record.vendor || '',
     });
     saveRecords();
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '½T»{§@¼o'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'ç¢ºèªä½œå»¢'; }
   }
   renderRecords();
   closeVoidSheet();
-  showToast('¤w§@¼o¦¹µ§¬ö¿ı');
+  showToast('å·²ä½œå»¢æ­¤ç­†ç´€éŒ„');
 }
 
 async function rollbackOrderQty(orderId, qty) {
   try {
     const history = JSON.parse(localStorage.getItem('order-history') || '[]');
-    // LIFO¡G§@¼o®É±q³Ì·sªº­q³æ¡]°}¦C«eºİ¡^©¹«á§ä¡A¦^ºu²Ä¤@µ§¦³¦¬³fªº
+    // LIFOï¼šä½œå»¢æ™‚å¾æœ€æ–°çš„è¨‚å–®ï¼ˆé™£åˆ—å‰ç«¯ï¼‰å¾€å¾Œæ‰¾ï¼Œå›æ»¾ç¬¬ä¸€ç­†æœ‰æ”¶è²¨çš„
     let modifiedOrder = null;
     for (let i = 0; i < history.length; i++) {
       const order = history[i];
@@ -1206,7 +1206,7 @@ async function rollbackOrderQty(orderId, qty) {
   } catch(e) { console.error('rollbackOrderQty', e); }
 }
 
-// ¢w¢w¢w EDIT SHEET ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€ EDIT SHEET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _editingRecordId = null;
 
 function openEditSheet(recordId) {
@@ -1214,7 +1214,7 @@ function openEditSheet(recordId) {
   const record = records.find(r => r.id === recordId);
   if (!record) return;
   document.getElementById('edit-product-name').textContent =
-    record.productName + '¡@¦¬ ' + record.receivedQty + '¡]¼Æ¶qÂê©w¡^';
+    record.productName + 'ã€€æ”¶ ' + record.receivedQty + 'ï¼ˆæ•¸é‡é–å®šï¼‰';
   document.getElementById('edit-lot').value = record.lotNumber || '';
   const expVal = record.expiryDate
     ? (record.expiryDate.length === 7 ? record.expiryDate + '-01' : record.expiryDate)
@@ -1237,9 +1237,9 @@ function openEditSheet(recordId) {
     histList.classList.add('hidden');
     histList.innerHTML = history.slice().reverse().map(h => `
       <div class="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600">
-        <div class="font-medium text-slate-700">${escHtml(h.changedBy)}¡@<span class="font-normal text-slate-400">${h.changedAt.slice(0,10)}</span></div>
-        ${h.changes.map(c => `<div>${fieldLabel(c.field)}¡G${escHtml(c.from||'¡]ªÅ¡^')} ¡÷ ${escHtml(c.to||'¡]ªÅ¡^')}</div>`).join('')}
-        ${h.reason ? `<div class="text-orange-600">»¡©ú¡G${escHtml(h.reason)}</div>` : ''}
+        <div class="font-medium text-slate-700">${escHtml(h.changedBy)}ã€€<span class="font-normal text-slate-400">${h.changedAt.slice(0,10)}</span></div>
+        ${h.changes.map(c => `<div>${fieldLabel(c.field)}ï¼š${escHtml(c.from||'ï¼ˆç©ºï¼‰')} â†’ ${escHtml(c.to||'ï¼ˆç©ºï¼‰')}</div>`).join('')}
+        ${h.reason ? `<div class="text-orange-600">èªªæ˜ï¼š${escHtml(h.reason)}</div>` : ''}
       </div>`).join('');
   } else {
     histSection.classList.add('hidden');
@@ -1253,7 +1253,7 @@ function toggleEditHistory() {
 }
 
 function fieldLabel(field) {
-  return { lotNumber: '§å¸¹', expiryDate: '®Ä´Á', note: '³Æµù' }[field] || field;
+  return { lotNumber: 'æ‰¹è™Ÿ', expiryDate: 'æ•ˆæœŸ', note: 'å‚™è¨»' }[field] || field;
 }
 
 function closeEditSheet() {
@@ -1264,7 +1264,7 @@ function closeEditSheet() {
 
 async function confirmEdit() {
   const editBy = document.getElementById('edit-by').value.trim();
-  if (!editBy) { showToast('½Ğ¶ñ¼g­×§ïªÌ©m¦W'); return; }
+  if (!editBy) { showToast('è«‹å¡«å¯«ä¿®æ”¹è€…å§“å'); return; }
   const record = records.find(r => r.id === _editingRecordId);
   if (!record) return;
   const newLot = document.getElementById('edit-lot').value.trim();
@@ -1273,12 +1273,12 @@ async function confirmEdit() {
   const maxExp = getMaxExpiry(record.productId);
   const isOldExpiry = newExpiry && maxExp && newExpiry < maxExp;
   const oldExpiryReason = document.getElementById('edit-old-expiry-reason').value.trim();
-  if (isOldExpiry && !oldExpiryReason) { showToast('½Ğ¶ñ¼g®Ä´Á¦­©ó²{¦³®w¦sªº»¡©ú­ì¦]'); return; }
+  if (isOldExpiry && !oldExpiryReason) { showToast('è«‹å¡«å¯«æ•ˆæœŸæ—©æ–¼ç¾æœ‰åº«å­˜çš„èªªæ˜åŸå› '); return; }
   const changes = [];
   if (newLot !== (record.lotNumber || '')) changes.push({ field:'lotNumber', from: record.lotNumber||'', to: newLot });
   if (newExpiry !== (record.expiryDate || '')) changes.push({ field:'expiryDate', from: record.expiryDate||'', to: newExpiry });
   if (newNote !== (record.note || '')) changes.push({ field:'note', from: record.note||'', to: newNote });
-  if (changes.length === 0) { showToast('¨S¦³¥ô¦óÅÜ°Ê'); closeEditSheet(); return; }
+  if (changes.length === 0) { showToast('æ²’æœ‰ä»»ä½•è®Šå‹•'); closeEditSheet(); return; }
   if (!record.history) record.history = [];
   record.history.push({ changedAt: new Date().toISOString(), changedBy: editBy, changes, reason: oldExpiryReason || null });
   record.lotNumber = newLot || null;
@@ -1286,7 +1286,7 @@ async function confirmEdit() {
   record.note = newNote || null;
 
   const btn = document.querySelector('[onclick="confirmEdit()"]');
-  if (btn) { btn.disabled = true; btn.textContent = 'Àx¦s¤¤¡K'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'å„²å­˜ä¸­â€¦'; }
   try {
     await window._fb.saveJinhuoRecord(record);
     await window._fb.fsLog({
@@ -1296,52 +1296,52 @@ async function confirmEdit() {
       productId: record.productId, productName: record.productName,
       lotNumber: record.lotNumber || null,
       qty: 0, qtyDelta: 0,
-      unit: record.unit || '²~', vendor: record.vendor || '',
+      unit: record.unit || 'ç“¶', vendor: record.vendor || '',
       operator: editBy,
-      note: `­×§ï¡G${changes.map(c=>`${c.field}: ${c.from}¡÷${c.to}`).join('¡F')}¡]${editBy}¡^`,
+      note: `ä¿®æ”¹ï¼š${changes.map(c=>`${c.field}: ${c.from}â†’${c.to}`).join('ï¼›')}ï¼ˆ${editBy}ï¼‰`,
     });
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Àx¦s'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'å„²å­˜'; }
   }
   renderRecords();
   closeEditSheet();
-  showToast('? ¤wÀx¦s­×§ï');
+  showToast('âœ“ å·²å„²å­˜ä¿®æ”¹');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
-// SCANNER ¡X Step 1
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// SCANNER â€” Step 1
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ªTÁ|«á¸mÃèÀY¡A­Y¦³¦hÁû¤~Åã¥Ü¤Á´««ö¶s
+// æšèˆ‰å¾Œç½®é¡é ­ï¼Œè‹¥æœ‰å¤šé¡†æ‰é¡¯ç¤ºåˆ‡æ›æŒ‰éˆ•
 async function _enumerateAndShowCameraSwitch() {
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
     const videos = all.filter(d => d.kind === 'videoinput');
-    // ±Æ°£«e¸m¡]label §t front / «e¡^
+    // æ’é™¤å‰ç½®ï¼ˆlabel å« front / å‰ï¼‰
     const back = videos.filter(d => {
       const l = d.label.toLowerCase();
-      return !l.includes('front') && !l.includes('«e') && !l.includes('user');
+      return !l.includes('front') && !l.includes('å‰') && !l.includes('user');
     });
     _cameraDevices = back.length > 1 ? back : videos;
-    if (_cameraDevices.length <= 1) return; // ¥u¦³¤@Áû¤£»İ­n«ö¶s
-    // §ä¥X¥Ø«e±Ò¥Î¤¤ªºÃèÀY¡]³z¹L html5QrCode ªº active track¡^
+    if (_cameraDevices.length <= 1) return; // åªæœ‰ä¸€é¡†ä¸éœ€è¦æŒ‰éˆ•
+    // æ‰¾å‡ºç›®å‰å•Ÿç”¨ä¸­çš„é¡é ­ï¼ˆé€é html5QrCode çš„ active trackï¼‰
     try {
       const track = html5QrCode?.getState && html5QrCode.getRunningTrackCameraCapabilities?.()?.facingModeCapability;
-      // µL½×¦p¦ó¡A¹w³] idx 0 ¬°¡u¥DÃèÀY¡v
+      // ç„¡è«–å¦‚ä½•ï¼Œé è¨­ idx 0 ç‚ºã€Œä¸»é¡é ­ã€
     } catch {}
     _cameraIdx = 0;
     _updateCameraLabel();
     document.getElementById('camera-switch-wrap').classList.remove('hidden');
   } catch (e) {
-    console.warn('[CameraSwitch] ªTÁ|ÃèÀY¥¢±Ñ', e);
+    console.warn('[CameraSwitch] æšèˆ‰é¡é ­å¤±æ•—', e);
   }
 }
 
 function _updateCameraLabel() {
   const dev = _cameraDevices[_cameraIdx];
   if (!dev) return;
-  const label = dev.label || `ÃèÀY ${_cameraIdx + 1}`;
-  // ÁYµu±`¨£ªº¤¾ªø¦WºÙ
+  const label = dev.label || `é¡é ­ ${_cameraIdx + 1}`;
+  // ç¸®çŸ­å¸¸è¦‹çš„å†—é•·åç¨±
   const short = label.replace(/camera2?\s*/i, '').replace(/\s*\d+,\s*facing\s*(back|front)/i, '').trim() || label;
   document.getElementById('camera-label').textContent = `${_cameraIdx + 1}/${_cameraDevices.length} ${short}`;
 }
@@ -1352,12 +1352,12 @@ async function switchCamera() {
   const device = _cameraDevices[_cameraIdx];
   _updateCameraLabel();
 
-  // °±±¼²{¦³¬Û¾÷¡A¥Î·s deviceId ­«±Ò
+  // åœæ‰ç¾æœ‰ç›¸æ©Ÿï¼Œç”¨æ–° deviceId é‡å•Ÿ
   if (html5QrCode) { try { await html5QrCode.stop(); } catch {} html5QrCode = null; }
   document.getElementById('zoom-wrap').classList.add('hidden');
   _applyZoomCSS(1);
   const zoomSlider = document.getElementById('zoom-slider');
-  if (zoomSlider) { zoomSlider.value = 1; document.getElementById('zoom-val').textContent = '1¡Ñ'; }
+  if (zoomSlider) { zoomSlider.value = 1; document.getElementById('zoom-val').textContent = '1Ã—'; }
 
   html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
   html5QrCode.start(
@@ -1373,25 +1373,25 @@ async function switchCamera() {
     document.getElementById('zoom-wrap').classList.remove('hidden');
   }).catch(err => {
     document.getElementById('scan-status').innerHTML =
-      `<p class="text-red-400 text-sm">¤Á´«ÃèÀY¥¢±Ñ</p><p class="text-white/40 text-xs mt-1">${err}</p>`;
+      `<p class="text-red-400 text-sm">åˆ‡æ›é¡é ­å¤±æ•—</p><p class="text-white/40 text-xs mt-1">${err}</p>`;
   });
 }
 
 function startScan() {
   scanResult = null;
   editingTrayIdx = -1;
-  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">¹ï·Ç¥]¸Ë¤Wªº QR Code ©Î±ø½X</p>';
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">å°æº–åŒ…è£ä¸Šçš„ QR Code æˆ–æ¢ç¢¼</p>';
   document.getElementById('scan-step1').style.display = 'flex';
   document.getElementById('scan-step2').classList.remove('open');
   document.getElementById('scan-modal').classList.add('open');
 
   if (html5QrCode) { try { html5QrCode.stop().catch(()=>{}); } catch {} html5QrCode = null; }
 
-  // ­«¸m zoom ·Æ±ì
+  // é‡ç½® zoom æ»‘æ¡¿
   const zoomSlider = document.getElementById('zoom-slider');
   if (zoomSlider) zoomSlider.value = 1;
   const zoomVal = document.getElementById('zoom-val');
-  if (zoomVal) zoomVal.textContent = '1¡Ñ';
+  if (zoomVal) zoomVal.textContent = '1Ã—';
   document.getElementById('zoom-wrap').classList.add('hidden');
 
   html5QrCode = new Html5Qrcode('html5qr-code-full-region', { useBarCodeDetectorIfSupported: true });
@@ -1413,13 +1413,13 @@ function startScan() {
     await _enumerateAndShowCameraSwitch();
   }).catch(err => {
     document.getElementById('scan-status').innerHTML =
-      `<p class="text-red-400 text-sm">µLªk¶}±Ò¬Û¾÷¡A½Ğ½T»{¤w±ÂÅv¬Û¾÷Åv­­</p><p class="text-white/40 text-xs mt-1">${err}</p>`;
+      `<p class="text-red-400 text-sm">ç„¡æ³•é–‹å•Ÿç›¸æ©Ÿï¼Œè«‹ç¢ºèªå·²æˆæ¬Šç›¸æ©Ÿæ¬Šé™</p><p class="text-white/40 text-xs mt-1">${err}</p>`;
     document.getElementById('scan-manual-btn').classList.remove('hidden');
   });
 }
 
 function _applyZoomCSS(scale) {
-  // CSS µøÄ±ÁY©ñ¡GÀ°§U¨Ï¥ÎªÌ¦bµe­±¤W¬İ²M·¡±ø½X¦ì¸m¡]±½½X¤ŞÀº¤´Åª­ì©l¸ÑªR«×¡^
+  // CSS è¦–è¦ºç¸®æ”¾ï¼šå¹«åŠ©ä½¿ç”¨è€…åœ¨ç•«é¢ä¸Šçœ‹æ¸…æ¥šæ¢ç¢¼ä½ç½®ï¼ˆæƒç¢¼å¼•æ“ä»è®€åŸå§‹è§£æåº¦ï¼‰
   const video = document.querySelector('#html5qr-code-full-region video');
   if (video) {
     video.style.transform = scale > 1.05 ? `scale(${scale})` : '';
@@ -1431,21 +1431,21 @@ function applyZoom(val) {
   const scale = parseFloat(val);
   const displayVal = scale.toFixed(1);
   const zoomValEl = document.getElementById('zoom-val');
-  if (zoomValEl) zoomValEl.textContent = displayVal + '¡Ñ';
+  if (zoomValEl) zoomValEl.textContent = displayVal + 'Ã—';
 
   if (!html5QrCode) { _applyZoomCSS(scale); return; }
 
-  // ¥ı¹Á¸ÕµwÅé zoom¡]¦P®É±a¤W focusMode¡^
+  // å…ˆå˜—è©¦ç¡¬é«” zoomï¼ˆåŒæ™‚å¸¶ä¸Š focusModeï¼‰
   html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: 'continuous', zoom: scale }] })
     .catch(() => {
-      // µwÅé zoom ¤£¤ä´© ¡÷ CSS µøÄ±ÁY©ñ§@¬° fallback¡A·Æ±ì«O«ù¥i¨£
+      // ç¡¬é«” zoom ä¸æ”¯æ´ â†’ CSS è¦–è¦ºç¸®æ”¾ä½œç‚º fallbackï¼Œæ»‘æ¡¿ä¿æŒå¯è¦‹
       _applyZoomCSS(scale);
     });
 }
 
 async function correctImageOrientation(file) {
-  // ¨Ï¥Î createImageBitmap + imageOrientation:'from-image' ¦Û°Ê®M¥Î EXIF ±ÛÂà
-  // Chrome 95+ ¤ä´©¡FÂÂª©¥» fallback ¦^­ìÀÉ¡]catch¡^
+  // ä½¿ç”¨ createImageBitmap + imageOrientation:'from-image' è‡ªå‹•å¥—ç”¨ EXIF æ—‹è½‰
+  // Chrome 95+ æ”¯æ´ï¼›èˆŠç‰ˆæœ¬ fallback å›åŸæª”ï¼ˆcatchï¼‰
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
     const canvas = document.createElement('canvas');
@@ -1462,17 +1462,17 @@ async function correctImageOrientation(file) {
 }
 
 function startPhotoScan() {
-  // ®Ú¥»­×¥¿¡G¥ı°±±¼ª½¼½¬Û¾÷¡AÁ×§K Android ªğ¦^ºô­¶«á¬Û¾÷ª¬ºA²V¶Ã
+  // æ ¹æœ¬ä¿®æ­£ï¼šå…ˆåœæ‰ç›´æ’­ç›¸æ©Ÿï¼Œé¿å… Android è¿”å›ç¶²é å¾Œç›¸æ©Ÿç‹€æ…‹æ··äº‚
   if (html5QrCode) { try { html5QrCode.stop().catch(()=>{}); } catch {} html5QrCode = null; }
   document.getElementById('zoom-wrap').classList.add('hidden');
   _applyZoomCSS(1);
-  // ²MªÅ¬Û¾÷°Ï°ì¡AÅã¥Üµ¥«İ©ç·Óª¬ºA
+  // æ¸…ç©ºç›¸æ©Ÿå€åŸŸï¼Œé¡¯ç¤ºç­‰å¾…æ‹ç…§ç‹€æ…‹
   document.getElementById('html5qr-code-full-region').innerHTML =
-    '<div style="height:240px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);font-size:14px">?? ­ì¥Í¬Û¾÷¶}±Ò¤¤¡K</div>';
+    '<div style="height:240px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);font-size:14px">ğŸ“· åŸç”Ÿç›¸æ©Ÿé–‹å•Ÿä¸­â€¦</div>';
   document.getElementById('photo-scan-input').click();
 }
 
-// ·Ó¤ù¸Ñ½X¡GÀu¥ı¥Î­ì¥Í BarcodeDetector¡]DataMatrix ¤ä´©¦n¡^¡A¤£¤ä´©¦A­°¦^ Html5Qrcode
+// ç…§ç‰‡è§£ç¢¼ï¼šå„ªå…ˆç”¨åŸç”Ÿ BarcodeDetectorï¼ˆDataMatrix æ”¯æ´å¥½ï¼‰ï¼Œä¸æ”¯æ´å†é™å› Html5Qrcode
 async function decodeImageFile(file) {
   if ('BarcodeDetector' in window) {
     try {
@@ -1484,12 +1484,12 @@ async function decodeImageFile(file) {
       const results = await detector.detect(bitmap);
       bitmap.close();
       if (results.length > 0) {
-        console.log('[BarcodeDetector] ¸Ñ½X¦¨¥\:', results[0].format, results[0].rawValue);
+        console.log('[BarcodeDetector] è§£ç¢¼æˆåŠŸ:', results[0].format, results[0].rawValue);
         return results[0].rawValue;
       }
-      console.warn('[BarcodeDetector] °»´ú¨ì 0 ­Ó±ø½X¡A­°¦^ Html5Qrcode');
+      console.warn('[BarcodeDetector] åµæ¸¬åˆ° 0 å€‹æ¢ç¢¼ï¼Œé™å› Html5Qrcode');
     } catch (e) {
-      console.warn('[BarcodeDetector] ¥¢±Ñ¡A­°¦^ Html5Qrcode', e);
+      console.warn('[BarcodeDetector] å¤±æ•—ï¼Œé™å› Html5Qrcode', e);
     }
   }
   return await Html5Qrcode.scanFile(file, true);
@@ -1498,15 +1498,15 @@ async function decodeImageFile(file) {
 async function onPhotoScanFile(input) {
   const file = input.files?.[0];
   if (!file) return;
-  input.value = ''; // ­«¸m¡A½T«O¦P¤@±i¹Ï¥i¥H¦A¦¸Ä²µo
+  input.value = ''; // é‡ç½®ï¼Œç¢ºä¿åŒä¸€å¼µåœ–å¯ä»¥å†æ¬¡è§¸ç™¼
 
   const qrRegion = document.getElementById('html5qr-code-full-region');
   const statusEl = document.getElementById('scan-status');
 
-  // ¥ß¨èÅã¥Ü Loading ª¬ºA¡AÅı¨Ï¥ÎªÌª¾¹D¨t²Î¦b¤u§@
-  statusEl.innerHTML = '<p style="color:#fff;font-size:14px;font-weight:600">? ¥¿¦b¸ÑªR·Ó¤ù¤¤ªº±ø½X¡K</p>';
+  // ç«‹åˆ»é¡¯ç¤º Loading ç‹€æ…‹ï¼Œè®“ä½¿ç”¨è€…çŸ¥é“ç³»çµ±åœ¨å·¥ä½œ
+  statusEl.innerHTML = '<p style="color:#fff;font-size:14px;font-weight:600">â³ æ­£åœ¨è§£æç…§ç‰‡ä¸­çš„æ¢ç¢¼â€¦</p>';
 
-  // EXIF ±ÛÂà­×¥¿¡G½T«O°eµ¹±½½X¤ŞÀºªº¹Ï¤ù¤è¦V¥¿½T¡]¤£»İ¨Ï¥ÎªÌ¤â°Ê¥´¾î¡^
+  // EXIF æ—‹è½‰ä¿®æ­£ï¼šç¢ºä¿é€çµ¦æƒç¢¼å¼•æ“çš„åœ–ç‰‡æ–¹å‘æ­£ç¢ºï¼ˆä¸éœ€ä½¿ç”¨è€…æ‰‹å‹•æ‰“æ©«ï¼‰
   const correctedFile = await correctImageOrientation(file);
   const previewUrl = URL.createObjectURL(correctedFile);
 
@@ -1515,19 +1515,19 @@ async function onPhotoScanFile(input) {
     URL.revokeObjectURL(previewUrl);
     onScanSuccess(decoded);
   } catch (e) {
-    // ¸Ñ½X¥¢±Ñ¡GÅã¥Ü¨Ï¥ÎªÌ©çªº·Ó¤ù + ¿ù»~»¡©ú + ­«¸Õ¿ï¶µ
+    // è§£ç¢¼å¤±æ•—ï¼šé¡¯ç¤ºä½¿ç”¨è€…æ‹çš„ç…§ç‰‡ + éŒ¯èª¤èªªæ˜ + é‡è©¦é¸é …
     qrRegion.innerHTML =
       `<img src="${previewUrl}" style="width:100%;border-radius:14px;object-fit:contain;max-height:240px;display:block">`;
     statusEl.innerHTML =
-      `<p style="color:#f87171;font-size:13px;font-weight:700;margin-bottom:8px">? ±ø½X¸ÑªR¥¢±Ñ¡A½Ğ½T»{·Ó¤ù¬O§_²M´·</p>
+      `<p style="color:#f87171;font-size:13px;font-weight:700;margin-bottom:8px">âŒ æ¢ç¢¼è§£æå¤±æ•—ï¼Œè«‹ç¢ºèªç…§ç‰‡æ˜¯å¦æ¸…æ™°</p>
        <div style="display:flex;gap:8px;justify-content:center">
          <button onclick="startPhotoScan()"
            style="padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-size:13px">
-           ?? ­«·s©ç·Ó
+           ğŸ”„ é‡æ–°æ‹ç…§
          </button>
          <button onclick="openManualEntry()"
            style="padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-size:13px">
-           ?? ¤â°Ê¿é¤J
+           âœï¸ æ‰‹å‹•è¼¸å…¥
          </button>
        </div>`;
   }
@@ -1560,7 +1560,7 @@ function onScanSuccess(text) {
   const parsed = parseBarcode(text);
   const matches = matchProductsByGtin(parsed.gtin);
 
-  // ¦h­«¤ñ¹ï ¡÷ Åã¥Ü¤À¬y¿ï³æ¡AÅı¨Ï¥ÎªÌ¿ï¼t°Ó
+  // å¤šé‡æ¯”å° â†’ é¡¯ç¤ºåˆ†æµé¸å–®ï¼Œè®“ä½¿ç”¨è€…é¸å» å•†
   if (matches.length > 1) {
     try { if (html5QrCode) html5QrCode.pause(true); } catch {}
     showDisambiguation(matches, parsed, text);
@@ -1570,9 +1570,9 @@ function onScanSuccess(text) {
   const matched = matches[0] || null;
   scanResult = { raw: text, parsed, matchedProduct: matched };
 
-  // ¨¾­«½Æ¡G¦¹±ø½X¤w¦b¼È¦s°Ï ¡÷ ¶À¦â´£¥Ü + 1.5s «á«ì´_±½´y
+  // é˜²é‡è¤‡ï¼šæ­¤æ¢ç¢¼å·²åœ¨æš«å­˜å€ â†’ é»ƒè‰²æç¤º + 1.5s å¾Œæ¢å¾©æƒæ
   if (matched && sessionTray.some(i => i.rawScanText === text)) {
-    showToast('? ¦¹±ø½X¤w¦b¼È¦s°Ï¡A½Ğ¦Ü©â±P­×§ï¼Æ¶q', 'warn');
+    showToast('âš  æ­¤æ¢ç¢¼å·²åœ¨æš«å­˜å€ï¼Œè«‹è‡³æŠ½å±œä¿®æ”¹æ•¸é‡', 'warn');
     setTimeout(() => {
       try { if (html5QrCode) html5QrCode.resume(); } catch {}
       scanResult = null;
@@ -1580,7 +1580,7 @@ function onScanSuccess(text) {
     return;
   }
 
-  // µL½×¬O§_ÃÑ§O¡A³£¼u¥X Step 2 Åı¨Ï¥ÎªÌ½T»{¼Æ¶q
+  // ç„¡è«–æ˜¯å¦è­˜åˆ¥ï¼Œéƒ½å½ˆå‡º Step 2 è®“ä½¿ç”¨è€…ç¢ºèªæ•¸é‡
   renderScanConfirm(matched, parsed, text);
 }
 
@@ -1594,9 +1594,9 @@ function showDisambiguation(matches, parsed, rawText) {
     </button>`
   ).join('');
   document.getElementById('scan-status').innerHTML = `
-    <p style="color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;margin-bottom:10px">¦¹±ø½X¹ïÀ³¦h­Ó¼t°Ó¡A½Ğ¿ï¾Ü¡G</p>
+    <p style="color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;margin-bottom:10px">æ­¤æ¢ç¢¼å°æ‡‰å¤šå€‹å» å•†ï¼Œè«‹é¸æ“‡ï¼š</p>
     <div style="display:flex;gap:8px">${btnHtml}</div>
-    <button onclick="cancelDisambiguation()" style="margin-top:8px;background:none;border:none;color:rgba(255,255,255,0.45);font-size:12px;text-decoration:underline;cursor:pointer">¨ú®ø¡A­«·s±½´y</button>
+    <button onclick="cancelDisambiguation()" style="margin-top:8px;background:none;border:none;color:rgba(255,255,255,0.45);font-size:12px;text-decoration:underline;cursor:pointer">å–æ¶ˆï¼Œé‡æ–°æƒæ</button>
   `;
 }
 
@@ -1606,11 +1606,11 @@ function selectDisambiguated(productId) {
   delete window._disambigRaw;
   delete window._disambigParsed;
   const product = PRODUCTS.find(p => p.id === productId);
-  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">¹ï·Ç¥]¸Ë¤Wªº QR Code ©Î±ø½X</p>';
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">å°æº–åŒ…è£ä¸Šçš„ QR Code æˆ–æ¢ç¢¼</p>';
   scanResult = { raw: rawText, parsed, matchedProduct: product };
-  // ¨¾­«½Æ¡]¥H productId ¤ñ¹ï¡^
+  // é˜²é‡è¤‡ï¼ˆä»¥ productId æ¯”å°ï¼‰
   if (sessionTray.some(i => i.productId === productId)) {
-    showToast('? ¦¹«~¶µ¤w¦b¼È¦s°Ï¡A½Ğ¦Ü©â±P­×§ï¼Æ¶q', 'warn');
+    showToast('âš  æ­¤å“é …å·²åœ¨æš«å­˜å€ï¼Œè«‹è‡³æŠ½å±œä¿®æ”¹æ•¸é‡', 'warn');
     setTimeout(() => { try { if (html5QrCode) html5QrCode.resume(); } catch {} scanResult = null; }, 1500);
     return;
   }
@@ -1620,22 +1620,22 @@ function selectDisambiguated(productId) {
 function cancelDisambiguation() {
   delete window._disambigRaw;
   delete window._disambigParsed;
-  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">¹ï·Ç¥]¸Ë¤Wªº QR Code ©Î±ø½X</p>';
+  document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">å°æº–åŒ…è£ä¸Šçš„ QR Code æˆ–æ¢ç¢¼</p>';
   try { if (html5QrCode) html5QrCode.resume(); } catch {}
   scanResult = null;
 }
 
 function retryScan() {
   if (editingTrayIdx >= 0) {
-    // Cancel edit ¡÷ back to tray drawer
+    // Cancel edit â†’ back to tray drawer
     stopScan();
     return;
   }
-  // Close step 2 ¡÷ resume camera in step 1
+  // Close step 2 â†’ resume camera in step 1
   document.getElementById('scan-step2').classList.remove('open');
   setTimeout(() => {
     document.getElementById('scan-step1').style.display = 'flex';
-    document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">¹ï·Ç¥]¸Ë¤Wªº QR Code ©Î±ø½X</p>';
+    document.getElementById('scan-status').innerHTML = '<p class="text-white/60 text-sm">å°æº–åŒ…è£ä¸Šçš„ QR Code æˆ–æ¢ç¢¼</p>';
     if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
     scanResult = null;
   }, 310);
@@ -1647,9 +1647,9 @@ function openManualEntry() {
   showScanStep2();
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
-// SCANNER ¡X Step 2
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// SCANNER â€” Step 2
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildScanProductSelect() {
   const sel = document.getElementById('s2-product');
@@ -1681,7 +1681,7 @@ function showScanStep2() {
 function renderScanConfirm(matchedProduct, parsed, rawText, specificParentId = null) {
   document.getElementById('s2-raw').value = rawText || '';
   document.getElementById('s2-raw-display').textContent = rawText ? JSON.stringify(rawText) : '';
-  document.getElementById('s2-parse-debug').textContent = `gtin:${parsed.gtin||'¡X'} lot:${parsed.lotNumber||'¡X'} exp:${parsed.expiryDate||'¡X'}`;
+  document.getElementById('s2-parse-debug').textContent = `gtin:${parsed.gtin||'â€”'} lot:${parsed.lotNumber||'â€”'} exp:${parsed.expiryDate||'â€”'}`;
   document.getElementById('s2-lot').value = parsed.lotNumber || '';
   document.getElementById('s2-expiry').value = parsed.expiryDate || '';
   document.getElementById('s2-quality-wrap').classList.add('hidden');
@@ -1699,9 +1699,9 @@ function renderScanConfirm(matchedProduct, parsed, rawText, specificParentId = n
     document.getElementById('s2-product-select-wrap').classList.add('hidden');
     document.getElementById('s2-product-card').innerHTML = `
       <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-        <div class="text-xs text-green-600 font-medium mb-0.5">? «~¶µÃÑ§O¦¨¥\</div>
+        <div class="text-xs text-green-600 font-medium mb-0.5">âœ“ å“é …è­˜åˆ¥æˆåŠŸ</div>
         <div class="font-semibold text-slate-800">${escHtml(matchedProduct.name)}</div>
-        <div class="text-xs text-slate-500 mt-0.5">¼t°Ó¡G${escHtml(matchedProduct.vendor)}</div>
+        <div class="text-xs text-slate-500 mt-0.5">å» å•†ï¼š${escHtml(matchedProduct.vendor)}</div>
       </div>`;
     document.getElementById('s2-unit').textContent = matchedProduct.unit;
     renderOrderMatch(matchedProduct.id, specificParentId);
@@ -1712,7 +1712,7 @@ function renderScanConfirm(matchedProduct, parsed, rawText, specificParentId = n
   } else {
     document.getElementById('s2-product-card').innerHTML = parsed.gtin
       ? `<div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
-           <div class="text-xs text-yellow-700 font-medium">? ±ø½X¥¼«ØÀÉ¡A½Ğ¤â°Ê¿ï¾Ü«~¶µ</div>
+           <div class="text-xs text-yellow-700 font-medium">âš  æ¢ç¢¼æœªå»ºæª”ï¼Œè«‹æ‰‹å‹•é¸æ“‡å“é …</div>
            <div class="text-xs text-slate-400 mt-0.5">${escHtml(parsed.gtin)}</div>
          </div>`
       : '';
@@ -1755,7 +1755,7 @@ function switchTab(name) {
   if (name === 'history') renderRecords();
 }
 
-// ¢w¢w¢w «İ¦¬¥ô°È¡]¼t°Ó¤À¸s + ­qÁÊ¤é´Á±Æ§Ç¡^¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€ å¾…æ”¶ä»»å‹™ï¼ˆå» å•†åˆ†ç¾¤ + è¨‚è³¼æ—¥æœŸæ’åºï¼‰â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function renderExpectedDeliveries() {
   const list = document.getElementById('pending-list');
   if (!list) return;
@@ -1771,25 +1771,25 @@ async function renderExpectedDeliveries() {
   if (badge) {
     const now = new Date();
     const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block flex-shrink-0"></span>¸ê®Æ§ó·s ${t}`;
+    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block flex-shrink-0"></span>è³‡æ–™æ›´æ–° ${t}`;
     badge.classList.remove('hidden');
   }
 
-  // ­pºâ¼È¦s°Ï¤w¼È¦sªº¼Æ¶q¡]¨Ì¤÷­q³æ parentId ¥[Á`¡AÁ×§K¸ó­q³æ¦Ã¬V¡^
+  // è¨ˆç®—æš«å­˜å€å·²æš«å­˜çš„æ•¸é‡ï¼ˆä¾çˆ¶è¨‚å–® parentId åŠ ç¸½ï¼Œé¿å…è·¨è¨‚å–®æ±¡æŸ“ï¼‰
   const trayQtyByOrder = {};
   sessionTray.forEach(i => {
     if (i.isRejected || !i.parentId) return;
     trayQtyByOrder[i.parentId] = (trayQtyByOrder[i.parentId] || 0) + (i.qty || 0);
   });
 
-  // ¦¬¶°©Ò¦³«İ¦¬«~¶µ¡A±a¤W orderedAt ¨Ñ±Æ§Ç
+  // æ”¶é›†æ‰€æœ‰å¾…æ”¶å“é …ï¼Œå¸¶ä¸Š orderedAt ä¾›æ’åº
   const allItems = [];
   history.forEach(order => {
     if (!['pending','partial'].includes(order.status)) return;
     const orderedAt = order.confirmedAt || order.date || '';
     const dateStr = orderedAt
       ? (() => { const d = new Date(orderedAt); return `${d.getMonth()+1}/${d.getDate()}`; })()
-      : '¡X';
+      : 'â€”';
     (order.orders || []).forEach(item => {
       const remaining = (item.orderQty || 0) - (item.receivedQty || 0) - (item.cancelledQty || 0) - (trayQtyByOrder[order.id] || 0);
       if (remaining <= 0) return;
@@ -1800,7 +1800,7 @@ async function renderExpectedDeliveries() {
         parentId: order.id || '',
         name: item.name,
         unit: item.unit || '',
-        vendor: item.vendor || '¥¼ª¾¼t°Ó',
+        vendor: item.vendor || 'æœªçŸ¥å» å•†',
         remaining,
         isPartial: order.status === 'partial',
         dateStr,
@@ -1811,13 +1811,13 @@ async function renderExpectedDeliveries() {
 
   if (allItems.length === 0) {
     list.innerHTML = `<div class="pending-empty">
-      <div class="pending-empty-icon">?</div>
-      <div class="pending-empty-text">¥Ø«e¨S¦³«İ¨ì³fªº«~¶µ</div>
+      <div class="pending-empty-icon">âœ…</div>
+      <div class="pending-empty-text">ç›®å‰æ²’æœ‰å¾…åˆ°è²¨çš„å“é …</div>
     </div>`;
     return;
   }
 
-  // ¨Ì¼t°Ó¤À¸s¡A°Ï¶ô¤º«ö orderedAt ±qÂÂ¨ì·s
+  // ä¾å» å•†åˆ†ç¾¤ï¼Œå€å¡Šå…§æŒ‰ orderedAt å¾èˆŠåˆ°æ–°
   const vendorMap = {};
   allItems.forEach(it => {
     if (!vendorMap[it.vendor]) vendorMap[it.vendor] = [];
@@ -1832,23 +1832,23 @@ async function renderExpectedDeliveries() {
     const items = vendorMap[vendor];
     const cards = items.map(it => {
       const statusBadge = it.isPartial
-        ? `<span style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">³¡¤À¨ì³f</span>`
-        : `<span style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">«İ¨ì³f</span>`;
+        ? `<span style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">éƒ¨åˆ†åˆ°è²¨</span>`
+        : `<span style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:1px 7px;border-radius:5px;font-size:10px;font-weight:700">å¾…åˆ°è²¨</span>`;
       const cancelBtn = it.parentId
-        ? `<button class="pending-card-btn" style="background:#FFF1F2;color:#E11D48" onclick="openCancelSheet('${it.parentId}','${it.orderId || ''}','${escHtml(it.name)}',${it.remaining})">?? ¨ú®ø«İ¦¬</button>`
+        ? `<button class="pending-card-btn" style="background:#FFF1F2;color:#E11D48" onclick="openCancelSheet('${it.parentId}','${it.orderId || ''}','${escHtml(it.name)}',${it.remaining})">ğŸš« å–æ¶ˆå¾…æ”¶</button>`
         : '';
       const receiveBtn = it.pId
-        ? `<button class="pending-card-btn" onclick="openQuickReceive('${it.pId}', '${it.parentId || ''}')">?? ¤â°Ê¤J®w</button>`
+        ? `<button class="pending-card-btn" onclick="openQuickReceive('${it.pId}', '${it.parentId || ''}')">âœï¸ æ‰‹å‹•å…¥åº«</button>`
         : '';
       const btn = `<div style="display:flex;gap:8px;margin-left:auto;flex-shrink:0">${cancelBtn}${receiveBtn}</div>`;
       return `<div class="pending-card">
         <div class="pending-card-meta">
-          <span>${it.dateStr} ­qÁÊ</span>${statusBadge}
+          <span>${it.dateStr} è¨‚è³¼</span>${statusBadge}
         </div>
         <div class="pending-card-body">
           <div>
             <div class="pending-card-name">${escHtml(it.name)}</div>
-            <div class="pending-card-qty">«İ¨ì³f ${it.remaining} ${escHtml(it.unit)}</div>
+            <div class="pending-card-qty">å¾…åˆ°è²¨ ${it.remaining} ${escHtml(it.unit)}</div>
           </div>
           ${btn}
         </div>
@@ -1858,7 +1858,7 @@ async function renderExpectedDeliveries() {
     return `<div class="vendor-group mb-3">
       <div class="vendor-group-header">
         <span class="font-semibold text-slate-700 text-sm">${escHtml(vendor)}</span>
-        <span class="text-xs text-slate-400">${items.length} ¶µ«İ¦¬</span>
+        <span class="text-xs text-slate-400">${items.length} é …å¾…æ”¶</span>
       </div>
       <div class="p-3 flex flex-col gap-2">${cards}</div>
     </div>`;
@@ -1867,7 +1867,7 @@ async function renderExpectedDeliveries() {
 
 function openQuickReceive(productId, specificParentId = '') {
   const product = PRODUCTS.find(p => p.id === productId);
-  if (!product) { showToast('§ä¤£¨ì«~¶µ¸ê®Æ'); return; }
+  if (!product) { showToast('æ‰¾ä¸åˆ°å“é …è³‡æ–™'); return; }
   isQuickReceiveMode = true;
   scanResult = {
     raw: '',
@@ -1885,15 +1885,15 @@ function renderOrderMatch(productId, specificParentId = null) {
 
   if (orders.length === 0) {
     area.innerHTML = `<div class="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 mb-1">
-      <span class="text-orange-500">?</span>
-      <span class="text-xs text-orange-700 font-medium">µL¹ïÀ³­q³æ</span>
+      <span class="text-orange-500">âš </span>
+      <span class="text-xs text-orange-700 font-medium">ç„¡å°æ‡‰è¨‚å–®</span>
     </div>`;
     document.getElementById('s2-parent-id').value = '';
     document.getElementById('s2-order-id').value = '';
     return;
   }
 
-  // ºë½T¸j©w¡G¶Ç¤J specificParentId ´N§ä¨º¤@±i­q³æ¡F±½½X¸ô®|¨S¦³ ¡÷ FIFO¡]³ÌÂÂÀu¥ı¡^
+  // ç²¾ç¢ºç¶å®šï¼šå‚³å…¥ specificParentId å°±æ‰¾é‚£ä¸€å¼µè¨‚å–®ï¼›æƒç¢¼è·¯å¾‘æ²’æœ‰ â†’ FIFOï¼ˆæœ€èˆŠå„ªå…ˆï¼‰
   const o = (specificParentId && orders.find(x => x.parentId === specificParentId)) || orders[0];
   document.getElementById('s2-parent-id').value = o.parentId || '';
   document.getElementById('s2-order-id').value = o.orderId;
@@ -1904,10 +1904,10 @@ function renderOrderMatch(productId, specificParentId = null) {
 
   area.innerHTML = `<div class="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-1">
     <div class="flex flex-wrap items-center justify-between gap-1">
-      <span class="text-xs font-semibold text-blue-700">¹ïÀ³­q³æ</span>
-      <span class="text-xs text-blue-600 tabular">­qÁÊ ${o.orderedQty} ¡U ¤w¦¬ ${o.receivedQty} ¡U <b>«İ¨ì³f ${o.pendingQty}</b></span>
+      <span class="text-xs font-semibold text-blue-700">å°æ‡‰è¨‚å–®</span>
+      <span class="text-xs text-blue-600 tabular">è¨‚è³¼ ${o.orderedQty} ï½œ å·²æ”¶ ${o.receivedQty} ï½œ <b>å¾…åˆ°è²¨ ${o.pendingQty}</b></span>
     </div>
-    ${o.orderedAt ? `<div class="text-xs text-slate-400 mt-0.5">${escHtml(o.orderedAt)}${o.orderedBy ? ' ¡P ' + escHtml(o.orderedBy) : ''}</div>` : ''}
+    ${o.orderedAt ? `<div class="text-xs text-slate-400 mt-0.5">${escHtml(o.orderedAt)}${o.orderedBy ? ' Â· ' + escHtml(o.orderedBy) : ''}</div>` : ''}
   </div>`;
 }
 
@@ -1938,9 +1938,9 @@ function toggleReject() {
   if (!wrap.classList.contains('hidden')) document.getElementById('s2-reject-reason').focus();
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // TRAY
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function addToTray() {
   // Determine product
@@ -1951,7 +1951,7 @@ function addToTray() {
   if (!productSelectHidden) {
     // Manual select
     productId = document.getElementById('s2-product').value;
-    if (!productId) { showToast('½Ğ¿ï¾Ü«~¶µ'); return; }
+    if (!productId) { showToast('è«‹é¸æ“‡å“é …'); return; }
     const p = PRODUCTS.find(x => x.id === productId);
     productName = p?.name || productId;
     vendor = p?.vendor || '';
@@ -1959,16 +1959,16 @@ function addToTray() {
   } else {
     // Matched from scan or edit
     const p = scanResult?.matchedProduct || PRODUCTS.find(x => x.id === (sessionTray[editingTrayIdx]?.productId));
-    if (!p) { showToast('µLªkÃÑ§O«~¶µ¡A½Ğ­«·s±½´y'); return; }
+    if (!p) { showToast('ç„¡æ³•è­˜åˆ¥å“é …ï¼Œè«‹é‡æ–°æƒæ'); return; }
     productId = p.id; productName = p.name; vendor = p.vendor; unit = p.unit;
   }
 
   const isReject = !document.getElementById('s2-reject-wrap').classList.contains('hidden');
   const rejectReason = document.getElementById('s2-reject-reason').value.trim();
-  if (isReject && !rejectReason) { showToast('½Ğ¶ñ¤J©Ú¦¬­ì¦]'); return; }
+  if (isReject && !rejectReason) { showToast('è«‹å¡«å…¥æ‹’æ”¶åŸå› '); return; }
 
   const qtyRaw = parseInt(document.getElementById('s2-qty').value, 10);
-  if (!isReject && (isNaN(qtyRaw) || qtyRaw < 1)) { showToast('½Ğ¶ñ¤J¦³®Ä¼Æ¶q¡]¥¿¾ã¼Æ¡^'); return; }
+  if (!isReject && (isNaN(qtyRaw) || qtyRaw < 1)) { showToast('è«‹å¡«å…¥æœ‰æ•ˆæ•¸é‡ï¼ˆæ­£æ•´æ•¸ï¼‰'); return; }
 
   const orderedQtyRaw = parseInt(document.getElementById('s2-ordered-qty').value, 10);
   const orderedQty = isNaN(orderedQtyRaw) || orderedQtyRaw <= 0 ? null : orderedQtyRaw;
@@ -1998,28 +1998,28 @@ function addToTray() {
     saveTray();
     editingTrayIdx = -1;
     renderTray();
-    showToast('¤w§ó·s');
+    showToast('å·²æ›´æ–°');
     stopScan();
     setTimeout(openTrayDrawer, 300);
   } else {
     sessionTray.push(item);
     saveTray();
     renderTray();
-    showToast(`? ¤w¥[¤J¼È¦s¡]¦@ ${sessionTray.length} µ§¡^`);
+    showToast(`âœ“ å·²åŠ å…¥æš«å­˜ï¼ˆå…± ${sessionTray.length} ç­†ï¼‰`);
 
     renderExpectedDeliveries();
     if (isQuickReceiveMode) {
-      // ¤â°Ê¤J®w¸ô®|¡GÃö³¬ Modal + ©µ¿ğ®i¶}¼È¦s©â±P
+      // æ‰‹å‹•å…¥åº«è·¯å¾‘ï¼šé—œé–‰ Modal + å»¶é²å±•é–‹æš«å­˜æŠ½å±œ
       isQuickReceiveMode = false;
       stopScan();
       setTimeout(openTrayDrawer, 300);
     } else {
-      // ¬Û¾÷¸ô®|¡GÃö³¬ Step 2 ¡÷ «ì´_¬Û¾÷¡AÄ~Äò±½¤U¤@½c
+      // ç›¸æ©Ÿè·¯å¾‘ï¼šé—œé–‰ Step 2 â†’ æ¢å¾©ç›¸æ©Ÿï¼Œç¹¼çºŒæƒä¸‹ä¸€ç®±
       document.getElementById('scan-step2').classList.remove('open');
       setTimeout(() => {
         document.getElementById('scan-step1').style.display = 'flex';
         document.getElementById('scan-status').innerHTML =
-          `<p class="text-white/60 text-sm">? ¤w¥[¤J ${sessionTray.length} µ§¡AÄ~Äò±½¤U¤@½c</p>`;
+          `<p class="text-white/60 text-sm">âœ“ å·²åŠ å…¥ ${sessionTray.length} ç­†ï¼Œç¹¼çºŒæƒä¸‹ä¸€ç®±</p>`;
         if (html5QrCode) { try { html5QrCode.resume(); } catch {} }
         scanResult = null;
       }, 280);
@@ -2041,11 +2041,11 @@ function renderTray() {
   document.getElementById('tray-list').innerHTML = sessionTray.map((item, idx) => {
     let statusBadge;
     if (item.isRejected) {
-      statusBadge = '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">©Ú¦¬</span>';
+      statusBadge = '<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">æ‹’æ”¶</span>';
     } else if (!item.orderId) {
-      statusBadge = '<span class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium">? ¥¼¦ê±µ­q³æ</span>';
+      statusBadge = '<span class="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded font-medium">âš  æœªä¸²æ¥è¨‚å–®</span>';
     } else if (item.orderedQty && item.qty > item.orderedQty) {
-      statusBadge = `<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">¶W¶q +${item.qty - item.orderedQty}</span>`;
+      statusBadge = `<span class="text-xs bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium">è¶…é‡ +${item.qty - item.orderedQty}</span>`;
     } else {
       statusBadge = '';
     }
@@ -2058,18 +2058,18 @@ function renderTray() {
         </div>
         <div class="mt-1 text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
           ${item.isRejected
-            ? '<span class="text-red-500">©Ú¦¬</span>'
+            ? '<span class="text-red-500">æ‹’æ”¶</span>'
             : `<span class="qty-stepper">
-                <button class="qty-btn" onclick="updateTrayQty(${idx},-1)" title="´î¤Ö">?</button>
+                <button class="qty-btn" onclick="updateTrayQty(${idx},-1)" title="æ¸›å°‘">âˆ’</button>
                 <span class="qty-num">${item.qty}</span>
-                <button class="qty-btn" onclick="updateTrayQty(${idx},1)" title="¼W¥[">+</button>
+                <button class="qty-btn" onclick="updateTrayQty(${idx},1)" title="å¢åŠ ">+</button>
                 <span style="color:#94A3B8;font-size:11px">${escHtml(item.unit||'')}</span>
                </span>`}
-          ${item.lotNumber ? `<span>§å¡G${escHtml(item.lotNumber)}</span>` : ''}
-          ${item.expiryDate ? `<span>®Ä¡G${fmt(item.expiryDate)}</span>` : ''}
+          ${item.lotNumber ? `<span>æ‰¹ï¼š${escHtml(item.lotNumber)}</span>` : ''}
+          ${item.expiryDate ? `<span>æ•ˆï¼š${fmt(item.expiryDate)}</span>` : ''}
         </div>
-        ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">? ${escHtml(item.anomalyNote)}</p>` : ''}
-        ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">©Ú¦¬¡G${escHtml(item.rejectReason)}</p>` : ''}
+        ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">âš  ${escHtml(item.anomalyNote)}</p>` : ''}
+        ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">æ‹’æ”¶ï¼š${escHtml(item.rejectReason)}</p>` : ''}
       </div>
       <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
         <button onclick="editTrayItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors">
@@ -2088,7 +2088,7 @@ function updateTrayQty(idx, delta) {
   if (!item || item.isRejected) return;
   const newQty = item.qty + delta;
   if (newQty <= 0) {
-    if (confirm(`½T©w­n§R°£¡u${item.productName}¡v³oµ§¼È¦s¬ö¿ı¶Ü¡H`)) {
+    if (confirm(`ç¢ºå®šè¦åˆªé™¤ã€Œ${item.productName}ã€é€™ç­†æš«å­˜ç´€éŒ„å—ï¼Ÿ`)) {
       sessionTray.splice(idx, 1);
       saveTray();
       renderTray();
@@ -2139,9 +2139,9 @@ function editTrayItem(idx) {
       document.getElementById('s2-product-select-wrap').classList.add('hidden');
       document.getElementById('s2-product-card').innerHTML = `
         <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-          <div class="text-xs text-green-600 font-medium mb-0.5">? «~¶µÃÑ§O</div>
+          <div class="text-xs text-green-600 font-medium mb-0.5">âœ“ å“é …è­˜åˆ¥</div>
           <div class="font-semibold text-slate-800">${escHtml(matchedProduct.name)}</div>
-          <div class="text-xs text-slate-500 mt-0.5">¼t°Ó¡G${escHtml(matchedProduct.vendor)}</div>
+          <div class="text-xs text-slate-500 mt-0.5">å» å•†ï¼š${escHtml(matchedProduct.vendor)}</div>
         </div>`;
       document.getElementById('s2-unit').textContent = matchedProduct.unit;
       renderOrderMatch(matchedProduct.id);
@@ -2181,9 +2181,9 @@ function closeTrayDrawer() {
   document.getElementById('tray-drawer').classList.remove('open');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // REVIEW & BATCH SAVE
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function _renderReviewContent(savedBy, savedAt) {
   const today = new Date().toISOString().slice(0, 10);
@@ -2194,48 +2194,48 @@ function _renderReviewContent(savedBy, savedAt) {
   let warnings = '';
   if (expiryIssues.length > 0) {
     warnings += `<div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
-      <p class="text-sm font-semibold text-red-700 mb-0.5">? ®Ä´Á¤w¹L´Á¡]${expiryIssues.length} µ§¡^¡X »İ¶ñ¼g¦¬³f­ì¦]</p>
-      <p class="text-xs text-red-600">${expiryIssues.map(i => escHtml(i.productName) + '¡]' + fmt(i.expiryDate) + '¡^').join('¡B')}</p>
+      <p class="text-sm font-semibold text-red-700 mb-0.5">âš  æ•ˆæœŸå·²éæœŸï¼ˆ${expiryIssues.length} ç­†ï¼‰â€” éœ€å¡«å¯«æ”¶è²¨åŸå› </p>
+      <p class="text-xs text-red-600">${expiryIssues.map(i => escHtml(i.productName) + 'ï¼ˆ' + fmt(i.expiryDate) + 'ï¼‰').join('ã€')}</p>
     </div>`;
   }
   if (expiryOld.length > 0) {
     warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
-      <p class="text-sm font-semibold text-orange-700 mb-0.5">? ®Ä´Á¦­©ó²{¦³®w¦s¡]${expiryOld.length} µ§¡^¡X »İ¶ñ¼g»¡©ú­ì¦]</p>
-      <p class="text-xs text-orange-600">${expiryOld.map(i => escHtml(i.productName)).join('¡B')}</p>
+      <p class="text-sm font-semibold text-orange-700 mb-0.5">âš  æ•ˆæœŸæ—©æ–¼ç¾æœ‰åº«å­˜ï¼ˆ${expiryOld.length} ç­†ï¼‰â€” éœ€å¡«å¯«èªªæ˜åŸå› </p>
+      <p class="text-xs text-orange-600">${expiryOld.map(i => escHtml(i.productName)).join('ã€')}</p>
     </div>`;
   }
   if (noOrderItems.length > 0) {
     warnings += `<div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
-      <p class="text-sm font-semibold text-orange-700 mb-0.5">? ¥¼¦ê±µ­q³æ¡]${noOrderItems.length} µ§¡^</p>
-      <p class="text-xs text-orange-600 mb-2">${noOrderItems.map(i => escHtml(i.productName)).join('¡B')}</p>
-      <p class="text-xs text-orange-600 mb-2">¥i¥ı§¹¦¨¤J®w¡A¦A³qª¾­q³f¤H½T»{³B²z¤è¦¡¡]¸Éµn­q³æ / ½Õ¾ã¼Æ¶q / ¸Õ¥Î«~½T»{¡^</p>
-      <button onclick="copyUnlinkedNotice()" class="text-xs bg-white hover:bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1.5 rounded-lg font-medium transition-colors">?? ½Æ»s³qª¾µ¹­q³f¤H</button>
+      <p class="text-sm font-semibold text-orange-700 mb-0.5">âš  æœªä¸²æ¥è¨‚å–®ï¼ˆ${noOrderItems.length} ç­†ï¼‰</p>
+      <p class="text-xs text-orange-600 mb-2">${noOrderItems.map(i => escHtml(i.productName)).join('ã€')}</p>
+      <p class="text-xs text-orange-600 mb-2">å¯å…ˆå®Œæˆå…¥åº«ï¼Œå†é€šçŸ¥è¨‚è²¨äººç¢ºèªè™•ç†æ–¹å¼ï¼ˆè£œç™»è¨‚å–® / èª¿æ•´æ•¸é‡ / è©¦ç”¨å“ç¢ºèªï¼‰</p>
+      <button onclick="copyUnlinkedNotice()" class="text-xs bg-white hover:bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1.5 rounded-lg font-medium transition-colors">ğŸ“‹ è¤‡è£½é€šçŸ¥çµ¦è¨‚è²¨äºº</button>
     </div>`;
   }
 
   const itemsHtml = sessionTray.map((item, idx) => {
     let statusTag;
-    if (item.isRejected) statusTag = '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">©Ú¦¬</span>';
-    else if (item.orderedQty && item.qty > item.orderedQty) statusTag = `<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">¶W¶q +${item.qty - item.orderedQty}</span>`;
-    else if (!item.orderId) statusTag = '<span class="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">? ¥¼¦ê±µ­q³æ</span>';
+    if (item.isRejected) statusTag = '<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">æ‹’æ”¶</span>';
+    else if (item.orderedQty && item.qty > item.orderedQty) statusTag = `<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">è¶…é‡ +${item.qty - item.orderedQty}</span>`;
+    else if (!item.orderId) statusTag = '<span class="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">âš  æœªä¸²æ¥è¨‚å–®</span>';
     else statusTag = '';
 
     const isExpired = !item.isRejected && item.expiryDate && item.expiryDate < today;
     const isOldExpiry = !isExpired && !item.isRejected && item.expiryDate && getMaxExpiry(item.productId) && item.expiryDate < getMaxExpiry(item.productId);
     const overQtyField = !item.isRejected && item.orderedQty && item.qty > item.orderedQty
       ? `<div class="mt-2">
-           <label class="text-xs font-medium text-red-700 mb-1 block">¶W¶q­ì¦] *¡]¥²¶ñ¡^</label>
-           <input type="text" class="review-over-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="½Ğ»¡©ú¶W¶q­ì¦]" value="${escHtml(item.overQtyReason || '')}">
+           <label class="text-xs font-medium text-red-700 mb-1 block">è¶…é‡åŸå›  *ï¼ˆå¿…å¡«ï¼‰</label>
+           <input type="text" class="review-over-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="è«‹èªªæ˜è¶…é‡åŸå› " value="${escHtml(item.overQtyReason || '')}">
          </div>` : '';
     const expiryConfirmField = isExpired
       ? `<div class="mt-2">
-           <label class="text-xs font-medium text-red-700 mb-1 block">®Ä´Á¹L´Á ¡X ¤´¦¬³f­ì¦] *¡]¥²¶ñ¡^</label>
-           <input type="text" class="review-expiry-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="¨Ò¦p¡G¼t°Ó¸É´«½T»{¡B³Æ¥Î®w¦s" value="${escHtml(item.expiryReason || '')}">
+           <label class="text-xs font-medium text-red-700 mb-1 block">æ•ˆæœŸéæœŸ â€” ä»æ”¶è²¨åŸå›  *ï¼ˆå¿…å¡«ï¼‰</label>
+           <input type="text" class="review-expiry-reason w-full border border-red-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" data-idx="${idx}" placeholder="ä¾‹å¦‚ï¼šå» å•†è£œæ›ç¢ºèªã€å‚™ç”¨åº«å­˜" value="${escHtml(item.expiryReason || '')}">
          </div>` : '';
     const oldExpiryField = isOldExpiry
       ? `<div class="mt-2">
-           <label class="text-xs font-medium text-orange-700 mb-1 block">®Ä´Á¦­©ó²{¦³®w¦s ¡X »¡©ú­ì¦] *¡]¥²¶ñ¡^</label>
-           <input type="text" class="review-old-expiry-reason w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" data-idx="${idx}" placeholder="¨Ò¦p¡GFIFO ½T»{¡BÂÂ§å¦¸¸É¥R" value="${escHtml(item.oldExpiryReason || '')}">
+           <label class="text-xs font-medium text-orange-700 mb-1 block">æ•ˆæœŸæ—©æ–¼ç¾æœ‰åº«å­˜ â€” èªªæ˜åŸå›  *ï¼ˆå¿…å¡«ï¼‰</label>
+           <input type="text" class="review-old-expiry-reason w-full border border-orange-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" data-idx="${idx}" placeholder="ä¾‹å¦‚ï¼šFIFO ç¢ºèªã€èˆŠæ‰¹æ¬¡è£œå……" value="${escHtml(item.oldExpiryReason || '')}">
          </div>` : '';
 
     return `<div class="py-3 border-b border-slate-100 last:border-b-0">
@@ -2246,22 +2246,22 @@ function _renderReviewContent(savedBy, savedAt) {
             ${statusTag}
           </div>
           <div class="mt-0.5 text-xs text-slate-500 flex flex-wrap gap-x-3">
-            <span>${item.isRejected ? '<span class="text-red-500">©Ú¦¬</span>' : item.qty + ' ' + (item.unit || '')}</span>
-            ${item.lotNumber ? `<span>§å¡G${escHtml(item.lotNumber)}</span>` : ''}
-            ${item.expiryDate ? `<span class="${isExpired ? 'text-red-500 font-semibold' : ''}">®Ä¡G${fmt(item.expiryDate)}</span>` : ''}
-            ${item.orderedQty ? `<span class="text-slate-400">­q¡G${item.orderedQty}</span>` : ''}
+            <span>${item.isRejected ? '<span class="text-red-500">æ‹’æ”¶</span>' : item.qty + ' ' + (item.unit || '')}</span>
+            ${item.lotNumber ? `<span>æ‰¹ï¼š${escHtml(item.lotNumber)}</span>` : ''}
+            ${item.expiryDate ? `<span class="${isExpired ? 'text-red-500 font-semibold' : ''}">æ•ˆï¼š${fmt(item.expiryDate)}</span>` : ''}
+            ${item.orderedQty ? `<span class="text-slate-400">è¨‚ï¼š${item.orderedQty}</span>` : ''}
           </div>
-          ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">? ${escHtml(item.anomalyNote)}</p>` : ''}
-          ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">©Ú¦¬¡G${escHtml(item.rejectReason)}</p>` : ''}
+          ${item.anomalyNote ? `<p class="text-xs text-orange-600 mt-0.5">âš  ${escHtml(item.anomalyNote)}</p>` : ''}
+          ${item.rejectReason ? `<p class="text-xs text-red-600 mt-0.5">æ‹’æ”¶ï¼š${escHtml(item.rejectReason)}</p>` : ''}
           ${overQtyField}
           ${expiryConfirmField}
           ${oldExpiryField}
         </div>
         <div class="flex gap-0.5 flex-shrink-0 mt-0.5">
-          <button onclick="reviewEditItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors" title="½s¿è">
+          <button onclick="reviewEditItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary-xlight transition-colors" title="ç·¨è¼¯">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
           </button>
-          <button onclick="reviewRemoveItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors" title="§R°£">
+          <button onclick="reviewRemoveItem(${idx})" class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors" title="åˆªé™¤">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
@@ -2274,14 +2274,14 @@ function _renderReviewContent(savedBy, savedAt) {
     <div class="bg-white border border-slate-200 rounded-xl mb-4 px-4 overflow-hidden">${itemsHtml}</div>
     <div class="space-y-3">
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Ã±¦¬¤H *</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-1.5">ç°½æ”¶äºº *</label>
         <select id="review-received-by" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
-          <option value="">¡]¿ï¾ÜÃ±¦¬¤H¡^</option>
+          <option value="">ï¼ˆé¸æ“‡ç°½æ”¶äººï¼‰</option>
           ${(typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option${n === savedBy ? ' selected' : ''}>${n}</option>`).join('')}
         </select>
       </div>
       <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">¨ì³f¤é´Á *</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-1.5">åˆ°è²¨æ—¥æœŸ *</label>
         <input type="date" id="review-received-at" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
       </div>
     </div>`;
@@ -2300,7 +2300,7 @@ function _renderReviewContent(savedBy, savedAt) {
 }
 
 function openReview() {
-  if (sessionTray.length === 0) { showToast('¼È¦s°Ï¬OªÅªº'); return; }
+  if (sessionTray.length === 0) { showToast('æš«å­˜å€æ˜¯ç©ºçš„'); return; }
   _renderReviewContent('', '');
   closeTrayDrawer();
   document.getElementById('review-overlay').classList.add('open');
@@ -2335,8 +2335,8 @@ function reviewEditItem(idx) {
 async function batchSaveAll() {
   const receivedBy = document.getElementById('review-received-by')?.value.trim();
   const receivedAt = document.getElementById('review-received-at')?.value;
-  if (!receivedBy) { showToast('½Ğ¶ñ¤JÃ±¦¬¤H'); return; }
-  if (!receivedAt) { showToast('½Ğ¿ï¾Ü¨ì³f¤é´Á'); return; }
+  if (!receivedBy) { showToast('è«‹å¡«å…¥ç°½æ”¶äºº'); return; }
+  if (!receivedAt) { showToast('è«‹é¸æ“‡åˆ°è²¨æ—¥æœŸ'); return; }
 
   // Collect overQty reasons
   document.querySelectorAll('.review-over-reason').forEach(el => {
@@ -2347,7 +2347,7 @@ async function batchSaveAll() {
   // Validate overQty reasons
   const missingReason = sessionTray.find(i => !i.isRejected && i.orderedQty && i.qty > i.orderedQty && !i.overQtyReason);
   if (missingReason) {
-    showToast(`½Ğ¶ñ¼g¡u${missingReason.productName}¡v¶W¶q­ì¦]`);
+    showToast(`è«‹å¡«å¯«ã€Œ${missingReason.productName}ã€è¶…é‡åŸå› `);
     return;
   }
 
@@ -2357,12 +2357,12 @@ async function batchSaveAll() {
     if (!isNaN(idx) && sessionTray[idx]) sessionTray[idx].expiryReason = el.value.trim();
   });
 
-  // Validate expiry reasons¡]¥»¦a®É°Ï¡AÁ×§K¦­¤W 8 ÂI«e UTC ¤é´Á®t¤@¤Ñ¡^
+  // Validate expiry reasonsï¼ˆæœ¬åœ°æ™‚å€ï¼Œé¿å…æ—©ä¸Š 8 é»å‰ UTC æ—¥æœŸå·®ä¸€å¤©ï¼‰
   const _d = new Date();
   const currentDate = `${_d.getFullYear()}-${p2(_d.getMonth()+1)}-${p2(_d.getDate())}`;
   const missingExpiryReason = sessionTray.find(i => !i.isRejected && i.expiryDate && i.expiryDate < currentDate && !i.expiryReason);
   if (missingExpiryReason) {
-    showToast(`½Ğ¶ñ¼g¡u${missingExpiryReason.productName}¡v®Ä´Á¹L´Áªº¦¬³f­ì¦]`);
+    showToast(`è«‹å¡«å¯«ã€Œ${missingExpiryReason.productName}ã€æ•ˆæœŸéæœŸçš„æ”¶è²¨åŸå› `);
     return;
   }
 
@@ -2379,25 +2379,25 @@ async function batchSaveAll() {
     return maxExp && i.expiryDate < maxExp && i.expiryDate >= currentDate && !i.oldExpiryReason;
   });
   if (missingOldExpiryReason) {
-    showToast(`½Ğ¶ñ¼g¡u${missingOldExpiryReason.productName}¡v®Ä´Á¦­©ó²{¦³®w¦sªº»¡©ú­ì¦]`);
+    showToast(`è«‹å¡«å¯«ã€Œ${missingOldExpiryReason.productName}ã€æ•ˆæœŸæ—©æ–¼ç¾æœ‰åº«å­˜çš„èªªæ˜åŸå› `);
     return;
   }
 
   let has102 = false;
   const count = sessionTray.length;
-  const importBatchId = `BATCH-${Date.now()}`;  // ¦P¤@¦¸¾ã§å¦¬³f¦@¥Î¦P¤@­Ó§å¦¸ ID
+  const importBatchId = `BATCH-${Date.now()}`;  // åŒä¸€æ¬¡æ•´æ‰¹æ”¶è²¨å…±ç”¨åŒä¸€å€‹æ‰¹æ¬¡ ID
 
   for (const item of sessionTray) {
-    // ³Ì²×¨¾Å@½u¡Gªı¾×²§±`©ÎªÅ¥Õ¸ê®Æ¼g¤J Firebase
+    // æœ€çµ‚é˜²è­·ç·šï¼šé˜»æ“‹ç•°å¸¸æˆ–ç©ºç™½è³‡æ–™å¯«å…¥ Firebase
     if (!item.productId) continue;
     if (!item.isRejected && (isNaN(item.qty) || item.qty <= 0)) continue;
 
     const noteParts = [
-      item.isRejected && item.rejectReason ? `©Ú¦¬¡G${item.rejectReason}` : null,
-      item.overQtyReason ? `¶W¶q­ì¦]¡G${item.overQtyReason}` : null,
-      item.expiryReason ? `®Ä´Á¹L´Á­ì¦]¡G${item.expiryReason}` : null,
-      item.oldExpiryReason ? `®Ä´Á¦­©ó®w¦s­ì¦]¡G${item.oldExpiryReason}` : null,
-      item.anomalyNote ? `«~½è²§±`¡G${item.anomalyNote}` : null,
+      item.isRejected && item.rejectReason ? `æ‹’æ”¶ï¼š${item.rejectReason}` : null,
+      item.overQtyReason ? `è¶…é‡åŸå› ï¼š${item.overQtyReason}` : null,
+      item.expiryReason ? `æ•ˆæœŸéæœŸåŸå› ï¼š${item.expiryReason}` : null,
+      item.oldExpiryReason ? `æ•ˆæœŸæ—©æ–¼åº«å­˜åŸå› ï¼š${item.oldExpiryReason}` : null,
+      item.anomalyNote ? `å“è³ªç•°å¸¸ï¼š${item.anomalyNote}` : null,
     ].filter(Boolean);
 
     const record = {
@@ -2415,9 +2415,9 @@ async function batchSaveAll() {
       receivedBy,
       lotNumber: item.lotNumber || null,
       expiryDate: item.expiryDate || null,
-      note: noteParts.length > 0 ? noteParts.join('¡F') : null,
+      note: noteParts.length > 0 ? noteParts.join('ï¼›') : null,
       rawScanText: item.rawScanText || null,
-      status: item.isRejected ? '©Ú¦¬' : null,
+      status: item.isRejected ? 'æ‹’æ”¶' : null,
       isVoided: false,
       qcStatus: REQUIRE_QC_ITEMS.includes(item.productId) ? 'pending' : null,
       history: [],
@@ -2430,18 +2430,18 @@ async function batchSaveAll() {
 
   saveRecords();
 
-  // §ä¥X¥»¦¸·s¼Wªº records¡]records °}¦C«e count µ§¡^
+  // æ‰¾å‡ºæœ¬æ¬¡æ–°å¢çš„ recordsï¼ˆrecords é™£åˆ—å‰ count ç­†ï¼‰
   const submitBtn = document.querySelector('[onclick="batchSaveAll()"]');
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Àx¦s¤¤¡K'; }
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'å„²å­˜ä¸­â€¦'; }
   try {
     const newRecords = records.slice(0, count);
     await Promise.all(newRecords.map(r => window._fb.saveJinhuoRecord(r)));
 
-    const logTimestamp = new Date().toISOString(); // ¦P§å¦¬³f¦@¥Î¦P¤@®É¶¡ÂW¡A½T«O kucun ¯à¥¿½T¸s²Õ
+    const logTimestamp = new Date().toISOString(); // åŒæ‰¹æ”¶è²¨å…±ç”¨åŒä¸€æ™‚é–“æˆ³ï¼Œç¢ºä¿ kucun èƒ½æ­£ç¢ºç¾¤çµ„
     const logEntries = sessionTray.filter(i => !i.isRejected).map(i => {
       const isPartial = i.orderedQty && i.qty < i.orderedQty;
       const deliveryStatus = i.orderedQty
-        ? (isPartial ? `³¡¤À¨ì³f¡]${i.qty}/${i.orderedQty}¡^` : '¥ş¼Æ¨ì³f')
+        ? (isPartial ? `éƒ¨åˆ†åˆ°è²¨ï¼ˆ${i.qty}/${i.orderedQty}ï¼‰` : 'å…¨æ•¸åˆ°è²¨')
         : null;
       return {
         id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
@@ -2450,23 +2450,23 @@ async function batchSaveAll() {
         productId: i.productId, productName: i.productName,
         lotNumber: i.lotNumber || null,
         qty: i.qty, qtyDelta: i.qty,
-        unit: '²~', vendor: i.vendor || '',
+        unit: 'ç“¶', vendor: i.vendor || '',
         operator: receivedBy,
-        note: [deliveryStatus, `Ã±¦¬¡G${receivedBy}¡]${receivedAt}¡^`].filter(Boolean).join('¡F'),
+        note: [deliveryStatus, `ç°½æ”¶ï¼š${receivedBy}ï¼ˆ${receivedAt}ï¼‰`].filter(Boolean).join('ï¼›'),
       };
     });
     await Promise.all(logEntries.map(e => window._fb.fsLog(e)));
   } catch(e) {
     console.error('Firebase save error:', e);
   } finally {
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '½T»{¤J®w'; }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'ç¢ºèªå…¥åº«'; }
   }
   renderRecords();
   sessionTray = [];
   saveTray();
   renderTray();
   closeReview();
-  showToast(`? ¤w·s¼W ${count} µ§¶i³f°O¿ı`);
+  showToast(`âœ“ å·²æ–°å¢ ${count} ç­†é€²è²¨è¨˜éŒ„`);
   renderExpectedDeliveries();
 
   if (has102) setTimeout(show102Alert, 500);
@@ -2480,9 +2480,9 @@ function close102Alert() {
   document.getElementById('alert-102-overlay').classList.remove('open');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // BARCODE / GS1 PARSER
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function matchProductByGtin(gtin) {
   if (!gtin) return null;
@@ -2499,9 +2499,9 @@ function matchProductsByGtin(gtin) {
 function parseBarcode(text) {
   const r = { lotNumber: null, expiryDate: null, gtin: null };
 
-  // ­é°£ GS1 ²Å¸¹ÃÑ§O½X«eºó (]C1, ]d2, ]Q3 µ¥¡ADataMatrix / QR ±½½X±`¨£)
+  // å‰é™¤ GS1 ç¬¦è™Ÿè­˜åˆ¥ç¢¼å‰ç¶´ (]C1, ]d2, ]Q3 ç­‰ï¼ŒDataMatrix / QR æƒç¢¼å¸¸è¦‹)
   text = text.replace(/^\][A-Za-z]\d/, '');
-  // ­é°£¶}ÀYªº FNC1 ¤À¹j²Å¡]³¡¤À±½½X¾¹¦b¦r¦ê³Ì«e­±¥[ \x1d¡^
+  // å‰é™¤é–‹é ­çš„ FNC1 åˆ†éš”ç¬¦ï¼ˆéƒ¨åˆ†æƒç¢¼å™¨åœ¨å­—ä¸²æœ€å‰é¢åŠ  \x1dï¼‰
   text = text.replace(/^\x1d+/, '');
 
   // GS1 with parentheses: (01)xxxx(10)LOT(17)YYMMDD
@@ -2517,7 +2517,7 @@ function parseBarcode(text) {
   if (r.lotNumber) r.lotNumber = r.lotNumber.replace(/[^\x20-\x7E]/g, '').trim() || null;
   if (foundGS1) return r;
 
-  // GS1 raw (no parens): starts with 01 + 14 digits ¡X parse AIs sequentially
+  // GS1 raw (no parens): starts with 01 + 14 digits â€” parse AIs sequentially
   if (/^01\d{14}/.test(text)) {
     r.gtin = text.slice(2, 16);
     let pos = 16;
@@ -2542,7 +2542,7 @@ function parseBarcode(text) {
     if (r.gtin || r.lotNumber || r.expiryDate) return r;
   }
 
-  // ¯Â GTIN-13 / GTIN-14¡]1D EAN ±ø½X¡A¥u¦³«~¶µÃÑ§O¡AµL§å¸¹®Ä´Á¡^
+  // ç´” GTIN-13 / GTIN-14ï¼ˆ1D EAN æ¢ç¢¼ï¼Œåªæœ‰å“é …è­˜åˆ¥ï¼Œç„¡æ‰¹è™Ÿæ•ˆæœŸï¼‰
   if (/^\d{13,14}$/.test(text)) {
     r.gtin = text.padStart(14, '0');
     return r;
@@ -2560,9 +2560,9 @@ function gs1Date(yymmdd) {
   return `${year}-${mm}-${dd === '00' ? '01' : dd}`;
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // NAV
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function openNav() {
   document.getElementById('nav-overlay').classList.add('open');
@@ -2573,9 +2573,9 @@ function closeNav() {
   document.getElementById('nav-drawer').classList.remove('open');
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // UNLINKED NOTICE
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function copyUnlinkedNotice() {
   const items = sessionTray.filter(i => !i.isRejected && !i.orderId);
@@ -2585,17 +2585,17 @@ function copyUnlinkedNotice() {
     ? new Date(dateEl.value).toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'})
     : new Date().toLocaleDateString('zh-TW', {year:'numeric', month:'2-digit', day:'2-digit'});
   const lines = items.map(i => {
-    let s = `¡E ${i.productName}¡]${i.qty} ${i.unit || ''}¡^`;
-    if (i.lotNumber) s += ` §å¸¹¡G${i.lotNumber}`;
+    let s = `â€¢ ${i.productName}ï¼ˆ${i.qty} ${i.unit || ''}ï¼‰`;
+    if (i.lotNumber) s += ` æ‰¹è™Ÿï¼š${i.lotNumber}`;
     return s;
   });
-  const msg = `¡i¶i³f¥¼¦ê±µ³qª¾¡j${dateStr}\n¥H¤U«~¶µµL¹ïÀ³­q³æ¡A½Ğ½T»{³B²z¤è¦¡¡G\n\n${lines.join('\n')}\n\n½Ğ¦^ÂĞ¡G\n(A) ¤w¦³­q³æ ¡÷ ½Ğ¸Éµn¦ê±µ\n(B) ¼t°Ó¦h°e/¶W¶q ¡÷ ½Ğ½Õ¾ã­q³æ¼Æ¶q\n(C) ¸Õ¥Î«~ ¡÷ ¦^ÂĞ½T»{§Y¥i`;
-  navigator.clipboard.writeText(msg).then(() => showToast('³qª¾°T®§¤w½Æ»s¡A¥i¶K¦Ü LINE'));
+  const msg = `ã€é€²è²¨æœªä¸²æ¥é€šçŸ¥ã€‘${dateStr}\nä»¥ä¸‹å“é …ç„¡å°æ‡‰è¨‚å–®ï¼Œè«‹ç¢ºèªè™•ç†æ–¹å¼ï¼š\n\n${lines.join('\n')}\n\nè«‹å›è¦†ï¼š\n(A) å·²æœ‰è¨‚å–® â†’ è«‹è£œç™»ä¸²æ¥\n(B) å» å•†å¤šé€/è¶…é‡ â†’ è«‹èª¿æ•´è¨‚å–®æ•¸é‡\n(C) è©¦ç”¨å“ â†’ å›è¦†ç¢ºèªå³å¯`;
+  navigator.clipboard.writeText(msg).then(() => showToast('é€šçŸ¥è¨Šæ¯å·²è¤‡è£½ï¼Œå¯è²¼è‡³ LINE'));
 }
 
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // LINK ORDER SHEET
-// ¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w¢w
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let _linkingRecordId = null;
 let _selectedOrderId = null;
@@ -2607,7 +2607,7 @@ function openLinkOrderSheet(recordId) {
   if (!record) return;
   const pending = loadPendingOrdersForProduct(record.productId);
   document.getElementById('link-order-product-name').textContent =
-    record.productName + '¡@¦¬ ' + record.receivedQty + ' ' + (record.unit || '');
+    record.productName + 'ã€€æ”¶ ' + record.receivedQty + ' ' + (record.unit || '');
   document.getElementById('link-order-list').innerHTML = pending.length > 0
     ? pending.map(o => `
         <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-primary hover:bg-primary-xlight cursor-pointer transition-colors">
@@ -2615,13 +2615,13 @@ function openLinkOrderSheet(recordId) {
             onchange="_selectedOrderId='${escHtml(o.orderId)}'"
             class="mt-0.5 accent-primary flex-shrink-0">
           <div class="text-sm">
-            <div class="font-medium text-slate-800">${escHtml(o.orderedAt)} ­qÁÊ</div>
+            <div class="font-medium text-slate-800">${escHtml(o.orderedAt)} è¨‚è³¼</div>
             <div class="text-slate-500 text-xs mt-0.5">
-              ­q ${o.orderedQty} ¡P ¤w¦¬ ${o.receivedQty} ¡P <span class="text-primary font-medium">³Ñ ${o.pendingQty}</span>
+              è¨‚ ${o.orderedQty} Â· å·²æ”¶ ${o.receivedQty} Â· <span class="text-primary font-medium">å‰© ${o.pendingQty}</span>
             </div>
           </div>
         </label>`).join('')
-    : '<p class="text-sm text-slate-400 text-center py-6">§ä¤£¨ì«İ¨ì³f­q³æ<br><span class="text-xs">¥i¼Ğ°O¬°¸Õ¥Î«~¡A©Î½Ğ­q³f¤H¸É«Ø­q³æ«á¦A¦ê±µ</span></p>';
+    : '<p class="text-sm text-slate-400 text-center py-6">æ‰¾ä¸åˆ°å¾…åˆ°è²¨è¨‚å–®<br><span class="text-xs">å¯æ¨™è¨˜ç‚ºè©¦ç”¨å“ï¼Œæˆ–è«‹è¨‚è²¨äººè£œå»ºè¨‚å–®å¾Œå†ä¸²æ¥</span></p>';
   const isGift = !!record.isGift;
   document.getElementById('link-mark-gift-btn').classList.toggle('hidden', isGift);
   document.getElementById('link-cancel-gift-btn').classList.toggle('hidden', !isGift);
@@ -2637,7 +2637,7 @@ function closeLinkOrderSheet() {
 }
 
 function confirmLink() {
-  if (!_selectedOrderId) { showToast('½Ğ¥ı¿ï¾Ü¤@µ§­q³æ'); return; }
+  if (!_selectedOrderId) { showToast('è«‹å…ˆé¸æ“‡ä¸€ç­†è¨‚å–®'); return; }
   const record = records.find(r => r.id === _linkingRecordId);
   if (!record) return;
   const pending = loadPendingOrdersForProduct(record.productId);
@@ -2652,7 +2652,7 @@ function confirmLink() {
   updateOrderStatus(order.orderId, record.receivedQty);
   renderRecords();
   closeLinkOrderSheet();
-  showToast('? ¤w¦ê±µ­q³æ');
+  showToast('âœ“ å·²ä¸²æ¥è¨‚å–®');
 }
 
 function markAsGift() {
@@ -2662,7 +2662,7 @@ function markAsGift() {
   saveRecords();
   renderRecords();
   closeLinkOrderSheet();
-  showToast('¤w¼Ğ°O¬°¸Õ¥Î«~');
+  showToast('å·²æ¨™è¨˜ç‚ºè©¦ç”¨å“');
 }
 
 function cancelGift() {
@@ -2672,7 +2672,7 @@ function cancelGift() {
   saveRecords();
   renderRecords();
   closeLinkOrderSheet();
-  showToast('¤w¨ú®ø¸Õ¥Î«~¼Ğ°O');
+  showToast('å·²å–æ¶ˆè©¦ç”¨å“æ¨™è¨˜');
 }
 
 function goToOrderPage() {
