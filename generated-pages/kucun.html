@@ -684,7 +684,12 @@ async function loadData() {
     window._fb.getJinhuoRecords().catch(() => ls('jinhuo-records') || []),
     window._fb.getLatestPandian().catch(() => ls('pandian-result')),
     window._fb.getPandianHistory().catch(() => ls('pandian-history') || []),
-    window._fb.getLatestBeipan().catch(() => ls('beipan-result')),
+    window._fb.getLatestBeipan().catch(() => {
+      const stored = ls('beipan-result');
+      return Array.isArray(stored)
+        ? (stored.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null)
+        : stored;
+    }),
     window._fb.getOrders().catch(() => ls('order-history') || []),
     window._fb.getKucunChangelog().catch(() => ls('kucun-changelog') || []),
   ]);
