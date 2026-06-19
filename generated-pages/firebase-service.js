@@ -316,15 +316,32 @@ export async function saveBeipanSnapshot(snapshotObj) {
 
 export async function getLatestBeipan() {
   if (isFirestoreAvailable()) {
-    try {
-      const snap = await getDocs(query(collection(_db, COLLECTIONS.beipan), orderBy("date", "desc"), limit(1)));
-      if (!snap.empty) {
-        const data = snap.docs[0].data();
-        // Firebase 讀取成功時修復 localStorage，確保格式始終正確
-        try { localStorage.setItem("beipan-result", JSON.stringify(data)); } catch(e) {}
-        return data;
+    const _td = new Date();
+    const todayStr = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
+    // 重試機制：冷啟動時 auth token 非同步傳遞給 Firestore，第一筆查詢可能失敗
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const snap = await getDocs(query(
+          collection(_db, COLLECTIONS.beipan),
+          where("date", "<=", todayStr),
+          orderBy("date", "desc"),
+          limit(1)
+        ));
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          // Firebase 讀取成功時修復 localStorage，確保格式始終正確
+          try { localStorage.setItem("beipan-result", JSON.stringify(data)); } catch(e) {}
+          return data;
+        }
+        break; // 查詢成功但無結果，不重試
+      } catch (e) {
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 700)); // 等待 Firestore 暖身後重試
+        } else {
+          console.warn("[getLatestBeipan]", e);
+        }
       }
-    } catch (e) { console.warn("[getLatestBeipan]", e); }
+    }
   }
   const stored = JSON.parse(localStorage.getItem("beipan-result") || "null");
   if (Array.isArray(stored)) {
