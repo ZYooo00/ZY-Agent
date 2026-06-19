@@ -302,17 +302,28 @@ export async function getPandianHistory() {
 // ─── beipan_snapshots ─────────────────────────────────────────
 export async function saveBeipanSnapshot(snapshotObj) {
   const docId = snapshotObj.date.replace(/\//g, "-");
-  await dualWrite("beipan-result", snapshotObj, async (db) => {
-    const { ref, payload } = await buildPayloadWithTimestamps(db, COLLECTIONS.beipan, docId, snapshotObj);
-    await setDoc(ref, payload, { merge: true });
-  });
+  // 備盤快照直接寫物件（不經 dualWrite，避免被包成陣列）
+  try { localStorage.setItem("beipan-result", JSON.stringify(snapshotObj)); } catch(e) {}
+  if (isFirestoreAvailable()) {
+    try {
+      const { ref, payload } = await buildPayloadWithTimestamps(_db, COLLECTIONS.beipan, docId, snapshotObj);
+      await setDoc(ref, payload, { merge: true });
+    } catch(e) {
+      console.warn("[saveBeipanSnapshot] Firestore 寫入失敗，資料已存 localStorage", e);
+    }
+  }
 }
 
 export async function getLatestBeipan() {
   if (isFirestoreAvailable()) {
     try {
       const snap = await getDocs(query(collection(_db, COLLECTIONS.beipan), orderBy("date", "desc"), limit(1)));
-      if (!snap.empty) return snap.docs[0].data();
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        // Firebase 讀取成功時修復 localStorage，確保格式始終正確
+        try { localStorage.setItem("beipan-result", JSON.stringify(data)); } catch(e) {}
+        return data;
+      }
     } catch (e) { console.warn("[getLatestBeipan]", e); }
   }
   const stored = JSON.parse(localStorage.getItem("beipan-result") || "null");
