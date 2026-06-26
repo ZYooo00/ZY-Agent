@@ -247,6 +247,30 @@ export async function getKucunChangelog(productId = null, limitCount = 200) {
   });
 }
 
+export async function getKucunChangelogByRange(fromIso, toIso) {
+  try {
+    const db = _db || (isFirestoreAvailable() ? _db : null);
+    if (!db) return JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    const q = query(
+      collection(db, COLLECTIONS.changelog),
+      where('ts', '>=', fromIso),
+      where('ts', '<=', toIso),
+      orderBy('ts', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+      const data = d.data();
+      if (data.ts && typeof data.ts !== 'string') {
+        data.ts = data.tsRaw || data.ts.toDate().toISOString();
+      }
+      return data;
+    });
+  } catch(e) {
+    console.warn('[getKucunChangelogByRange]', e);
+    return [];
+  }
+}
+
 export async function getManualKucunLogsAfter(afterIso) {
   if (!afterIso) return [];
   try {

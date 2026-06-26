@@ -16,11 +16,11 @@
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
-           getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders } from './firebase-service.js?v=11';
+           getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
+           getLatestBeipan, getOrders } from './firebase-service.js?v=12';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
-                 getJinhuoRecords, getKucunChangelog, getLatestPandian, getPandianHistory,
+                 getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
                  getLatestBeipan, getOrders };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
@@ -435,9 +435,9 @@
       </div>
       <div class="px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center gap-2">
         <span class="text-xs text-slate-500 font-medium">期間：</span>
-        <input type="date" id="cl-date-from" class="cl-date-input" onchange="renderChangelog(cachedData)">
+        <input type="date" id="cl-date-from" class="cl-date-input" onchange="fetchChangelogIfNeeded()">
         <span class="text-slate-300 text-xs">—</span>
-        <input type="date" id="cl-date-to" class="cl-date-input" onchange="renderChangelog(cachedData)">
+        <input type="date" id="cl-date-to" class="cl-date-input" onchange="fetchChangelogIfNeeded()">
         <button class="cl-quick-btn" onclick="setCLDateRange('thisMonth')">本月</button>
         <button class="cl-quick-btn" onclick="setCLDateRange('lastMonth')">上個月</button>
         <button class="cl-quick-btn" onclick="setCLDateRange('quarter')">近一季</button>
@@ -445,7 +445,7 @@
         <button class="cl-quick-btn" onclick="exportChangelogCSV()" style="margin-left:8px;border-color:#9590D0;color:#7A75BB;font-weight:600">匯出區間日誌</button>
         <span class="text-slate-300 text-xs ml-2">|</span>
         <span class="text-xs text-slate-500 font-medium ml-2">顯示：</span>
-        <select id="cl-count-select" class="text-xs border border-slate-200 rounded-lg px-2 py-0.5 bg-white focus:outline-none text-slate-600" onchange="if(cachedData) renderChangelog(cachedData)">
+        <select id="cl-count-select" class="text-xs border border-slate-200 rounded-lg px-2 py-0.5 bg-white focus:outline-none text-slate-600" onchange="if(cachedData) fetchChangelogIfNeeded()">
           <option value="10">10 筆</option>
           <option value="30" selected>30 筆</option>
           <option value="50">50 筆</option>
@@ -644,6 +644,7 @@ let cachedData    = null;
 let productInfoCache = {};
 let kpiFilter     = null;
 let searchQuery   = '';
+let _currentDisplayChangelog = null;
 let tableRangeDays = 30;
 
 // ════════════════════════════════
@@ -694,6 +695,9 @@ function beipanToBottles(entry) {
 // ════════════════════════════════
 async function loadData() {
   const ls = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } };
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  ninetyDaysAgo.setHours(0, 0, 0, 0);
   const [jinhuo, pandian, pandianHistory, beipan, orderHistory, changelog] = await Promise.all([
     window._fb.getJinhuoRecords().catch(() => ls('jinhuo-records') || []),
     window._fb.getLatestPandian().catch(() => ls('pandian-result')),
@@ -705,7 +709,7 @@ async function loadData() {
         : stored;
     }),
     window._fb.getOrders().catch(() => ls('order-history') || []),
-    window._fb.getKucunChangelog().catch(() => ls('kucun-changelog') || []),
+    window._fb.getKucunChangelogByRange(ninetyDaysAgo.toISOString(), new Date().toISOString()).catch(() => ls('kucun-changelog') || []),
   ]);
   try {
     localStorage.setItem('jinhuo-records',  JSON.stringify(jinhuo       || []));
@@ -1303,7 +1307,7 @@ function exportCSV() {
 // EXPORT CSV — 異動日誌（下方 changelog，套用篩選條件）
 // ════════════════════════════════
 function exportChangelogCSV() {
-  const cl = cachedData?.changelog || JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+  const cl = _currentDisplayChangelog || cachedData?.changelog || JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
   if (!cl.length) { showToast('尚無資料可匯出'); return; }
   const from = document.getElementById('cl-date-from')?.value || '';
   const to   = document.getElementById('cl-date-to')?.value   || '';
@@ -1353,7 +1357,7 @@ const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'
 const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄', void:'作廢記錄' };
 
 function renderChangelog(data) {
-  const cl = data.changelog || [];
+  const cl = _currentDisplayChangelog || data.changelog || [];
   const from = document.getElementById('cl-date-from')?.value || '';
   const to   = document.getElementById('cl-date-to')?.value   || '';
 
@@ -1523,7 +1527,7 @@ function toggleCLGroup(gid) {
   if (chevron) { chevron.textContent = isOpen ? '▸' : '▾'; chevron.classList.toggle('open', !isOpen); }
 }
 
-function setCLDateRange(range) {
+async function setCLDateRange(range) {
   const from = document.getElementById('cl-date-from');
   const to   = document.getElementById('cl-date-to');
   if (!from || !to) return;
@@ -1542,7 +1546,7 @@ function setCLDateRange(range) {
     const q = new Date(now); q.setDate(q.getDate() - 90);
     from.value = ymd(q); to.value = ymd(now);
   }
-  if (cachedData) renderChangelog(cachedData);
+  if (cachedData) await fetchChangelogIfNeeded();
 }
 
 // ════════════════════════════════
@@ -1906,9 +1910,47 @@ async function confirmQcPassed() {
 }
 
 // ════════════════════════════════
+// CHANGELOG DATE HELPERS
+// ════════════════════════════════
+function initDateDefaults() {
+  const now = new Date();
+  const from = new Date(now);
+  from.setDate(from.getDate() - 30);
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fromEl = document.getElementById('cl-date-from');
+  const toEl   = document.getElementById('cl-date-to');
+  if (fromEl && !fromEl.value) fromEl.value = ymd(from);
+  if (toEl   && !toEl.value)   toEl.value   = ymd(now);
+}
+
+async function fetchChangelogIfNeeded() {
+  const fromStr = document.getElementById('cl-date-from')?.value || '';
+  const toStr   = document.getElementById('cl-date-to')?.value   || '';
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  ninetyDaysAgo.setHours(0, 0, 0, 0);
+
+  const fromDate = fromStr ? new Date(fromStr + 'T00:00:00') : null;
+  if (fromStr && !isNaN(fromDate) && fromDate < ninetyDaysAgo) {
+    document.getElementById('cl-tbody').innerHTML =
+      '<tr><td colspan="2" class="text-center text-slate-400 py-8">雲端資料載入中...</td></tr>';
+    document.getElementById('cl-empty')?.classList.add('hidden');
+    const toIso = toStr ? new Date(toStr + 'T23:59:59').toISOString() : new Date().toISOString();
+    _currentDisplayChangelog = await window._fb.getKucunChangelogByRange(
+      new Date(fromStr + 'T00:00:00').toISOString(), toIso
+    );
+  } else {
+    _currentDisplayChangelog = cachedData?.changelog || [];
+  }
+  if (cachedData) renderChangelog(cachedData);
+}
+
+// ════════════════════════════════
 // MAIN RENDER
 // ════════════════════════════════
 async function render() {
+  initDateDefaults();
   cachedData = await loadData();
   const badge = document.getElementById('fetch-time-badge');
   if (badge) {
@@ -1950,7 +1992,7 @@ async function render() {
     }
   }
   try {
-    renderChangelog(cachedData);
+    await fetchChangelogIfNeeded();
   } catch(e) {
     console.error('[kucun] renderChangelog 崩潰：', e);
   }
@@ -2044,7 +2086,7 @@ function setCLFilter(f) {
   document.querySelectorAll('.cl-filter-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.f === f);
   });
-  if (cachedData) renderChangelog(cachedData);
+  if (cachedData) fetchChangelogIfNeeded();
 }
 
 function drillDownChangelog(dateStr, filterKey) {
@@ -2202,7 +2244,7 @@ async function submitLog() {
   const _newKpis = calcKPIs();
   const _countKey = KPI_COUNT_KEY[kpiFilter];
   if (_countKey && _newKpis[_countKey] === 0) setKpiFilter(null);
-  renderChangelog(cachedData);
+  await fetchChangelogIfNeeded();
   if (document.getElementById('item-drawer').classList.contains('open')) {
     openDrawer(productId);
   }

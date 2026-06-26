@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.26'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.26f'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.26f',
+    date: '2026-06-26',
+    changes: [
+      '【優化】更新紀錄：預設顯示近 30 天，可自由調整時間範圍；查詢 90 天以內為瞬間切換，超過 90 天才重新向資料庫抓取',
+    ],
+  },
   {
     version: '26.06.26',
     date: '2026-06-26',
