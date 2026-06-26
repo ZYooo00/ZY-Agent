@@ -1634,8 +1634,14 @@ function loadDraft() {
           cfg.batches.push(batch);
         }
         if (!batch) return;
-        batch.remaining       = sb.remaining       ?? batch.remaining;
-        batch.unopened        = sb.unopened        ?? batch.unopened;
+        const hasLocalChanges = (sb._manuallyOpened > 0)
+          || (sb._calibratedFrom !== undefined)
+          || sb.markedExhausted
+          || sb._isAutoLot;
+        if (hasLocalChanges) {
+          batch.remaining = sb.remaining ?? batch.remaining;
+          batch.unopened  = sb.unopened  ?? batch.unopened;
+        }
         batch._manuallyOpened = sb._manuallyOpened ?? batch._manuallyOpened;
         batch.openDate        = sb.openDate        ?? null;
         batch.openExpiry      = sb.openExpiry      ?? null;
@@ -1827,7 +1833,7 @@ function buildBatchCardHTML(cfg, savedState) {
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
 
   // 帳面已用盡（未過期，灰底但允許點選）
-  const emptyBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'empty');
+  const emptyBatches = cfg.batches.filter(b => !b.blocked && calcBadge(b, cfg.needed).status === 'empty' && b.markedExhausted);
 
   // 真正過期（鎖死）
   const expiredBatches = cfg.batches.filter(b => b.blocked || calcBadge(b, cfg.needed).status === 'expired');

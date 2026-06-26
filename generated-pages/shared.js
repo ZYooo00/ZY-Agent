@@ -1,9 +1,40 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.17'; // 格式：YY.MM.DD
+const APP_VERSION = '26.06.26'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.06.26',
+    date: '2026-06-26',
+    changes: [
+      '【新功能】過期批號新增「🗑️ 報廢」快捷按鈕，搭配新的「🗑️ 待報廢」KPI 卡片，可一鍵完成報廢登記',
+      '【新功能】每日警示 Email 新增「待報廢」通報，帳面未歸零就每天提醒，完成報廢後自動停止',
+      '【修正】借出與還入現在正確計入庫存總計，備盤頁面批號數量同步反映',
+      '【修正】完成操作後 KPI 數字即時更新、抽屜即時同步，不再需要重整頁面',
+      '【修正】備盤草稿修正：外部異動後重整頁面，批號數量正確反映最新狀態',
+      '【優化】手動登記日期固定為今天，防止回填日期導致庫存計算錯誤',
+    ],
+  },
+  {
+    version: '26.06.25b',
+    date: '2026-06-25',
+    changes: [
+      '【修正】庫存：修正庫存總覽待收貨數字未扣除已取消訂單（cancelledQty）的問題，取消待收後 KPI 現在會正確下降',
+      '【優化】進貨：收貨與作廢時改為優先從 Firebase 抓取最新訂單狀態，避免多裝置操作時本地快取不同步導致已收數量卡在 0 的問題',
+      '【新功能】庫存：手動紀錄新增「借出（−）」與「還入（+）」動作類型，可記錄借用給其他診間或歸還的庫存異動',
+    ],
+  },
+  {
+    version: '26.06.22',
+    date: '2026-06-22',
+    changes: [
+      '【修正】庫存：培養液瓶數計算邏輯修正，現在只計算全新未開封的瓶數，不再把正在使用中的殘液瓶算入庫存',
+      '【修正】庫存：批號明細、估計用量、Days of Inventory 一併修正，三者數字現在保持一致',
+      '【資料校正】G-IVF：06-13 空白備盤導致 06-14 系統多算 7 瓶，已透過 kucun_changelog 手動校正 -7 瓶',
+      '【資料校正】EmbryoGlue：06-10、06-13 空白備盤導致系統多算 1 瓶，已透過 kucun_changelog 手動校正 -1 瓶',
+    ],
+  },
   {
     version: '26.06.17',
     date: '2026-06-17',
@@ -126,7 +157,7 @@ const PRODUCTS = [
   { id:'riez200',  name:'RI-EZ tip 200',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-200',   target:2, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true },
   { id:'vltip135', name:'VL-tip 135',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl135', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
   { id:'vltip145', name:'VL-tip 145',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl145', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
-  { id:'vltip200', name:'VL-tip 200',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl200', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
+  { id:'vltip200', name:'VL-tip 200',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl200', target:0, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
   { id:'6well',    name:'6 Well dish',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231462414', brand:null, gupanId:'c1-6w',    target:4, reorderQty:24,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:null },
   { id:'mouth',    name:'Mouth piece',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231461103', brand:null, gupanId:'b-mp',     target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'依人數，半年一次' },
   { id:'oosafe-c', name:'Oosafe（培養箱用）',  vendor:'弘優', unit:'罐', group:'耗材',   gtin:null,             brand:null, gupanId:'r-os1',    target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'需要再叫', orderNote:null },
@@ -136,7 +167,7 @@ const PRODUCTS = [
   { id:'geridish', name:'Geri dish',           vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003014', brand:null, gupanId:'c3-gd',    target:2, reorderQty:20,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'20 個/盒' },
   { id:'geriwat',  name:'Geri water bottle',   vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003045', brand:null, gupanId:'c3-gw',    target:2, reorderQty:12,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'12 個/盒' },
   { id:'gerifl',   name:'Geri filter',         vendor:'磊柏', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c3-gf',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'50 個/盒' },
-  { id:'coda',     name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材',   gtin:null,             brand:null, gupanId:'b-cf',     target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次' },
+  { id:'coda',     name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材',   gtin:null,             brand:null, gupanId:'b-cf',     target:3, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次' },
   { id:'oritip135',name:'Origio tip 135',     vendor:'億宸', unit:'管', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'oritip150',name:'Origio tip 150',     vendor:'億宸', unit:'管', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'orifl',    name:'Origio Filter',       vendor:'億宸', unit:'個', group:'耗材',   gtin:'0888937014693',  brand:null, gupanId:'b-of',     target:2, reorderQty:10,  bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次' },

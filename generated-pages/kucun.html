@@ -340,6 +340,14 @@
           </div>
           <div class="text-xs text-slate-400 mt-1">待確認 QC 通過</div>
         </div>
+        <div class="kpi-card kpi-danger" id="kpi-disposal" onclick="setKpiFilter('disposal')">
+          <div class="text-xs font-semibold text-red-500 mb-1 uppercase tracking-wider">🗑️ 待報廢</div>
+          <div class="flex items-end gap-2">
+            <span class="text-3xl font-bold text-red-600 tabular" id="kpi-disposal-num">0</span>
+            <span class="text-sm text-slate-500 mb-0.5">個批號</span>
+          </div>
+          <div class="text-xs text-slate-400 mt-1">已過期且尚有庫存</div>
+        </div>
       </div>
       <div id="kpi-filter-bar" class="hidden mt-3 flex items-center gap-2 text-xs text-slate-500">
         <span>篩選中：</span>
@@ -441,6 +449,7 @@
           <option value="10">10 筆</option>
           <option value="30" selected>30 筆</option>
           <option value="50">50 筆</option>
+          <option value="100">100 筆</option>
         </select>
       </div>
       <div style="overflow:auto; max-height:480px;">
@@ -496,7 +505,7 @@
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="sc-label">使用日期 <span class="text-red-400">*</span></label>
-        <input id="log-date" type="date" class="sc-input">
+        <input id="log-date" type="date" readonly class="sc-input bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none">
       </div>
       <div>
         <label class="sc-label">動作類型</label>
@@ -504,6 +513,8 @@
           <option value="use">使用</option>
           <option value="discard">報廢 / 丟棄</option>
           <option value="adjust">庫存調整</option>
+          <option value="lend">借出</option>
+          <option value="return">還入</option>
           <option value="note">備註紀錄</option>
         </select>
       </div>
@@ -511,7 +522,9 @@
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="sc-label">操作人 <span class="text-red-400">*</span></label>
-        <input id="log-operator" type="text" class="sc-input" placeholder="請輸入姓名">
+        <select id="log-operator" class="sc-input">
+          <option value="">請選擇人員</option>
+        </select>
       </div>
       <div>
         <label class="sc-label">原因分類 <span class="text-xs text-slate-400 font-normal">（選填）</span></label>
@@ -652,6 +665,7 @@ function fmtNum(n) {
 }
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function getLocalYMD(isoStr) { if (!isoStr) return ''; const d = new Date(isoStr); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 function fmtTs(isoStr) {
   if (!isoStr) return '—';
@@ -672,7 +686,7 @@ function parseBeipanNote(note) {
 function beipanToBottles(entry) {
   const p = parseBeipanNote(entry.note);
   if (!p) return null;
-  return (p.remaining > 0 ? 1 : 0) + p.unopened;
+  return p.unopened;
 }
 
 // ════════════════════════════════
@@ -755,15 +769,13 @@ function calcProductInfo(product, data) {
       const logTime = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
       return log.productId === product.id
           && log.source === 'manual'
-          && ['use','discard','adjust'].includes(log.action)
+          && ['use','discard','adjust','lend','return'].includes(log.action)
           && logTime > isoCutoff;
     })
     .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
 
   if (beipanBatch) {
-    // 跨批次加總：同品項可能有多個批次（混批或新舊交替），只取 find() 第一筆會遺漏其餘批次的未開封瓶數
-    // 用 .filter().length 而非 .some()，因為可能同時有多罐開封中（e.g., Lot A 剩 3mL、Lot B 剩 5mL）
-    const openedCount = beipanBatches.filter(b => (b.remaining ?? 0) > 0).length;
+    // 跨批次加總：只計算全新未開封瓶數（正在使用中的殘液不佔庫存名額）
     const unopened    = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
     if (pandianItem && pandianDate > beipanDate) {
       // 有更新的盤點覆蓋備盤：以盤點為基準，加上盤點後進貨與手動異動
@@ -781,7 +793,7 @@ function calcProductInfo(product, data) {
         .reduce((s, r) => s + (r.receivedQty||0), 0);
       const beipanCutoff = beipan?.submittedAt || beipanDate;
       const manualDelta  = calcManualDelta(beipanCutoff);
-      const baseBottles  = openedCount + unopened;
+      const baseBottles  = unopened; // 只計算全新未開封瓶
       stockNum    = Math.max(0, baseBottles + newIncoming + manualDelta);
       stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
       stockSource  = 'beipan';
@@ -820,14 +832,14 @@ function calcProductInfo(product, data) {
       if (!['pending', 'partial'].includes(ord.status)) return;
       (ord.orders || []).forEach(oi => {
         if (oi.orderId === product.gupanId) {
-          pending += Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0));
+          pending += Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
         }
       });
     });
     // fallback：若 orderHistory 為空但舊 order-result 存在
     if (pending === 0 && data.order?.orders) {
       const oi = data.order.orders.find(o => o.itemId === product.gupanId);
-      if (oi) pending = Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0));
+      if (oi) pending = Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
     }
   }
 
@@ -850,7 +862,7 @@ function calcProductInfo(product, data) {
       if (!bb.selectedLot) return;
       const currLot = lots.find(l => l.lot === bb.selectedLot);
       if (!currLot) return;
-      const snapQty     = ((bb.remaining ?? 0) > 0 ? 1 : 0) + (bb.unopened ?? 0);
+      const snapQty     = bb.unopened ?? 0;
       const lotIncoming = jinhuo
         .filter(r => r.productId === product.id && r.lotNumber === bb.selectedLot
                   && !r.isVoided && (r.receivedAt||'') > beipanDate)
@@ -859,7 +871,7 @@ function calcProductInfo(product, data) {
         .filter(log => {
           const t = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
           return log.productId === product.id && log.lotNumber === bb.selectedLot
-              && log.source === 'manual' && ['use','discard','adjust'].includes(log.action)
+              && log.source === 'manual' && ['use','discard','adjust','lend','return'].includes(log.action)
               && t > bpCutoff;
         })
         .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
@@ -919,7 +931,7 @@ function calcEstUsage(productId, pandianHistory, beipanResult, jinhuoRecs) {
     if (!prevItem) return { usage: null, label: '—' };
     const beipanBatch = beipanResult?.batches?.find(b => b.reagentId === productId);
     if (!beipanBatch) return { usage: null, label: '—' };
-    const currActual = ((beipanBatch.remaining || 0) > 0 ? 1 : 0) + (beipanBatch.unopened || 0);
+    const currActual = beipanBatch.unopened || 0;
     const prevDate = normDate(prevPandian.date);
     const purchases = (jinhuoRecs||[])
       .filter(r => r.productId === productId && !r.isVoided
@@ -936,7 +948,7 @@ function calcEstUsage(productId, pandianHistory, beipanResult, jinhuoRecs) {
 // KPI
 // ════════════════════════════════
 function calcKPIs() {
-  let shortageCount = 0, expiringCount = 0, pendingCount = 0, pendingQCCount = 0;
+  let shortageCount = 0, expiringCount = 0, pendingCount = 0, pendingQCCount = 0, disposalCount = 0;
   PRODUCTS.forEach(p => {
     const info = productInfoCache[p.id];
     if (!info) return;
@@ -944,13 +956,14 @@ function calcKPIs() {
     info.lots.forEach(lot => {
       const d = daysBetween(lot.expiry);
       if (d !== null && d >= 0 && d <= 7) expiringCount++;
+      if (d !== null && d < 0 && (lot.qty || 0) > 0) disposalCount++;
     });
     if (info.pending > 0) pendingCount++;
   });
   (cachedData?.jinhuo || []).forEach(r => {
     if (!r.isVoided && r.qcStatus === 'pending') pendingQCCount++;
   });
-  return { shortageCount, expiringCount, pendingCount, pendingQCCount };
+  return { shortageCount, expiringCount, pendingCount, pendingQCCount, disposalCount };
 }
 
 function renderKPIs() {
@@ -959,19 +972,21 @@ function renderKPIs() {
   document.getElementById('kpi-expiring-num').textContent = kpis.expiringCount;
   document.getElementById('kpi-pending-num').textContent  = kpis.pendingCount;
   document.getElementById('kpi-qc-num').textContent       = kpis.pendingQCCount;
+  document.getElementById('kpi-disposal-num').textContent = kpis.disposalCount;
   const hasAlert = kpis.shortageCount > 0 || kpis.expiringCount > 0
-                || kpis.pendingCount > 0   || kpis.pendingQCCount > 0;
+                || kpis.pendingCount > 0   || kpis.pendingQCCount > 0
+                || kpis.disposalCount > 0;
   document.getElementById('kpi-section').classList.toggle('hidden', !hasAlert);
 }
 
 function setKpiFilter(f) {
   kpiFilter = (kpiFilter === f) ? null : f;
-  ['shortage','expiring','pending','qc'].forEach(k => {
+  ['shortage','expiring','pending','qc','disposal'].forEach(k => {
     document.getElementById(`kpi-${k}`)?.classList.toggle('active', kpiFilter === k);
   });
   const bar = document.getElementById('kpi-filter-bar');
   bar?.classList.toggle('hidden', !kpiFilter);
-  const LABELS = { shortage:'缺貨警示', expiring:'效期危急', pending:'待收貨', qc:'待 QC' };
+  const LABELS = { shortage:'缺貨警示', expiring:'效期危急', pending:'待收貨', qc:'待 QC', disposal:'待報廢' };
   if (kpiFilter) document.getElementById('kpi-filter-label').textContent = LABELS[kpiFilter] || kpiFilter;
   if (cachedData) {
     renderInventoryTable(cachedData);
@@ -1001,12 +1016,12 @@ function setTableRange(n) {
 function buildChangelogCols(changelog) {
   // 以「日期（YYYY-MM-DD）+ 來源」為 key 合併，同一天備盤 = 一欄
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - tableRangeDays);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  const entries = [...(changelog||[])].filter(e => (e.ts||'').slice(0,10) >= cutoffStr).sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
+  const cutoffStr = getLocalYMD(cutoff.toISOString());
+  const entries = [...(changelog||[])].filter(e => getLocalYMD(e.ts) >= cutoffStr).sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const groupMap = {};
   const groupOrder = [];
   entries.forEach(e => {
-    const dateStr = (e.ts||'').slice(0,10); // YYYY-MM-DD
+    const dateStr = getLocalYMD(e.ts); // YYYY-MM-DD（本機時區）
     const key = `${dateStr}|${e.source||'manual'}`;
     if (!groupMap[key]) {
       groupMap[key] = { key, date:dateStr, source:e.source||'manual', ts:e.ts, entries:[] };
@@ -1082,6 +1097,13 @@ function renderInventoryTable(data) {
       (cachedData?.jinhuo || []).some(r =>
         r.productId === p.id && !r.isVoided && r.qcStatus === 'pending'
       )
+    );
+  } else if (kpiFilter === 'disposal') {
+    products = products.filter(p =>
+      (productInfoCache[p.id]?.lots || []).some(l => {
+        const d = daysBetween(l.expiry);
+        return d !== null && d < 0 && (l.qty || 0) > 0;
+      })
     );
   }
   const cols = buildChangelogCols(data.changelog);
@@ -1286,8 +1308,8 @@ function exportChangelogCSV() {
   const from = document.getElementById('cl-date-from')?.value || '';
   const to   = document.getElementById('cl-date-to')?.value   || '';
   let filtered = cl.filter(e => matchesCLFilter(e, clFilter));
-  if (from) filtered = filtered.filter(e => (e.ts||'').slice(0,10) >= from);
-  if (to)   filtered = filtered.filter(e => (e.ts||'').slice(0,10) <= to);
+  if (from) filtered = filtered.filter(e => getLocalYMD(e.ts) >= from);
+  if (to)   filtered = filtered.filter(e => getLocalYMD(e.ts) <= to);
   if (!filtered.length) { showToast('篩選範圍內無資料'); return; }
   const sorted = [...filtered].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const header = ['日期','時間','來源','操作','品項','批號','效期','數量','單位','操作人','備註'];
@@ -1336,30 +1358,16 @@ function renderChangelog(data) {
   const to   = document.getElementById('cl-date-to')?.value   || '';
 
   let filtered = cl.filter(e => matchesCLFilter(e, clFilter));
-  if (from) filtered = filtered.filter(e => (e.ts||'').slice(0,10) >= from);
-  if (to)   filtered = filtered.filter(e => (e.ts||'').slice(0,10) <= to);
+  if (from) filtered = filtered.filter(e => getLocalYMD(e.ts) >= from);
+  if (to)   filtered = filtered.filter(e => getLocalYMD(e.ts) <= to);
 
   const clCount = parseInt(document.getElementById('cl-count-select')?.value || '30', 10);
-  const sorted = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||'')).slice(0, clCount);
 
-  document.getElementById('cl-count').textContent =
-    cl.length > 0 ? `共 ${cl.length} 筆${filtered.length < cl.length ? `（篩選後 ${filtered.length} 筆）` : ''}` : '';
-
-  const empty = document.getElementById('cl-empty');
-  const table = document.getElementById('cl-table');
-
-  if (!sorted.length) {
-    empty.classList.remove('hidden');
-    table.classList.add('hidden');
-    return;
-  }
-  empty.classList.add('hidden');
-  table.classList.remove('hidden');
-
-  // ── Group by ts+source ──
+  // 先全部排序，分組所有條目，最後才切群組數（避免切條目後群組數偏少）
+  const allSorted = [...filtered].sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
   const groups = [];
   const groupMap = {};
-  sorted.forEach(e => {
+  allSorted.forEach(e => {
     const key = `${e.ts||''}|${e.source||'manual'}`;
     if (!groupMap[key]) {
       groupMap[key] = { key, ts: e.ts, source: e.source, entries: [], operator: e.operator || '' };
@@ -1368,8 +1376,23 @@ function renderChangelog(data) {
     if (!groupMap[key].operator && e.operator) groupMap[key].operator = e.operator;
     groupMap[key].entries.push(e);
   });
+  const displayGroups = groups.slice(0, clCount);
 
-  const rows = groups.map((g, gi) => {
+  document.getElementById('cl-count').textContent =
+    cl.length > 0 ? `共 ${cl.length} 筆${filtered.length < cl.length ? `（篩選後 ${filtered.length} 筆）` : ''}（畫面顯示 ${displayGroups.length} 批操作）` : '';
+
+  const empty = document.getElementById('cl-empty');
+  const table = document.getElementById('cl-table');
+
+  if (!displayGroups.length) {
+    empty.classList.remove('hidden');
+    table.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  const rows = displayGroups.map((g, gi) => {
     const gid = `cl-g-${gi}`;
     const src = g.source || 'manual';
     const srcCls = `src-${src}`;
@@ -1666,11 +1689,15 @@ function openDrawer(productId) {
       const exhaustedBadge = mightBeExhausted
         ? `<span style="font-size:10px;color:#CBD5E1;background:#F1F5F9;border-radius:3px;padding:1px 5px;margin-left:4px">可能已用完</span>`
         : '';
+      const discardBtn = (isExpired && (lot.qty || 0) > 0)
+        ? `<button onclick="event.stopPropagation();openDisposalModal('${productId}','${lot.lot.replace(/'/g,"\\'")}',${lot.qty})"
+             style="margin-left:6px;background:#FEF2F2;color:#EF4444;border:1px solid #FECACA;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;font-weight:600">🗑️ 報廢</button>`
+        : '';
 
       lotRows += `<tr>
         <td style="color:${expClr};font-weight:600;width:36px">×${lot.qty || 0}</td>
         <td style="color:${expClr}">${lot.expiry || '—'}${dLabel}</td>
-        <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code>${exhaustedBadge}</td>
+        <td><code style="background:${lotBg};color:${lotClr};padding:1px 5px;border-radius:3px;font-size:11px;font-family:'Courier New',monospace">${lot.lot}</code>${exhaustedBadge}${discardBtn}</td>
         ${qcCell}
       </tr>`;
     });
@@ -2042,22 +2069,29 @@ function openLogModal() {
       sel.appendChild(opt);
     });
   }
-  const logDate = document.getElementById('log-date');
-  logDate.value = todayStr();
-  logDate.max = todayStr();
+  const opSel = document.getElementById('log-operator');
+  if (opSel.options.length <= 1) {
+    STAFF_LIST.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      opSel.appendChild(opt);
+    });
+  }
+  document.getElementById('log-date').value = todayStr();
   document.getElementById('log-overlay').classList.add('open');
   document.getElementById('log-modal').classList.add('open');
   const actionSel = document.getElementById('log-action');
   const qtyInput  = document.getElementById('log-qty');
   const qtySign = document.getElementById('log-qty-sign');
   function syncQtyStep() {
-    const isInteger = ['use', 'discard', 'adjust'].includes(actionSel.value);
+    const isInteger = ['use', 'discard', 'adjust', 'lend', 'return'].includes(actionSel.value);
     qtyInput.step = isInteger ? '1'   : '0.1';
     qtyInput.min  = isInteger ? '1'   : '0.1';
-    if (actionSel.value === 'use' || actionSel.value === 'discard') {
+    if (actionSel.value === 'use' || actionSel.value === 'discard' || actionSel.value === 'lend') {
       qtySign.textContent = '−';
       qtySign.className = 'text-lg font-bold w-5 text-center text-red-500';
-    } else if (actionSel.value === 'adjust') {
+    } else if (actionSel.value === 'adjust' || actionSel.value === 'return') {
       qtySign.textContent = '+';
       qtySign.className = 'text-lg font-bold w-5 text-center text-green-600';
     } else {
@@ -2069,6 +2103,19 @@ function openLogModal() {
   actionSel.addEventListener('change', syncQtyStep);
   syncQtyStep();
 }
+
+window.openDisposalModal = function(productId, lot, qty) {
+  openLogModal();
+  document.getElementById('log-product').value = productId;
+  updateLogLotOptions();
+  const actionSel = document.getElementById('log-action');
+  actionSel.value = 'discard';
+  actionSel.dispatchEvent(new Event('change'));
+  document.getElementById('log-lot').value  = lot;
+  document.getElementById('log-qty').value  = qty;
+  document.getElementById('log-note').value = '過期批號報廢';
+  document.getElementById('log-operator').focus();
+};
 
 function updateLogLotOptions() {
   const productId = document.getElementById('log-product').value;
@@ -2096,6 +2143,10 @@ function closeLogModal() {
   document.getElementById('log-modal').classList.remove('open');
   const preset = document.getElementById('log-reason-preset');
   if (preset) preset.value = '';
+  ['log-product','log-lot','log-qty','log-note','log-operator'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 
 function applyReasonPreset(v) {
@@ -2117,13 +2168,13 @@ async function submitLog() {
   if (!date)       { showToast('請填入日期'); return; }
   if (!operator)   { showToast('請填寫操作人'); return; }
   if (action !== 'note' && (isNaN(qty) || qty <= 0)) { showToast('請填入有效數量'); return; }
-  if (['use', 'discard', 'adjust'].includes(action) && !Number.isInteger(qty)) { showToast('請輸入整數（以瓶為單位）', 'warn'); return; }
+  if (['use', 'discard', 'adjust', 'lend', 'return'].includes(action) && !Number.isInteger(qty)) { showToast('請輸入整數（以瓶為單位）', 'warn'); return; }
 
   const p = PRODUCT_MAP[productId];
-  const qtyVal = (action === 'use' || action === 'discard') ? -(qty || 0) : (qty || 0);
+  const qtyVal = (action === 'use' || action === 'discard' || action === 'lend') ? -(qty || 0) : (qty || 0);
   const entry = {
     id: uid(),
-    ts: new Date(date + 'T00:00:00').toISOString(),
+    ts: new Date().toISOString(),
     source: 'manual',
     action,
     productId,
@@ -2146,7 +2197,15 @@ async function submitLog() {
   closeLogModal();
   cachedData = await loadData();
   renderInventoryTable(cachedData);
+  renderKPIs();
+  const KPI_COUNT_KEY = { shortage: 'shortageCount', expiring: 'expiringCount', pending: 'pendingCount', qc: 'pendingQCCount', disposal: 'disposalCount' };
+  const _newKpis = calcKPIs();
+  const _countKey = KPI_COUNT_KEY[kpiFilter];
+  if (_countKey && _newKpis[_countKey] === 0) setKpiFilter(null);
   renderChangelog(cachedData);
+  if (document.getElementById('item-drawer').classList.contains('open')) {
+    openDrawer(productId);
+  }
   showToast(`已記錄：${p?.name} ${ACTION_LABEL[action]}`);
 
   document.getElementById('log-product').value = '';

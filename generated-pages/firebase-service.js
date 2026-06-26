@@ -262,7 +262,7 @@ export async function getManualKucunLogsAfter(afterIso) {
                         '';
         return (
           logTime > afterIso &&
-          ['use', 'discard', 'adjust'].includes(e.action) &&
+          ['use', 'discard', 'adjust', 'lend', 'return'].includes(e.action) &&
           e.productId && e.lotNumber
         );
       });
