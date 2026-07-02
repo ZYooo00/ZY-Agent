@@ -17,11 +17,11 @@
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders } from './firebase-service.js?v=12';
+           getLatestBeipan, getOrders, deleteManualLogs } from './firebase-service.js?v=13';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-                 getLatestBeipan, getOrders };
+                 getLatestBeipan, getOrders, deleteManualLogs };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -1297,7 +1297,7 @@ function renderInventoryTable(data) {
     tbodyRows.push(`<tr style="${pausedStyle}" onmousedown="this._downX=event.pageX" onclick="if(Math.abs(event.pageX-this._downX)<5)openDrawer('${p.id}')">
       <td class="sl sl-0"><div class="font-semibold text-slate-800 text-sm">${pausedName}</div></td>
       <td class="sl sl-1">${stockCell}</td>
-      <td class="sl sl-2">${badgeHtml(info.status)}</td>
+      <td class="sl sl-2">${p.paused ? '<span class="badge-none" style="color:#CBD5E1">—</span>' : badgeHtml(info.status)}</td>
       <td class="sl sl-3">${pendingCell}</td>
       ${midCells}
       <td class="sr-1" style="padding:10px 8px">${estCell}</td>
