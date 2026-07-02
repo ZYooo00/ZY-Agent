@@ -17,11 +17,11 @@
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders, deleteManualLogs } from './firebase-service.js?v=13';
+           getLatestBeipan, getOrders } from './firebase-service.js?v=14';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-                 getLatestBeipan, getOrders, deleteManualLogs };
+                 getLatestBeipan, getOrders };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>

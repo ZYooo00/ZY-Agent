@@ -493,37 +493,3 @@ export function subscribeBeipanLock(dateStr, callback) {
     (err) => console.warn("[subscribeBeipanLock] 訂閱失敗", err)
   );
 }
-
-// ─── 【臨時工具】手動刪除指定 productId + lotNumber 的 changelog / jinhuo 記錄 ──
-// 用法：await window._fb.deleteManualLogs('givf', '514331')
-// 確認刪除後請通知 YOHOHO 移除此函數並重新部署
-export async function deleteManualLogs(productId, lotNumber) {
-  if (!isFirestoreAvailable()) { console.warn('[deleteManualLogs] Firestore 未連線'); return 0; }
-  let count = 0;
-  // 刪除 changelog 中的 manual 記錄
-  const clSnap = await getDocs(query(
-    collection(_db, COLLECTIONS.changelog),
-    where('productId', '==', productId),
-    where('lotNumber', '==', lotNumber),
-    where('source', '==', 'manual')
-  ));
-  for (const d of clSnap.docs) {
-    console.log('[deleteManualLogs] 刪除 changelog 文件', d.id, d.data());
-    await deleteDoc(d.ref);
-    count++;
-  }
-  // 刪除 jinhuo 中的 manual_in 記錄（若用新系統還入新批號所產生）
-  const jrSnap = await getDocs(query(
-    collection(_db, COLLECTIONS.jinhuo),
-    where('productId', '==', productId),
-    where('lotNumber', '==', lotNumber),
-    where('source', '==', 'manual_in')
-  ));
-  for (const d of jrSnap.docs) {
-    console.log('[deleteManualLogs] 刪除 jinhuo 文件', d.id, d.data());
-    await deleteDoc(d.ref);
-    count++;
-  }
-  console.log(`[deleteManualLogs] ✅ 共刪除 ${count} 筆文件，請重新整理頁面`);
-  return count;
-}
