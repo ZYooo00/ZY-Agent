@@ -488,9 +488,23 @@
       <label class="sc-label">品項 <span class="text-red-400">*</span></label>
       <select id="log-product" class="sc-input" onchange="updateLogLotOptions()"><option value="">請選擇品項…</option></select>
     </div>
+    <!-- 掃碼相機容器（隱藏） -->
+    <div id="log-scanner-container" class="hidden px-0 pb-1">
+      <div class="bg-slate-900 rounded-xl overflow-hidden relative">
+        <div id="log-reader" style="width:100%;min-height:180px"></div>
+        <button onclick="stopLogScanner()"
+          class="absolute top-2 right-2 bg-black/50 text-white px-2.5 py-1 rounded-lg text-xs">✕ 關閉</button>
+      </div>
+    </div>
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="sc-label">批號</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="sc-label" style="margin-bottom:0">批號 <span class="text-red-400" id="log-lot-required">*</span></label>
+          <button onclick="startLogScanner()"
+            class="text-xs text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg flex items-center gap-1 font-medium hover:bg-violet-100 transition-colors">
+            📷 掃碼帶入
+          </button>
+        </div>
         <input id="log-lot" type="text" class="sc-input" placeholder="如 53651" list="log-lot-list" autocomplete="off">
         <datalist id="log-lot-list"></datalist>
       </div>
@@ -502,6 +516,12 @@
         </div>
       </div>
     </div>
+    <!-- 效期欄（還入時顯示） -->
+    <div id="log-expiry-row" class="hidden">
+      <label class="sc-label">效期 <span class="text-red-400">*</span></label>
+      <input id="log-expiry" type="date" class="sc-input">
+      <p class="text-xs text-slate-400 mt-1">選擇已有批號時自動帶入（唯讀）；全新批號請填寫</p>
+    </div>
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="sc-label">使用日期 <span class="text-red-400">*</span></label>
@@ -510,11 +530,11 @@
       <div>
         <label class="sc-label">動作類型</label>
         <select id="log-action" class="sc-input">
-          <option value="use">使用</option>
-          <option value="discard">報廢 / 丟棄</option>
-          <option value="adjust">庫存調整</option>
-          <option value="lend">借出</option>
-          <option value="return">還入</option>
+          <option value="use">使用（扣除）</option>
+          <option value="discard">報廢 / 丟棄（扣除）</option>
+          <option value="lend">借出（扣除）</option>
+          <option value="adjust">庫存校正（可正可負）</option>
+          <option value="return">還入 / 調撥入庫（增加）</option>
           <option value="note">備註紀錄</option>
         </select>
       </div>
@@ -630,6 +650,7 @@
 
 <div id="toast"></div>
 
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="shared.js"></script>
 <script>
 const GROUP_ORDER = ['培養液','試劑','耗材'];
@@ -859,6 +880,23 @@ function calcProductInfo(product, data) {
     });
   const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
 
+  // ── A1：對非備盤批號逐批套用 manual changelog 扣減 ──
+  const beipanSelectedLots = new Set(
+    beipanBatches.map(bb => bb.selectedLot).filter(Boolean)
+  );
+  lots.forEach(lot => {
+    if (beipanSelectedLots.has(lot.lot)) return; // 備盤批號由下方 beipan block 處理
+    const netDelta = (changelog || [])
+      .filter(log => {
+        return log.productId === product.id
+            && log.lotNumber === lot.lot
+            && log.source === 'manual'
+            && ['use','discard','lend','return','adjust'].includes(log.action);
+      })
+      .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
+    lot.qty = Math.max(0, lot.qty + netDelta);
+  });
+
   // ── 修正備盤批號的庫存數（只在備盤為基準時執行，避免以舊備盤覆蓋更新的盤點數據）──
   if (stockSource === 'beipan') {
     const bpCutoff = beipan?.submittedAt || beipanDate;
@@ -887,6 +925,7 @@ function calcProductInfo(product, data) {
   let status = (stockSource || lots.length>0) ? 'ok' : 'none';
   if (status !== 'none') {
     lots.forEach(lot => {
+      if (lot.qty <= 0) return; // A2：耗盡批號不觸發效期警告
       const d = daysBetween(lot.expiry);
       if (d !== null) {
         if (d <= redDays) status = 'crit';
@@ -1318,7 +1357,7 @@ function exportChangelogCSV() {
   const sorted = [...filtered].sort((a,b) => (a.ts||'').localeCompare(b.ts||''));
   const header = ['日期','時間','來源','操作','品項','批號','效期','數量','單位','操作人','備註'];
   const SRC_ZH = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
-  const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
+  const ACT_ZH = { receive:'收貨', void:'作廢', edit:'修改', beipan:'備盤更新', pandian:'盤點更新', use:'使用', discard:'報廢', adjust:'庫存校正', lend:'借出', return:'還入/調撥入庫', return_new_lot:'還入/調撥(新批號)', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
   const rows = sorted.map(e => {
     const d = new Date(e.ts);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1353,7 +1392,7 @@ function exportChangelogCSV() {
 // RENDER: CHANGELOG (Accordion)
 // ════════════════════════════════
 const SRC_LABEL  = { jinhuo:'進貨', beipan:'備盤', pandian:'盤點', order:'訂貨', manual:'手動', void:'作廢' };
-const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存調整', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
+const ACTION_LABEL = { receive:'收貨', void:'作廢', edit:'修改', pandian:'盤點更新', beipan:'備盤更新', use:'使用', discard:'報廢', adjust:'庫存校正', lend:'借出', return:'還入/調撥入庫', return_new_lot:'還入/調撥(新批號)', note:'備註', order:'訂貨更新', qc_pass:'QC通過', qc_revert:'QC復原' };
 const GRP_LABEL  = { jinhuo:'進貨批次', beipan:'備盤更新', pandian:'盤點更新', order:'訂貨送出', manual:'手動記錄', void:'作廢記錄' };
 
 function renderChangelog(data) {
@@ -2127,18 +2166,34 @@ function openLogModal() {
   const qtyInput  = document.getElementById('log-qty');
   const qtySign = document.getElementById('log-qty-sign');
   function syncQtyStep() {
-    const isInteger = ['use', 'discard', 'adjust', 'lend', 'return'].includes(actionSel.value);
-    qtyInput.step = isInteger ? '1'   : '0.1';
-    qtyInput.min  = isInteger ? '1'   : '0.1';
-    if (actionSel.value === 'use' || actionSel.value === 'discard' || actionSel.value === 'lend') {
+    const v = actionSel.value;
+    qtyInput.step = '1';
+    if (['use','discard','lend'].includes(v)) {
+      qtyInput.min = '1';
       qtySign.textContent = '−';
       qtySign.className = 'text-lg font-bold w-5 text-center text-red-500';
-    } else if (actionSel.value === 'adjust' || actionSel.value === 'return') {
+    } else if (v === 'return') {
+      qtyInput.min = '1';
       qtySign.textContent = '+';
       qtySign.className = 'text-lg font-bold w-5 text-center text-green-600';
+    } else if (v === 'adjust') {
+      qtyInput.min = '-9999';
+      qtySign.textContent = '±';
+      qtySign.className = 'text-lg font-bold w-5 text-center text-slate-500';
     } else {
+      qtyInput.min = '0.1';
+      qtyInput.step = '0.1';
       qtySign.textContent = '';
       qtySign.className = 'text-lg font-bold w-5 text-center';
+    }
+    const expiryRow = document.getElementById('log-expiry-row');
+    const expiryInp = document.getElementById('log-expiry');
+    if (expiryRow) expiryRow.classList.toggle('hidden', v !== 'return');
+    if (expiryInp) {
+      expiryInp.value = '';
+      expiryInp.removeAttribute('readonly');
+      expiryInp.classList.remove('bg-slate-100');
+      if (v === 'return') window._syncLotExpiry?.();
     }
   }
   actionSel.removeEventListener('change', syncQtyStep);
@@ -2178,9 +2233,32 @@ function updateLogLotOptions() {
     if (expiry) opt.label = `到期 ${expiry}`;
     dl.appendChild(opt);
   });
+  // E：選批號時自動帶入效期（還入動作）
+  const lotInput  = document.getElementById('log-lot');
+  const expiryInp = document.getElementById('log-expiry');
+  if (lotInput && expiryInp) {
+    if (window._syncLotExpiry) lotInput.removeEventListener('input', window._syncLotExpiry);
+    window._syncLotExpiry = function() {
+      if (document.getElementById('log-action')?.value !== 'return') return;
+      const pId = document.getElementById('log-product')?.value;
+      const rec = (cachedData?.jinhuo || [])
+        .find(r => r.productId === pId && r.lotNumber === lotInput.value.trim() && !r.isVoided);
+      if (rec?.expiryDate) {
+        expiryInp.value = rec.expiryDate;
+        expiryInp.setAttribute('readonly', 'readonly');
+        expiryInp.classList.add('bg-slate-100');
+      } else {
+        expiryInp.value = '';
+        expiryInp.removeAttribute('readonly');
+        expiryInp.classList.remove('bg-slate-100');
+      }
+    };
+    lotInput.addEventListener('input', window._syncLotExpiry);
+  }
 }
 
 function closeLogModal() {
+  stopLogScanner();
   document.getElementById('log-overlay').classList.remove('open');
   document.getElementById('log-modal').classList.remove('open');
   const preset = document.getElementById('log-reason-preset');
@@ -2189,6 +2267,14 @@ function closeLogModal() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const expiryInp = document.getElementById('log-expiry');
+  if (expiryInp) {
+    expiryInp.value = '';
+    expiryInp.removeAttribute('readonly');
+    expiryInp.classList.remove('bg-slate-100');
+  }
+  const expiryRow = document.getElementById('log-expiry-row');
+  if (expiryRow) expiryRow.classList.add('hidden');
 }
 
 function applyReasonPreset(v) {
@@ -2205,36 +2291,81 @@ async function submitLog() {
   const action    = document.getElementById('log-action').value;
   const note      = document.getElementById('log-note').value.trim();
   const operator  = document.getElementById('log-operator').value.trim();
+  const expiryVal = document.getElementById('log-expiry')?.value?.trim() || '';
 
   if (!productId) { showToast('請選擇品項'); return; }
   if (!date)       { showToast('請填入日期'); return; }
   if (!operator)   { showToast('請填寫操作人'); return; }
-  if (action !== 'note' && (isNaN(qty) || qty <= 0)) { showToast('請填入有效數量'); return; }
-  if (['use', 'discard', 'adjust', 'lend', 'return'].includes(action) && !Number.isInteger(qty)) { showToast('請輸入整數（以瓶為單位）', 'warn'); return; }
+
+  if (action !== 'note') {
+    if (action === 'adjust') {
+      if (isNaN(qty) || qty === 0) { showToast('請填入有效數量（可為負數）'); return; }
+      if (!Number.isInteger(qty))   { showToast('請輸入整數（以瓶為單位）', 'warn'); return; }
+    } else {
+      if (isNaN(qty) || qty <= 0) { showToast('請填入有效數量'); return; }
+      if (['use','discard','lend','return'].includes(action) && !Number.isInteger(qty)) {
+        showToast('請輸入整數（以瓶為單位）', 'warn'); return;
+      }
+    }
+  }
 
   const p = PRODUCT_MAP[productId];
-  const qtyVal = (action === 'use' || action === 'discard' || action === 'lend') ? -(qty || 0) : (qty || 0);
-  const entry = {
-    id: uid(),
-    ts: new Date().toISOString(),
-    source: 'manual',
-    action,
-    productId,
-    productName: p?.name || productId,
-    lotNumber: lot || null,
-    qtyDelta: qtyVal,
-    qty: qtyVal,
-    unit: '瓶',
-    operator,
-    note: note || null,
-  };
 
-  const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
-  cl.push(entry);
-  saveChangelog(cl);
+  // 批號驗證
+  if (['use','discard','lend','return','adjust'].includes(action) && !lot) {
+    showToast('請填入批號', 'warn'); return;
+  }
+  const isExistingLot = lot ? (cachedData?.jinhuo || [])
+    .some(r => r.productId === productId && r.lotNumber === lot && !r.isVoided) : false;
 
-  try { await window._fb.appendLog(entry); }
-  catch(e) { console.error('[kucun] submitLog Firebase 寫入失敗', e); }
+  if (['use','discard','lend','adjust'].includes(action) && lot && !isExistingLot) {
+    showToast('批號不存在，若要新增請改用「還入/調撥入庫」', 'warn'); return;
+  }
+  if (action === 'return' && lot && !isExistingLot && !expiryVal) {
+    showToast('新批號必須填入效期', 'warn'); return;
+  }
+
+  // 還入新批號 → 寫 jinhuo（讓批號出現在備盤）+ 稽核 changelog
+  if (action === 'return' && lot && !isExistingLot) {
+    const jrId = `jr-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+    const jinhuoRec = {
+      id: jrId, importBatchId: null,
+      productId, productName: p?.name || productId, vendor: p?.vendor || '',
+      orderId: null, orderedQty: null, orderedAt: null, orderedBy: null,
+      receivedQty: qty, receivedAt: date, receivedBy: operator,
+      lotNumber: lot, expiryDate: expiryVal,
+      note: `手動還入/調撥入庫${note ? '：' + note : ''}`,
+      rawScanText: null, status: null, isVoided: false, qcStatus: null,
+      source: 'manual_in', history: []
+    };
+    try { await window._fb.saveJinhuoRecord(jinhuoRec); }
+    catch(e) { showToast('寫入失敗，請稍後再試', 'error'); return; }
+    const audit = {
+      id: `${Date.now()}-rn`, ts: new Date().toISOString(),
+      source: 'manual', action: 'return_new_lot',
+      productId, productName: p?.name || productId,
+      lotNumber: lot, qtyDelta: qty, qty, unit: '瓶', operator, note: note || null
+    };
+    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    cl.push(audit); saveChangelog(cl);
+    try { await window._fb.appendLog(audit); } catch(e) {}
+
+  } else {
+    // 其他動作 → changelog
+    const qtyVal = ['use','discard','lend'].includes(action) ? -Math.abs(qty) : qty;
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      ts: new Date().toISOString(),
+      source: 'manual', action,
+      productId, productName: p?.name || productId,
+      lotNumber: lot || null, qtyDelta: qtyVal, qty: qtyVal,
+      unit: '瓶', operator, note: note || null
+    };
+    const cl = JSON.parse(localStorage.getItem('kucun-changelog') || '[]');
+    cl.push(entry); saveChangelog(cl);
+    try { await window._fb.appendLog(entry); }
+    catch(e) { console.error('[kucun] submitLog 寫入失敗', e); }
+  }
 
   closeLogModal();
   cachedData = await loadData();
@@ -2245,16 +2376,138 @@ async function submitLog() {
   const _countKey = KPI_COUNT_KEY[kpiFilter];
   if (_countKey && _newKpis[_countKey] === 0) setKpiFilter(null);
   await fetchChangelogIfNeeded();
-  if (document.getElementById('item-drawer').classList.contains('open')) {
-    openDrawer(productId);
-  }
+  if (document.getElementById('item-drawer').classList.contains('open')) openDrawer(productId);
   showToast(`已記錄：${p?.name} ${ACTION_LABEL[action]}`);
+  ['log-product','log-lot','log-qty','log-note','log-operator'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
 
-  document.getElementById('log-product').value = '';
-  document.getElementById('log-lot').value = '';
-  document.getElementById('log-qty').value = '';
-  document.getElementById('log-note').value = '';
-  document.getElementById('log-operator').value = '';
+// ════════════════════════════════
+// BARCODE / GS1 PARSER（複製自 jinhuo.html）
+// ════════════════════════════════
+function matchProductByGtin(gtin) {
+  if (!gtin) return null;
+  const norm = gtin.padStart(14, '0');
+  return PRODUCTS.find(p => p.gtin && p.gtin.padStart(14, '0') === norm) || null;
+}
+
+function matchProductsByGtin(gtin) {
+  if (!gtin) return [];
+  const norm = gtin.padStart(14, '0');
+  return PRODUCTS.filter(p => p.gtin && p.gtin.padStart(14, '0') === norm);
+}
+
+function parseBarcode(text) {
+  const r = { lotNumber: null, expiryDate: null, gtin: null };
+  text = text.replace(/^\][A-Za-z]\d/, '');
+  text = text.replace(/^\x1d+/, '');
+  const reParen = /\((\d{2,4})\)([^(]*)/g;
+  let m; let foundGS1 = false;
+  while ((m = reParen.exec(text)) !== null) {
+    foundGS1 = true;
+    const ai = m[1], val = m[2].trim();
+    if (ai === '01') r.gtin = val;
+    if (ai === '10') r.lotNumber = val;
+    if (ai === '17') r.expiryDate = gs1Date(val);
+  }
+  if (r.lotNumber) r.lotNumber = r.lotNumber.replace(/[^\x20-\x7E]/g, '').trim() || null;
+  if (foundGS1) return r;
+  if (/^01\d{14}/.test(text)) {
+    r.gtin = text.slice(2, 16);
+    let pos = 16;
+    const FIXED = {'11':6,'12':6,'13':6,'14':6,'15':6,'16':6,'17':6,'18':6,'19':6,'20':2};
+    while (pos < text.length) {
+      if (text[pos] === '\x1d') { pos++; continue; }
+      const ai = text.slice(pos, pos + 2);
+      if (FIXED[ai] !== undefined) {
+        const val = text.slice(pos + 2, pos + 2 + FIXED[ai]);
+        if (ai === '17' || ai === '15') r.expiryDate = gs1Date(val);
+        pos += 2 + FIXED[ai];
+      } else if (ai === '10') {
+        const fnc1 = text.indexOf('\x1d', pos + 2);
+        r.lotNumber = fnc1 === -1 ? text.slice(pos + 2) : text.slice(pos + 2, fnc1);
+        pos = fnc1 === -1 ? text.length : fnc1;
+      } else { break; }
+    }
+    if (r.lotNumber) r.lotNumber = r.lotNumber.replace(/[^\x20-\x7E]/g, '').trim() || null;
+    if (r.gtin || r.lotNumber || r.expiryDate) return r;
+  }
+  if (/^\d{13,14}$/.test(text)) {
+    r.gtin = text.padStart(14, '0');
+    return r;
+  }
+  r.lotNumber = text.trim();
+  return r;
+}
+
+function gs1Date(yymmdd) {
+  if (!yymmdd || yymmdd.length < 6) return null;
+  const yy = yymmdd.slice(0,2), mm = yymmdd.slice(2,4), dd = yymmdd.slice(4,6);
+  const year = parseInt(yy) < 50 ? '20'+yy : '19'+yy;
+  return `${year}-${mm}-${dd === '00' ? '01' : dd}`;
+}
+
+// ════════════════════════════════
+// LOG MODAL 掃碼器
+// ════════════════════════════════
+let _logScanner = null;
+
+function startLogScanner() {
+  document.getElementById('log-scanner-container').classList.remove('hidden');
+  if (!_logScanner) {
+    _logScanner = new Html5Qrcode('log-reader', { useBarCodeDetectorIfSupported: true });
+  }
+  _logScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 160 } },
+    (decoded) => { stopLogScanner(); parseAndFillLogQR(decoded); },
+    () => {}
+  ).catch(() => {
+    showToast('無法啟動相機，請確認瀏覽器已授權', 'warn');
+    document.getElementById('log-scanner-container').classList.add('hidden');
+  });
+}
+
+function stopLogScanner() {
+  if (_logScanner?.isScanning) {
+    _logScanner.stop().catch(() => {});
+  }
+  document.getElementById('log-scanner-container')?.classList.add('hidden');
+}
+
+function parseAndFillLogQR(text) {
+  const parsed = parseBarcode(text);
+
+  if (parsed.gtin) {
+    const norm = parsed.gtin.padStart(14, '0');
+    const matches = PRODUCTS.filter(p => p.gtin && p.gtin.padStart(14, '0') === norm);
+    if (matches.length >= 1) {
+      document.getElementById('log-product').value = matches[0].id;
+      updateLogLotOptions();
+      if (matches.length > 1) showToast(`找到 ${matches.length} 個相符品項，請確認選擇正確`, 'warn');
+    } else {
+      showToast('GTIN 無對應品項，請手動選擇品項', 'warn');
+    }
+  }
+
+  if (parsed.lotNumber) {
+    document.getElementById('log-lot').value = parsed.lotNumber;
+    // ⚠️ 時序關鍵：先 dispatch 讓 _syncLotExpiry 判斷新/舊批號並設 readonly 狀態，再填效期
+    document.getElementById('log-lot').dispatchEvent(new Event('input'));
+  }
+
+  if (parsed.expiryDate) {
+    const expiryInp = document.getElementById('log-expiry');
+    if (expiryInp && !expiryInp.readOnly) expiryInp.value = parsed.expiryDate;
+  }
+
+  if (!parsed.lotNumber && !parsed.gtin) {
+    showToast('條碼格式無法辨識，請手動輸入', 'warn');
+  } else {
+    const p = PRODUCT_MAP[document.getElementById('log-product').value];
+    showToast(`✅ 掃碼成功${p ? '：' + p.name : ''}`);
+  }
 }
 
 // ════════════════════════════════

@@ -1215,7 +1215,7 @@ function calcBadge(b, needed) {
   if (days !== null) {
     if (days < 0)   return { status:'expired',    cls:'badge-none', text:'❌ 已過期' };
     if (days === 0) return { status:'expire1',    cls:'badge-warn', text:'🟠 今日到期（明起停用）' };
-    if (days === 1) return { status:'expire1',    cls:'badge-warn', text:'🟠 明天到期（今日最後）' };
+    if (days === 1) return { status:'expire1',    cls:'badge-warn', text:'🟠 明天到期' };
     if (days <= 3)  return { status:'expireWarn', cls:'badge-warn', text:`🟠 ${days}天到期` };
   }
   const total = (b.remaining || 0) + (b.unopened || 0) * (b.bottleVol || 0);
@@ -1420,7 +1420,7 @@ function buildBatchRow(b, needed, cardId, checked) {
   if (isOpenExpired) {
     // 開封逾期：有備用瓶 → 開新品；無備用瓶（最後一瓶）→ 丟棄殘液
     const openExpiredBtn = (b.unopened || 0) > 0
-      ? `<button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 點此開新品</button>`
+      ? `<button onclick="replaceExpiredBottle('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🔴 點此開新瓶</button>`
       : `<button onclick="toggleExhausted('${cardId}','${b.lot}')" class="text-xs px-2.5 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-full font-medium transition-colors whitespace-nowrap">🗑️ 丟棄殘液</button>`;
     return `<tr class="bg-red-50 transition-colors">
       <td class="pl-4 py-3 text-center"><input type="radio" name="r-${cardId}" disabled></td>
