@@ -928,8 +928,17 @@ function calcProductInfo(product, data) {
       if (lot.qty <= 0) return; // A2：耗盡批號不觸發效期警告
       const d = daysBetween(lot.expiry);
       if (d !== null) {
-        if (d <= redDays) status = 'crit';
-        else if (d <= orangeDays && status !== 'crit') status = 'warn';
+        if (d <= redDays) {
+          // 今明到期：不論備貨量，需今日用完或丟棄 → 危急
+          status = 'crit';
+        } else if (d <= orangeDays && status !== 'crit') {
+          // 效期預警：只有在該批號到期後剩餘庫存低於安全量時才標注意
+          // 若有足夠備用批號撐到下次補貨，不需打擾管理者
+          if (target !== null) {
+            const remainAfterExpiry = (stockNum ?? 0) - lot.qty;
+            if (remainAfterExpiry < target) status = 'warn';
+          }
+        }
       }
     });
     if (target !== null && stockNum !== null) {
