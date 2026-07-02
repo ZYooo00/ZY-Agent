@@ -495,6 +495,14 @@
         <button onclick="stopLogScanner()"
           class="absolute top-2 right-2 bg-black/50 text-white px-2.5 py-1 rounded-lg text-xs">✕ 關閉</button>
       </div>
+      <!-- 多鏡頭切換列（有多顆後置鏡頭時才顯示） -->
+      <div id="log-camera-switch-wrap" class="hidden mt-2 flex items-center justify-between px-1">
+        <span id="log-camera-label" class="text-slate-400 text-xs truncate max-w-[60%]">主鏡頭</span>
+        <button onclick="switchLogCamera()"
+          class="text-xs text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg font-medium hover:bg-violet-100 transition-colors">
+          🔄 切換鏡頭
+        </button>
+      </div>
     </div>
     <div class="grid grid-cols-2 gap-3">
       <div>
@@ -813,8 +821,12 @@ function calcProductInfo(product, data) {
       stockSource  = 'pandian';
     } else {
       // 正常備盤路線：備盤快照 + 備盤後進貨 + 備盤後手動異動
+      // 用 >= beipanDate 且排除已在備盤內的批號，避免備盤同日手動還入的新批號被漏算
+      const beipanLotSet = new Set(beipanBatches.map(bb => bb.selectedLot).filter(Boolean));
       const newIncoming = jinhuo
-        .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > beipanDate)
+        .filter(r => r.productId === product.id && !r.isVoided
+                  && !beipanLotSet.has(r.lotNumber)
+                  && (r.receivedAt||'') >= beipanDate)
         .reduce((s, r) => s + (r.receivedQty||0), 0);
       const beipanCutoff = beipan?.submittedAt || beipanDate;
       const manualDelta  = calcManualDelta(beipanCutoff);
@@ -2458,31 +2470,80 @@ function gs1Date(yymmdd) {
 }
 
 // ════════════════════════════════
-// LOG MODAL 掃碼器
+// LOG MODAL 掃碼器（含 Android 多鏡頭切換）
 // ════════════════════════════════
-let _logScanner = null;
+let _logScanner      = null;
+let _logCameraDevices = [];
+let _logCameraIdx    = 0;
 
 function startLogScanner() {
+  _logCameraDevices = [];
+  _logCameraIdx = 0;
   document.getElementById('log-scanner-container').classList.remove('hidden');
-  if (!_logScanner) {
-    _logScanner = new Html5Qrcode('log-reader', { useBarCodeDetectorIfSupported: true });
-  }
+  document.getElementById('log-camera-switch-wrap').classList.add('hidden');
+
+  if (_logScanner) { try { _logScanner.stop().catch(() => {}); } catch {} _logScanner = null; }
+
+  _logScanner = new Html5Qrcode('log-reader', { useBarCodeDetectorIfSupported: true });
   _logScanner.start(
     { facingMode: 'environment' },
     { fps: 10, qrbox: { width: 260, height: 160 } },
     (decoded) => { stopLogScanner(); parseAndFillLogQR(decoded); },
     () => {}
-  ).catch(() => {
+  ).then(async () => {
+    // Android 自動對焦
+    _logScanner.applyVideoConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+    await _enumerateLogCameraSwitch();
+  }).catch(() => {
     showToast('無法啟動相機，請確認瀏覽器已授權', 'warn');
     document.getElementById('log-scanner-container').classList.add('hidden');
   });
 }
 
 function stopLogScanner() {
-  if (_logScanner?.isScanning) {
-    _logScanner.stop().catch(() => {});
-  }
+  if (_logScanner?.isScanning) _logScanner.stop().catch(() => {});
   document.getElementById('log-scanner-container')?.classList.add('hidden');
+  document.getElementById('log-camera-switch-wrap')?.classList.add('hidden');
+}
+
+async function _enumerateLogCameraSwitch() {
+  try {
+    const all    = await navigator.mediaDevices.enumerateDevices();
+    const videos = all.filter(d => d.kind === 'videoinput');
+    const back   = videos.filter(d => {
+      const l = d.label.toLowerCase();
+      return !l.includes('front') && !l.includes('前') && !l.includes('user');
+    });
+    _logCameraDevices = back.length > 1 ? back : videos;
+    if (_logCameraDevices.length <= 1) return;
+    _logCameraIdx = 0;
+    _updateLogCameraLabel();
+    document.getElementById('log-camera-switch-wrap').classList.remove('hidden');
+  } catch (e) { console.warn('[LogCameraSwitch]', e); }
+}
+
+function _updateLogCameraLabel() {
+  const dev = _logCameraDevices[_logCameraIdx];
+  if (!dev) return;
+  const label = dev.label || `鏡頭 ${_logCameraIdx + 1}`;
+  const short = label.replace(/camera2?\s*/i, '').replace(/\s*\d+,\s*facing\s*(back|front)/i, '').trim() || label;
+  document.getElementById('log-camera-label').textContent = `${_logCameraIdx + 1}/${_logCameraDevices.length} ${short}`;
+}
+
+async function switchLogCamera() {
+  if (_logCameraDevices.length < 2) return;
+  _logCameraIdx = (_logCameraIdx + 1) % _logCameraDevices.length;
+  _updateLogCameraLabel();
+  if (_logScanner) { try { await _logScanner.stop(); } catch {} _logScanner = null; }
+  _logScanner = new Html5Qrcode('log-reader', { useBarCodeDetectorIfSupported: true });
+  _logScanner.start(
+    { deviceId: { exact: _logCameraDevices[_logCameraIdx].deviceId } },
+    { fps: 10, qrbox: { width: 260, height: 160 } },
+    (decoded) => { stopLogScanner(); parseAndFillLogQR(decoded); },
+    () => {}
+  ).then(() => {
+    _logScanner.applyVideoConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+  }).catch(() => { showToast('切換鏡頭失敗', 'warn'); });
 }
 
 function parseAndFillLogQR(text) {
