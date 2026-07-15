@@ -82,6 +82,8 @@
     localStorage.removeItem('test-simulated-date');
     location.reload();
   };
+
+  window.dispatchEvent(new CustomEvent('devpanel-ready'));
 </script>
 <style>
   /* beipan 專屬 */
