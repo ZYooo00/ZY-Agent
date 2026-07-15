@@ -10,6 +10,7 @@ const CHANGELOG = [
     changes: [
       '【優化】測試站「⚠️ 測試模式」提示改放到側邊欄版本號上方，不再擋住頁面頂端排版',
       '【優化】明日備盤頁的測試工具（模擬日期、重置今日備盤、終極清理）一併收進側邊欄測試提示框',
+      '【新功能】明日估盤、庫存總覽頁也支援「模擬日期」，跟備盤頁共用同一組模擬時間，測試站演示可依同一虛擬日期串起估盤 → 備盤 → 庫存流程',
     ],
   },
   {
@@ -287,12 +288,14 @@ window.openChangelogModal = function() {
       const frag = document.createDocumentFragment();
 
       if (isTestHost) {
+        const simDate = localStorage.getItem('test-simulated-date') || '';
         const badge = document.createElement('div');
         badge.className = 'sidebar-test-badge';
         badge.style.cssText = 'background:#F59E0B;color:#fff;border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;line-height:1.6';
         badge.innerHTML = `
           <div style="font-weight:700;font-size:12px;margin-bottom:2px">⚠️ 測試模式</div>
-          <div style="opacity:.9">所有動作只影響測試資料，不影響正式庫存</div>`;
+          <div style="opacity:.9">所有動作只影響測試資料，不影響正式庫存</div>
+          <div style="opacity:.9;margin-top:4px">🕒 模擬日期：${simDate || '（真實時間）'}</div>`;
         frag.appendChild(badge);
       }
 
@@ -314,14 +317,12 @@ window.openChangelogModal = function() {
     function tryInjectDevPanel() {
       if (!isTestHost || typeof window.runDevReset !== 'function') return;
       const simDate = localStorage.getItem('test-simulated-date') || '';
-      const simLabel = simDate || '（真實時間）';
       document.querySelectorAll('.sidebar-test-badge').forEach(badge => {
         if (badge.querySelector('.sidebar-devpanel')) return;
         const extra = document.createElement('div');
         extra.className = 'sidebar-devpanel';
         extra.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.3)';
         extra.innerHTML = `
-          <div style="opacity:.85;margin-bottom:4px">🕒 模擬日期：${simLabel}</div>
           <input type="date" class="dp-time-travel" value="${simDate}" style="width:100%;padding:3px 6px;border-radius:5px;border:none;font-size:11px;color:#334155;margin-bottom:6px;cursor:pointer" title="選日期後頁面重整，系統視為該日" />
           <button onclick="window.runDevReset()" style="width:100%;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;padding:4px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:4px">🔄 重置今日備盤</button>
           <button onclick="window.runNuclearWipe()" style="width:100%;background:rgba(220,38,38,.35);border:1px solid rgba(220,38,38,.5);color:#fff;padding:4px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🗑️ 終極清理</button>`;

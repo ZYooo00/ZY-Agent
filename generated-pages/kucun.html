@@ -205,6 +205,26 @@
 </style>
 </head>
 <body>
+<script>
+(function(){
+  var h = location.hostname;
+  if(h !== 'stork11-embryo-lab.web.app' && h !== 'stork11-embryo-lab.firebaseapp.com'){
+    // 時間旅行：在 firebase-service 初始化前 override Date()，與備盤頁共用同一組 localStorage 模擬日期
+    var _sim = localStorage.getItem('test-simulated-date');
+    if(_sim){
+      var _Orig = Date;
+      window.Date = function(){
+        if(!arguments.length) return new _Orig(_sim + 'T00:00:00+08:00');
+        return new (Function.prototype.bind.apply(_Orig, [null].concat(Array.from(arguments))))();
+      };
+      window.Date.now   = function(){ return _Orig.now(); };
+      window.Date.parse = function(){ return _Orig.parse.apply(_Orig, arguments); };
+      window.Date.UTC   = function(){ return _Orig.UTC.apply(_Orig, arguments); };
+      window.Date.prototype = _Orig.prototype;
+    }
+  }
+})();
+</script>
 <!-- MOBILE NAV -->
 <div id="nav-overlay" onclick="closeNav()"></div>
 <div id="nav-drawer">
