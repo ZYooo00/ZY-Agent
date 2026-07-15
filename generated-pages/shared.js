@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.06.26f'; // 格式：YY.MM.DD
+const APP_VERSION = '26.07.15'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.07.15',
+    date: '2026-07-15',
+    changes: [
+      '【優化】測試站「⚠️ 測試模式」提示改放到側邊欄版本號上方，不再擋住頁面頂端排版',
+      '【優化】明日備盤頁的測試工具（模擬日期、重置今日備盤、終極清理）一併收進側邊欄測試提示框',
+    ],
+  },
   {
     version: '26.06.26f',
     date: '2026-06-26',
@@ -269,9 +277,40 @@ window.openChangelogModal = function() {
       window.openChangelogModal();
     }
 
-    // 3. 側邊欄注入版本號按鈕
+    // 3. 側邊欄注入測試模式提示（含 beipan 專屬開發面板）+ 版本號按鈕
+    const isTestHost = location.hostname !== 'stork11-embryo-lab.web.app'
+                     && location.hostname !== 'stork11-embryo-lab.firebaseapp.com';
+    const hasDevPanel = isTestHost && typeof window.runDevReset === 'function';
+
     document.querySelectorAll('.mt-auto').forEach(block => {
       if (block.querySelector('#sidebar-version-btn')) return;
+      const originalFirst = block.firstChild;
+      const frag = document.createDocumentFragment();
+
+      if (isTestHost) {
+        const badge = document.createElement('div');
+        badge.id = 'sidebar-test-badge';
+        badge.style.cssText = 'background:#F59E0B;color:#fff;border-radius:10px;padding:10px;margin-bottom:8px;font-size:11px;line-height:1.6';
+        badge.innerHTML = `
+          <div style="font-weight:700;font-size:12px;margin-bottom:2px">⚠️ 測試模式</div>
+          <div style="opacity:.9">所有動作只影響測試資料，不影響正式庫存</div>`;
+
+        if (hasDevPanel) {
+          const simDate = localStorage.getItem('test-simulated-date') || '';
+          const simLabel = simDate || '（真實時間）';
+          const extra = document.createElement('div');
+          extra.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.3)';
+          extra.innerHTML = `
+            <div style="opacity:.85;margin-bottom:4px">🕒 模擬日期：${simLabel}</div>
+            <input type="date" id="dp-time-travel" value="${simDate}" style="width:100%;padding:3px 6px;border-radius:5px;border:none;font-size:11px;color:#334155;margin-bottom:6px;cursor:pointer" title="選日期後頁面重整，系統視為該日" />
+            <button onclick="window.runDevReset()" style="width:100%;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;padding:4px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:4px">🔄 重置今日備盤</button>
+            <button onclick="window.runNuclearWipe()" style="width:100%;background:rgba(220,38,38,.35);border:1px solid rgba(220,38,38,.5);color:#fff;padding:4px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🗑️ 終極清理</button>`;
+          badge.appendChild(extra);
+        }
+
+        frag.appendChild(badge);
+      }
+
       const btn = document.createElement('button');
       btn.id = 'sidebar-version-btn';
       btn.onclick = window.openChangelogModal;
@@ -279,7 +318,17 @@ window.openChangelogModal = function() {
       btn.onmouseover = () => btn.style.color = '#64748b';
       btn.onmouseout  = () => btn.style.color = '#94a3b8';
       btn.textContent = `Version ${APP_VERSION}`;
-      block.insertBefore(btn, block.firstChild);
+      frag.appendChild(btn);
+
+      block.insertBefore(frag, originalFirst);
+
+      if (hasDevPanel) {
+        block.querySelector('#dp-time-travel').addEventListener('change', function() {
+          if (this.value) localStorage.setItem('test-simulated-date', this.value);
+          else localStorage.removeItem('test-simulated-date');
+          location.reload();
+        });
+      }
     });
   });
 })();

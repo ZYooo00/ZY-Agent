@@ -77,8 +77,6 @@
 </head>
 
 <body class="bg-slate-50">
-<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">⚠️ 測試模式 — 所有動作只影響測試資料，不影響正式庫存</div>');}})()</script>
-
 <!-- ── Mobile Nav Overlay ── -->
 <div id="nav-overlay" onclick="closeNav()"></div>
 
@@ -607,16 +605,30 @@ async function updatePandianInTransit() {
 function openNav()  { document.getElementById('nav-overlay').classList.add('open'); document.getElementById('nav-drawer').classList.add('open'); }
 function closeNav() { document.getElementById('nav-overlay').classList.remove('open'); document.getElementById('nav-drawer').classList.remove('open'); }
 
-(function init() {
+(function initUI() {
   const d = new Date();
   const el = document.getElementById('today-display');
   if (el) el.textContent = d.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' });
-  const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   buildPandianGroups();
+})();
+
+function onReady(fn) {
+  var domOk = document.readyState !== 'loading';
+  var fbOk = !!window.__fbDone;
+  if (domOk && fbOk) { fn(); return; }
+  var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
+  var tick = function() { if (--cnt <= 0) fn(); };
+  if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
+  if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
+}
+onReady(async function() {
+  const d = new Date();
+  const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
   let completedData = null;
-  try { completedData = JSON.parse(localStorage.getItem('pandian-completed') || 'null'); } catch(e) {}
+  try { completedData = await window._fb.getLatestPandian(); } catch(e) {}
+
   if (completedData && completedData.date === todayStr) {
-    loadPandianDraft();
     document.getElementById('pd-result-count').textContent = completedData.resultCount || '0';
     document.getElementById('pd-result-meta').textContent = completedData.meta || '';
     document.getElementById('pd-result-list').innerHTML = completedData.resultHtml || '';
@@ -640,18 +652,7 @@ function closeNav() { document.getElementById('nav-overlay').classList.remove('o
     if (completedData) localStorage.removeItem('pandian-completed');
     loadPandianDraft();
   }
-})();
 
-function onReady(fn) {
-  var domOk = document.readyState !== 'loading';
-  var fbOk = !!window.__fbDone;
-  if (domOk && fbOk) { fn(); return; }
-  var cnt = (domOk ? 0 : 1) + (fbOk ? 0 : 1);
-  var tick = function() { if (--cnt <= 0) fn(); };
-  if (!domOk) document.addEventListener('DOMContentLoaded', tick, { once: true });
-  if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
-}
-onReady(function() {
   updatePandianInTransit();
 });
 

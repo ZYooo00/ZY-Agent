@@ -127,35 +127,8 @@
       window.Date.UTC   = function(){ return _Orig.UTC.apply(_Orig, arguments); };
       window.Date.prototype = _Orig.prototype;
     }
-
-    document.addEventListener('DOMContentLoaded', function(){
-      var prefix = window._isTestEnv ? 'test_' : '';
-      var simLabel = localStorage.getItem('test-simulated-date') || '（真實時間）';
-
-      var bar = document.createElement('div');
-      bar.id = 'dev-panel';
-      bar.style.cssText = 'background:#F59E0B;color:#fff;padding:8px 16px;font-size:12px;font-family:sans-serif;position:fixed;top:0;left:0;right:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.15)';
-
-      bar.innerHTML = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:1600px;margin:0 auto">'
-        + '<span style="flex:1;font-weight:700;min-width:220px">⚠️ 測試模式 — <code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:4px;font-family:monospace">' + prefix + 'beipan_snapshots / ' + prefix + 'kucun_changelog</code></span>'
-        + '<span style="font-size:11px;opacity:.85">🕒 模擬日期：' + simLabel + '</span>'
-        + '<input type="date" id="dp-time-travel" value="' + (localStorage.getItem('test-simulated-date')||'') + '" style="padding:2px 6px;border-radius:5px;border:none;font-size:11px;color:#334155;height:22px;cursor:pointer" title="選日期後頁面重整，系統視為該日" />'
-        + '<button onclick="window.runDevReset()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.5);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🔄 重置今日備盤</button>'
-        + '<button onclick="window.runNuclearWipe()" style="background:rgba(220,38,38,.35);border:1px solid rgba(220,38,38,.5);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🗑️ 終極清理</button>'
-        + '</div>';
-
-      document.body.insertBefore(bar, document.body.firstChild);
-      document.body.style.paddingTop = bar.offsetHeight + 'px';
-
-      document.getElementById('dp-time-travel').addEventListener('change', function(){
-        if(this.value){
-          localStorage.setItem('test-simulated-date', this.value);
-        } else {
-          localStorage.removeItem('test-simulated-date');
-        }
-        location.reload();
-      });
-    });
+    // 測試模式提示與開發面板（模擬日期、重置、終極清理）已改由 shared.js
+    // 統一注入至側邊欄 Version 按鈕上方，此處僅保留 Date() 時間旅行覆寫。
   }
 })();
 </script>
@@ -1725,8 +1698,9 @@ function buildGM508HTML(savedState) {
     .sort((a, b) => (effectiveExpiry(a) || '9999') < (effectiveExpiry(b) || '9999') ? -1 : 1);
   const expiredBatches = gm.batches.filter(b => b.blocked || calcBadge(b, gm.needed).status === 'expired');
   const shownExpired = expiredBatches.length === 0 ? [] : (() => {
-    const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
-    return withRem.length > 0 ? [withRem[0]] : [expiredBatches[expiredBatches.length - 1]];
+    const withStock = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0 || (b.unopened || 0) > 0);
+    if (withStock.length > 0) return [withStock[withStock.length - 1]];
+    return [expiredBatches[expiredBatches.length - 1]];
   })();
   const orderedBatches = [...validBatches, ...shownExpired];
   const batchRows = orderedBatches.length
@@ -1838,8 +1812,10 @@ function buildBatchCardHTML(cfg, savedState) {
   // 真正過期（鎖死）
   const expiredBatches = cfg.batches.filter(b => b.blocked || calcBadge(b, cfg.needed).status === 'expired');
   const shownExpired   = expiredBatches.length === 0 ? [] : (() => {
-    const withRem = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0);
-    if (withRem.length > 0) return [withRem[0]];
+    // 優先顯示最新一筆有實體庫存（剩餘 mL 或未開封瓶）的過期批號
+    // withRem[0] 舊邏輯只看 remaining，會讓「有未開封瓶但 remaining=0」的批號消失
+    const withStock = expiredBatches.filter(b => (b._exhaustedVol || b.remaining) > 0 || (b.unopened || 0) > 0);
+    if (withStock.length > 0) return [withStock[withStock.length - 1]];
     return [expiredBatches[expiredBatches.length - 1]];
   })();
 
@@ -3278,14 +3254,6 @@ onReady(async function() {
   const todayStr = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
   let todayBeipan = null;
   try { todayBeipan = await window._fb.getLatestBeipan(); } catch(e) {}
-  if (!todayBeipan) {
-    try {
-      const stored = JSON.parse(localStorage.getItem('beipan-result') || 'null');
-      todayBeipan = Array.isArray(stored)
-        ? stored.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || null
-        : stored;
-    } catch(e) {}
-  }
 
   if (todayBeipan?.date === todayStr) {
     // 今日已送出：載入批號 → 建立卡片 → 鎖定 State B

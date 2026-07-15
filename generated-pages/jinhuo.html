@@ -190,8 +190,6 @@
 </style>
 </head>
 <body>
-<script>(function(){var h=location.hostname;if(h!=='stork11-embryo-lab.web.app'&&h!=='stork11-embryo-lab.firebaseapp.com'){document.write('<div style="background:#F59E0B;color:#fff;text-align:center;padding:6px 12px;font-size:13px;font-weight:600;position:relative;z-index:9999">⚠️ 測試模式 — 所有動作只影響測試資料，不影響正式庫存</div>');}})()</script>
-
 <!-- MOBILE NAV OVERLAY + DRAWER -->
 <div id="nav-overlay" onclick="closeNav()"></div>
 <div id="nav-drawer">
@@ -750,7 +748,13 @@ function loadPendingOrdersForProduct(productId) {
 
 async function updateOrderStatus(orderId, qty, parentId = null) {
   try {
-    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    let history = [];
+    try {
+      history = await window._fb.getOrders();
+      localStorage.setItem('order-history', JSON.stringify(history));
+    } catch(e) {
+      history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    }
     let modifiedOrder = null;
 
     if (parentId) {
@@ -1186,7 +1190,13 @@ async function confirmVoid() {
 
 async function rollbackOrderQty(orderId, qty) {
   try {
-    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    let history = [];
+    try {
+      history = await window._fb.getOrders();
+      localStorage.setItem('order-history', JSON.stringify(history));
+    } catch(e) {
+      history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    }
     // LIFO：作廢時從最新的訂單（陣列前端）往後找，回滾第一筆有收貨的
     let modifiedOrder = null;
     for (let i = 0; i < history.length; i++) {
