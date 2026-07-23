@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧫 Demo 資料設定</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F8F7FD;color:#1E1B4B;min-height:100vh;padding:24px 16px}
+.card{background:#fff;border-radius:16px;border:1px solid #E4E1F5;padding:24px;max-width:560px;margin:0 auto 16px}
+h1{font-size:18px;font-weight:800;color:#4E4A9A;margin-bottom:4px}
+.sub{font-size:12px;color:#9390B5;margin-bottom:20px}
+.section{margin-bottom:12px}
+.section h3{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9390B5;margin-bottom:6px}
+.item{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid #F1F0FB}
+.item:last-child{border-bottom:none}
+.item .name{color:#1E1B4B}
+.item .note{font-size:11px;color:#9390B5;text-align:right;max-width:55%}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}
+.b-pending{background:#FEF3C7;color:#92400E}
+.b-warn{background:#FEE2E2;color:#DC2626}
+.b-low{background:#FFF7ED;color:#B45309}
+.b-mix{background:#EDE9FE;color:#5B21B6}
+.btn{width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#9590D0;color:#fff;margin-bottom:8px}
+.btn-exit{background:#F8F7FD;color:#9390B5;border:1.5px solid #E4E1F5;margin-top:8px}
+#log{background:#0F0E1A;color:#86EFAC;font-family:monospace;font-size:11px;border-radius:12px;padding:14px;min-height:80px;max-height:240px;overflow-y:auto;margin-top:12px;white-space:pre-wrap;display:none}
+.demo-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.demo-link{display:block;padding:10px 14px;border-radius:10px;background:#F0EFFE;color:#4E4A9A;font-size:12px;font-weight:700;text-decoration:none;text-align:center;border:1.5px solid #D9D6F5;transition:all .15s}
+.demo-link:hover{background:#E4E0FB}
+.status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:12px}
+.status-bar.active{background:#ECFDF5;color:#065F46;border:1.5px solid #A7F3D0}
+.status-bar.inactive{background:#FFF7ED;color:#92400E;border:1.5px solid #FDE68A}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.green{background:#10B981}
+.dot.orange{background:#F59E0B}
+.tip{background:#F0EFFE;border:1.5px solid #D9D6F5;border-radius:10px;padding:10px 14px;font-size:12px;color:#4E4A9A;margin-bottom:12px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🧫 培養液系統 — Demo 資料設定</h1>
+  <div class="sub">每次點擊「重置並載入」會先清空 <strong>test_</strong> 集合，再寫入乾淨的示範資料</div>
+
+  <div id="mode-bar" class="status-bar inactive">
+    <div class="dot orange"></div>
+    <span id="mode-text">Demo 模式：未啟用</span>
+  </div>
+
+  <div class="tip">
+    ✅ 每次點「重置並載入」都會<strong>先清空所有舊資料</strong>再寫入，測試後再點一次即可完整重設
+  </div>
+
+  <div class="section">
+    <h3>將寫入的示範情境</h3>
+    <div class="item"><span class="name">H5GT 批號 × 3 筆</span><span class="note">過期有庫存 → <span class="badge b-warn">待報廢</span> KPI 亮燈</span></div>
+    <div class="item"><span class="name">GxTL 批號 × 2 筆</span><span class="note">殘液 2.5 mL → <span class="badge b-mix">備盤混批</span> 演示</span></div>
+    <div class="item"><span class="name">G-IVF 批號 × 2 筆</span><span class="note">批號1 需開新瓶，批號2 充足（均通過 QC）</span></div>
+    <div class="item"><span class="name">AOA CI 批號 × 1 筆</span><span class="note">正常</span></div>
+    <div class="item"><span class="name">EmbryoGlue 批號 × 1 筆</span><span class="note"><span class="badge b-low">低庫存 2 瓶</span>（已訂 3 瓶待到貨）</span></div>
+    <div class="item"><span class="name">AOA GM508 批號 × 1 筆</span><span class="note">正常</span></div>
+    <div class="item"><span class="name">102（磊柏）批號 × 1 筆</span><span class="note"><span class="badge b-pending">待 QC</span> — KPI 演示用</span></div>
+    <div class="item"><span class="name">Heavy Oil 批號 × 1 筆</span><span class="note">效期 2029-12-31 → 收貨防呆演示</span></div>
+    <div class="item"><span class="name">待收貨訂單 × 4 張</span><span class="note">EmbryoGlue / H5GT / GxTL / AOA CI → <span class="badge b-pending">待收貨 KPI = 4</span></span></div>
+    <div class="item"><span class="name">盤點快照（2 筆）</span><span class="note">06-15 + 07-12，提供期間用量推算</span></div>
+    <div class="item"><span class="name">備盤快照（昨日）</span><span class="note">G-IVF 逾期 + H5GT 3天警示</span></div>
+    <div class="item"><span class="name">估盤草稿（今日）</span><span class="note">僅 OPU=6，其他留空待現場輸入</span></div>
+    <div class="item"><span class="name">盤點快照 × 2 筆</span><span class="note">2026-06-15 + 2026-07-12（用量推算用）</span></div>
+    <div class="item"><span class="name">庫存異動日誌 × 34 筆</span><span class="note">進貨 / 備盤 / 盤點 / 訂貨 / 異常 / 手動</span></div>
+  </div>
+
+  <button class="btn btn-primary" id="setup-btn" onclick="setupDemoData()">🔄 重置並載入 Demo 資料</button>
+  <button class="btn btn-exit" onclick="exitDemoOnly()">退出 Demo 模式（保留資料）</button>
+
+  <div id="log"></div>
+</div>
+
+<div class="card" id="links-card" style="display:none">
+  <h1 style="margin-bottom:12px">🚀 開始 Demo</h1>
+  <div class="demo-links">
+    <a class="demo-link" href="gupan.html">📋 估盤</a>
+    <a class="demo-link" href="beipan.html">🧪 備盤</a>
+    <a class="demo-link" href="pandian.html">📦 盤點</a>
+    <a class="demo-link" href="order.html">🛒 訂貨</a>
+    <a class="demo-link" href="jinhuo.html">📥 收貨</a>
+    <a class="demo-link" href="kucun.html">📊 庫存</a>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, deleteDoc, getDocs, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const CONFIG = {
+  apiKey: "AIzaSyC3FHchC_pHZHz2ZghxSS0mrDGBWhB_M1o",
+  authDomain: "stork11-embryo-lab.firebaseapp.com",
+  projectId: "stork11-embryo-lab",
+  storageBucket: "stork11-embryo-lab.firebasestorage.app",
+  messagingSenderId: "565116361227",
+  appId: "1:565116361227:web:6788ae3503bf431cf3050e"
+};
+
+const app  = initializeApp(CONFIG);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+const COLLS = {
+  jinhuo:  'test_jinhuo_records',
+  orders:  'test_orders',
+  pandian: 'test_pandian_snapshots',
+  beipan:  'test_beipan_snapshots',
+  gupan:   'test_gupan_snapshots',
+  drafts:  'test_gupan_drafts',
+  log:     'test_kucun_changelog',
+  lock:    'test_beipan_lock',
+};
+
+const logEl     = document.getElementById('log');
+const modeBar   = document.getElementById('mode-bar');
+const modeTxt   = document.getElementById('mode-text');
+const linksCard = document.getElementById('links-card');
+
+function addLog(msg) {
+  logEl.style.display = 'block';
+  logEl.textContent += msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function updateModeBar() {
+  const on = localStorage.getItem('__demo_mode__') === '1';
+  modeBar.className = 'status-bar ' + (on ? 'active' : 'inactive');
+  modeBar.querySelector('.dot').className = 'dot ' + (on ? 'green' : 'orange');
+  modeTxt.textContent = on ? 'Demo 模式：已啟用（使用 test_ 集合）' : 'Demo 模式：未啟用';
+  linksCard.style.display = on ? 'block' : 'none';
+}
+
+updateModeBar();
+
+window.exitDemoOnly = function() {
+  localStorage.removeItem('__demo_mode__');
+  updateModeBar();
+  addLog('✓ 已退出 Demo 模式');
+};
+
+async function clearAllTestCollections() {
+  addLog('🗑️  清空舊資料...');
+  const lsKeys = ['order-history','jinhuo-records','kucun-changelog','pandian-result',
+                  'pandian-history','beipan-result','gupan-confirmed','gupan-draft','order-result'];
+  lsKeys.forEach(k => localStorage.removeItem(k));
+
+  for (const [key, colName] of Object.entries(COLLS)) {
+    const snap = await getDocs(collection(db, colName));
+    for (const d of snap.docs) await deleteDoc(d.ref);
+    if (snap.size > 0) addLog(`  ✓ 清空 ${colName}（${snap.size} 筆）`);
+  }
+  addLog('✓ 清空完成\n');
+}
+
+window.setupDemoData = async function() {
+  const btn = document.getElementById('setup-btn');
+  btn.disabled = true; btn.textContent = '設定中...';
+  logEl.textContent = '';
+  logEl.style.display = 'block';
+
+  addLog('🔑 Firebase 登入...');
+  try {
+    await signInAnonymously(auth);
+    addLog('✓ 登入成功\n');
+  } catch(e) {
+    addLog('❌ 登入失敗：' + e.message);
+    btn.disabled = false; btn.textContent = '🔄 重置並載入 Demo 資料';
+    return;
+  }
+
+  await clearAllTestCollections();
+
+  const TODAY = '2026-07-13';
+  const YEST  = '2026-07-12';
+
+  // ── 進貨記錄 ──────────────────────────────────────────────────
+  addLog('📦 寫入進貨記錄...');
+  const jinhuo = [
+    // H5GT：批號1效期07-16（開封效期已過）、批號2正常充足、批號4已過期待報廢（needQC:false → qcStatus:null）
+    { id:'DEMO-J001', productId:'h5gt',    productName:'H5GT',           lotNumber:'260403-042882', expiryDate:'2026-07-16', receivedQty:5,  vendor:'弘優', receivedAt:'2026-06-01', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B001', note:'開封逾期演示—整批效期07/16' },
+    { id:'DEMO-J002', productId:'h5gt',    productName:'H5GT',           lotNumber:'260501-043568', expiryDate:'2026-07-10', receivedQty:3,  vendor:'弘優', receivedAt:'2026-06-30', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B002', note:'已過期—待報廢 KPI' },
+    { id:'DEMO-J003', productId:'h5gt',    productName:'H5GT',           lotNumber:'260529-044410', expiryDate:'2026-08-07', receivedQty:8,  vendor:'弘優', receivedAt:'2026-07-01', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B003', note:'充足現批' },
+    // G-IVF：批號1需開新瓶、批號2充足（兩筆都 passed 才顯示）
+    { id:'DEMO-J004', productId:'givf',    productName:'G-IVF',          lotNumber:'250815-GIVF01', expiryDate:'2026-09-15', receivedQty:6,  vendor:'亞樸', receivedAt:'2026-07-01', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B004', note:'批號1—殘液3mL需開新瓶' },
+    { id:'DEMO-J005', productId:'givf',    productName:'G-IVF',          lotNumber:'260710-GIVF02', expiryDate:'2026-10-20', receivedQty:7,  vendor:'亞樸', receivedAt:'2026-07-11', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B005', note:'批號2—充足' },
+    // GxTL：批號1批號不足（5mL<needed）、批號2充足、批號3已過期（GxTL needQC:false → qcStatus:null）
+    { id:'DEMO-J006a', productId:'gxtl',  productName:'GxTL',           lotNumber:'260315-GXTL00', expiryDate:'2026-09-01', receivedQty:5,  vendor:'亞樸', receivedAt:'2026-04-01', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B006a', note:'批號不足演示—5mL殘液' },
+    { id:'DEMO-J006b', productId:'gxtl',  productName:'GxTL',           lotNumber:'260601-GXTL01', expiryDate:'2026-11-01', receivedQty:5,  vendor:'亞樸', receivedAt:'2026-06-15', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B006b', note:'充足備用批' },
+    { id:'DEMO-J006c', productId:'gxtl',  productName:'GxTL',           lotNumber:'260201-GXTL0X', expiryDate:'2026-06-01', receivedQty:3,  vendor:'亞樸', receivedAt:'2026-03-01', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B006c', note:'已過期批號' },
+    // AOA CI（needQC:false → qcStatus:null）
+    { id:'DEMO-J007', productId:'aoa-ci', productName:'AOA 弘優 CI',    lotNumber:'260420-AOACI1', expiryDate:'2026-09-30', receivedQty:3,  vendor:'弘優', receivedAt:'2026-06-20', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B007', note:'' },
+    // EmbryoGlue — 低庫存演示：收3瓶、已開1瓶（剩2瓶備用）
+    { id:'DEMO-J008', productId:'glue',   productName:'EmbryoGlue',     lotNumber:'260315-GLUE01', expiryDate:'2027-03-15', receivedQty:3,  vendor:'亞樸', receivedAt:'2026-03-20', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B008', note:'低庫存演示—已訂3瓶待到貨' },
+    // AOA GM508（needQC:false → qcStatus:null）
+    { id:'DEMO-J009', productId:'aoa-508',productName:'AOA 明美 GM508', lotNumber:'260601-GM5081', expiryDate:'2026-10-01', receivedQty:6,  vendor:'明美', receivedAt:'2026-06-10', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B009', note:'' },
+    // 102（磊柏）— 待 QC（這個品項需要 QC，保留 pending）
+    { id:'DEMO-J010', productId:'102',    productName:'102（磊柏）',    lotNumber:'260705-102001', expiryDate:'2027-07-01', receivedQty:30, vendor:'磊柏', receivedAt:'2026-07-10', qcStatus:'pending', isVoided:false, importBatchId:'DEMO-B010', note:'到貨待 QC' },
+    // Heavy Oil — 遠期效期 2029（收貨防呆演示，needQC:false → qcStatus:null）
+    { id:'DEMO-J011', productId:'oil',    productName:'Heavy Oil',      lotNumber:'290115-OIL001', expiryDate:'2029-12-31', receivedQty:12, vendor:'弘優', receivedAt:'2026-06-05', qcStatus:null,      isVoided:false, importBatchId:'DEMO-B011', note:'效期 2029 — 收貨防呆演示用' },
+  ];
+  for (const r of jinhuo) {
+    await setDoc(doc(db, COLLS.jinhuo, r.id), r);
+    addLog(`  ✓ ${r.productName} ${r.lotNumber}`);
+  }
+
+  // ── 訂單（4 張，均 pending → 待收貨 KPI = 4）─────────────────
+  addLog('\n🛒 寫入訂單...');
+  const orders = [
+    {
+      id: 'DEMO-ORD001',
+      date: '2026/07/05', completedAt: '09:15', pandianDate: '2026-07-04',
+      status: 'pending', orderedBy: 'Gordon',
+      orders: [{ orderId:'m-glue',   itemId:'m-glue',   name:'EmbryoGlue',   unit:'瓶', vendor:'亞樸', orderQty:3, receivedQty:0 }]
+    },
+    {
+      id: 'DEMO-ORD002',
+      date: '2026/07/08', completedAt: '11:30', pandianDate: '2026-07-07',
+      status: 'pending', orderedBy: 'Gordon',
+      orders: [{ orderId:'m-h5gt',   itemId:'m-h5gt',   name:'H5GT',         unit:'瓶', vendor:'弘優', orderQty:8, receivedQty:0 }]
+    },
+    {
+      id: 'DEMO-ORD003',
+      date: '2026/07/10', completedAt: '10:00', pandianDate: '2026-07-09',
+      status: 'pending', orderedBy: 'Gordon',
+      orders: [{ orderId:'m-gxtl',   itemId:'m-gxtl',   name:'GxTL',         unit:'瓶', vendor:'亞樸', orderQty:5, receivedQty:0 }]
+    },
+    {
+      id: 'DEMO-ORD004',
+      date: '2026/07/11', completedAt: '14:20', pandianDate: '2026-07-10',
+      status: 'pending', orderedBy: 'Gordon',
+      orders: [{ orderId:'m-aoa-ci', itemId:'m-aoa-ci', name:'AOA 弘優 CI',  unit:'瓶', vendor:'弘優', orderQty:3, receivedQty:0 }]
+    },
+  ];
+  const order = orders[0]; // 向下相容（localStorage 單筆 order 變數）
+  for (const o of orders) await setDoc(doc(db, COLLS.orders, o.id), o);
+  addLog('  ✓ EmbryoGlue × 3 瓶');
+  addLog('  ✓ H5GT × 8 瓶');
+  addLog('  ✓ GxTL × 5 瓶');
+  addLog('  ✓ AOA CI × 3 瓶（共 4 張 pending → 待收貨 KPI = 4）');
+
+  // ── 盤點快照 ──────────────────────────────────────────────────
+  addLog('\n📋 寫入盤點快照（' + YEST + '）...');
+  // 盤點 allValues 使用 'm-' 前綴（media items），讓 kucun calcEstUsage 能查到
+  const pandianItems = [
+    { id:'m-h5gt',    name:'H5GT',           unit:'瓶', actual:10, target:15 },
+    { id:'m-givf',    name:'G-IVF',          unit:'瓶', actual:6,  target:10 },
+    { id:'m-gxtl',    name:'GxTL',           unit:'瓶', actual:5,  target:8  },
+    { id:'m-glue',    name:'EmbryoGlue',     unit:'瓶', actual:1,  target:3  },
+    { id:'m-aoa-ci',  name:'AOA 弘優 CI',   unit:'瓶', actual:3,  target:5  },
+    { id:'m-aoa-508', name:'AOA 明美 GM508', unit:'罐', actual:4,  target:6  },
+    { id:'102',       name:'102（磊柏）',   unit:'盒', actual:18, target:20 },
+    { id:'m-oil',     name:'Heavy Oil',      unit:'瓶', actual:8,  target:10 },
+    { id:'m-hepes',   name:'HEPES',          unit:'瓶', actual:12, target:15 },
+  ];
+  const pandianSnap = {
+    date: YEST,
+    completedAt: YEST + 'T09:30:00+08:00',
+    staff: 'Gordon',
+    summary: pandianItems.filter(it => it.actual < it.target),
+    allValues: pandianItems,
+  };
+  await setDoc(doc(db, COLLS.pandian, YEST), pandianSnap);
+
+  // 加一筆 6/15 的舊盤點（讓 calcEstUsage 有 ≥2 筆資料，才會顯示「期間估計用量」）
+  const PREV_PANDIAN_DATE = '2026-06-15';
+  const pandianItemsPrev = [
+    { id:'m-h5gt',    name:'H5GT',           unit:'瓶', actual:4,  target:15 },
+    { id:'m-givf',    name:'G-IVF',          unit:'瓶', actual:3,  target:10 },
+    { id:'m-gxtl',    name:'GxTL',           unit:'瓶', actual:7,  target:8  },
+    { id:'m-glue',    name:'EmbryoGlue',     unit:'瓶', actual:3,  target:3  },
+    { id:'m-aoa-ci',  name:'AOA 弘優 CI',   unit:'瓶', actual:2,  target:5  },
+    { id:'m-aoa-508', name:'AOA 明美 GM508', unit:'罐', actual:6,  target:6  },
+    { id:'102',       name:'102（磊柏）',   unit:'盒', actual:20, target:20 },
+    { id:'m-oil',     name:'Heavy Oil',      unit:'瓶', actual:11, target:10 },
+    { id:'m-hepes',   name:'HEPES',          unit:'瓶', actual:14, target:15 },
+  ];
+  const pandianSnapPrev = {
+    date: PREV_PANDIAN_DATE,
+    completedAt: PREV_PANDIAN_DATE + 'T09:30:00+08:00',
+    staff: 'Gordon',
+    summary: pandianItemsPrev.filter(it => it.actual < it.target),
+    allValues: pandianItemsPrev,
+  };
+  await setDoc(doc(db, COLLS.pandian, PREV_PANDIAN_DATE), pandianSnapPrev);
+
+  try {
+    localStorage.setItem('pandian-result',  JSON.stringify(pandianSnap));
+    localStorage.setItem('pandian-history', JSON.stringify([pandianSnap, pandianSnapPrev]));
+  } catch(e) {}
+  addLog('  ✓ 盤點 ' + YEST + '，' + pandianSnap.summary.length + ' 項低庫存');
+  addLog('  ✓ 盤點 ' + PREV_PANDIAN_DATE + '（舊快照，提供期間用量推算）');
+
+  // ── 備盤快照 ──────────────────────────────────────────────────
+  addLog('\n🧪 寫入備盤快照（' + YEST + '）...');
+  const beipanSnap = {
+    date: YEST,
+    submittedAt: YEST + 'T09:05:00+08:00',
+    operators: ['Gordon', 'Gordon'],
+    note: '',
+    batches: [
+      // H5GT：批號1（260403）開封逾期 + 1瓶未開封；批號2（260529）備用7瓶 → 庫存合計8瓶
+      { reagentId:'h5gt',    selectedLot:'260403-042882', remaining:3.0,  unopened:1, openDate:'2026-06-01', openExpiryDate:'2026-06-08' },
+      { reagentId:'h5gt',    selectedLot:'260529-044410', remaining:0,    unopened:7, openDate:null, openExpiryDate:null },
+      // G-IVF：批號1殘液3mL + 2瓶未開封；批號2（GIVF02）備用7瓶 → 庫存合計9瓶
+      { reagentId:'givf',    selectedLot:'250815-GIVF01', remaining:3.0,  unopened:2, openDate:'2026-07-01', openExpiryDate:'2026-07-15' },
+      { reagentId:'givf',    selectedLot:'260710-GIVF02', remaining:0,    unopened:7, openDate:null, openExpiryDate:null },
+      // GxTL：批號1殘液5mL 無未開封；批號2備用5瓶 → 庫存合計5瓶
+      { reagentId:'gxtl',    selectedLot:'260315-GXTL00', remaining:5.0,  unopened:0, openDate:'2026-06-20', openExpiryDate:'2026-07-20' },
+      { reagentId:'gxtl',    selectedLot:'260601-GXTL01', remaining:0,    unopened:5, openDate:null, openExpiryDate:null },
+      // AOA CI：正常（開封效期07-20，避免觸發今日到期警示）
+      { reagentId:'aoa-ci',  selectedLot:'260420-AOACI1', remaining:4.5,  unopened:2, openDate:'2026-06-29', openExpiryDate:'2026-07-20' },
+      // EmbryoGlue：低庫存演示（已開1瓶剩3mL，備用1瓶）→ 庫存合計1瓶 < 安全量2瓶 → 缺貨警示
+      { reagentId:'glue',    selectedLot:'260315-GLUE01', remaining:3.0,  unopened:1, openDate:'2026-07-01', openExpiryDate:'2026-07-15' },
+      // AOA GM508
+      { reagentId:'aoa-508', selectedLot:'260601-GM5081', remaining:0,    unopened:5, openDate:null, openExpiryDate:null },
+    ]
+  };
+  await setDoc(doc(db, COLLS.beipan, YEST), beipanSnap);
+  try { localStorage.setItem('beipan-result', JSON.stringify(beipanSnap)); } catch(e) {}
+  addLog('  ✓ H5GT 批號1（260403）開封逾期 + 1瓶未開封就緒');
+  addLog('  ✓ G-IVF 殘液3mL → 需開新瓶就緒');
+  addLog('  ✓ GxTL 殘液5mL → 批號不足就緒（需 gupan needed>0）');
+  addLog('  ✓ AOA CI 開封效期修正（避免今日到期誤報）');
+
+  // ── 估盤草稿（僅 OPU=6，其他留空）────────────────────────────
+  addLog('\n📝 寫入估盤草稿（' + TODAY + '）...');
+  const gupanDraft = {
+    date: TODAY,
+    state: 'A',
+    staffA: 'Gordon',
+    staffB: '',
+    note: '',
+    savedAt: TODAY + 'T08:00:00+08:00',
+    taiVals: { opu:6, te:0, fbt:0, bt:0, fert:0, tbx:0, std:0 },
+    givf: {
+      opu:0, de:0, te:0, aoa:0, b508:0, coc:0, sperm:0, ph:0, multi:0,
+      opu_ov:false, de_ov:false, te_ov:false, aoa_ov:false, b508_ov:false,
+      coc_ov:false, sperm_ov:false, ph_ov:false, multi_ov:false,
+    },
+    matrix: {
+      h5gt:{ geri_fert:0, d0:0, bx_keep:0, tb:0, glue:0, geri_fbt:0, ph:0, multi:0 },
+      gxtl:{ geri_fert:0, d0:0, bx_keep:0, tb:0, glue:0, geri_fbt:0, ph:0, multi:0 },
+    },
+    oilCans: 0,
+    hepesCans: 0,
+  };
+  // 草稿只存 localStorage（不寫 Firestore），備盤才能用預設 needed 值觸發警示
+  try { localStorage.setItem('gupan-draft', JSON.stringify(gupanDraft)); } catch(e) {}
+  addLog('  ✓ OPU=6，其他欄位空白（只存 localStorage，估盤可現場輸入觸發連動）');
+
+  // ── 庫存異動日誌 ──────────────────────────────────────────────
+  addLog('\n📊 寫入庫存異動日誌...');
+  // 注意：ts 欄位必須寫成 Firestore Timestamp，否則 where('ts', '>=', Timestamp) 查詢型別不符
+  const mkTs = iso => Timestamp.fromDate(new Date(iso));
+  const logs = [
+    // ── 進貨（source:'jinhuo', action:'receive'）──
+    { id:'DEMO-L001', ts:'2026-06-05T14:00:00+08:00', source:'jinhuo', action:'receive', productId:'oil',     productName:'Heavy Oil',       lotNumber:'290115-OIL001', qty:12, qtyDelta:12,  unit:'瓶', vendor:'弘優', operator:'Gordon', note:'進貨 12 瓶' },
+    { id:'DEMO-L002', ts:'2026-06-10T10:00:00+08:00', source:'jinhuo', action:'receive', productId:'aoa-508', productName:'AOA 明美 GM508',  lotNumber:'260601-GM5081', qty:6,  qtyDelta:6,   unit:'罐', vendor:'明美', operator:'Gordon', note:'進貨 6 罐' },
+    { id:'DEMO-L003', ts:'2026-06-20T15:00:00+08:00', source:'jinhuo', action:'receive', productId:'aoa-ci',  productName:'AOA 弘優 CI',     lotNumber:'260420-AOACI1', qty:3,  qtyDelta:3,   unit:'瓶', vendor:'弘優', operator:'Gordon', note:'進貨 3 瓶' },
+    { id:'DEMO-L004', ts:'2026-06-30T14:00:00+08:00', source:'jinhuo', action:'receive', productId:'h5gt',    productName:'H5GT',             lotNumber:'260501-043568', qty:3,  qtyDelta:3,   unit:'瓶', vendor:'弘優', operator:'Gordon', note:'進貨 3 瓶（效期 7/10）' },
+    { id:'DEMO-L005', ts:'2026-07-01T09:00:00+08:00', source:'jinhuo', action:'receive', productId:'h5gt',    productName:'H5GT',             lotNumber:'260529-044410', qty:8,  qtyDelta:8,   unit:'瓶', vendor:'弘優', operator:'Gordon', note:'進貨 8 瓶（效期 8/07）' },
+    { id:'DEMO-L006', ts:'2026-07-01T09:05:00+08:00', source:'jinhuo', action:'receive', productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:6,  qtyDelta:6,   unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'進貨 6 瓶' },
+    { id:'DEMO-L007', ts:'2026-07-10T14:30:00+08:00', source:'jinhuo', action:'receive', productId:'102',     productName:'102（磊柏）',     lotNumber:'260705-102001', qty:30, qtyDelta:30,  unit:'盒', vendor:'磊柏', operator:'Gordon', note:'進貨 30 盒—待 QC' },
+    { id:'DEMO-L008', ts:'2026-07-11T09:20:00+08:00', source:'jinhuo', action:'receive', productId:'givf',    productName:'G-IVF',            lotNumber:'260710-GIVF02', qty:7,  qtyDelta:7,   unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'進貨 7 瓶' },
+    // ── 訂貨（source:'order', action:'order'）──
+    { id:'DEMO-L010', ts:'2026-07-05T10:00:00+08:00', source:'order', action:'order', productId:'glue',    productName:'EmbryoGlue',    lotNumber:null, qty:3, qtyDelta:3, unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'訂貨 3 瓶（低庫存觸發）' },
+    { id:'DEMO-L010b',ts:'2026-07-08T11:30:00+08:00', source:'order', action:'order', productId:'h5gt',    productName:'H5GT',          lotNumber:null, qty:8, qtyDelta:8, unit:'瓶', vendor:'弘優', operator:'Gordon', note:'訂貨 8 瓶（補貨）' },
+    { id:'DEMO-L010c',ts:'2026-07-10T10:00:00+08:00', source:'order', action:'order', productId:'gxtl',    productName:'GxTL',          lotNumber:null, qty:5, qtyDelta:5, unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'訂貨 5 瓶（批號庫存不足）' },
+    { id:'DEMO-L010d',ts:'2026-07-11T14:20:00+08:00', source:'order', action:'order', productId:'aoa-ci',  productName:'AOA 弘優 CI',   lotNumber:null, qty:3, qtyDelta:3, unit:'瓶', vendor:'弘優', operator:'Gordon', note:'訂貨 3 瓶' },
+    // ── 備盤（source:'beipan', action:'use'）── 多天，同批合組
+    { id:'DEMO-L020', ts:'2026-07-03T09:10:00+08:00', source:'beipan',  action:'use',     productId:'h5gt',    productName:'H5GT',             lotNumber:'260403-042882', qty:4,  qtyDelta:-4,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L021', ts:'2026-07-03T09:10:00+08:00', source:'beipan',  action:'use',     productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:11, qtyDelta:-11, unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L022', ts:'2026-07-05T09:15:00+08:00', source:'beipan',  action:'use',     productId:'h5gt',    productName:'H5GT',             lotNumber:'260403-042882', qty:4,  qtyDelta:-4,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L023', ts:'2026-07-05T09:15:00+08:00', source:'beipan',  action:'use',     productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:11, qtyDelta:-11, unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L024', ts:'2026-07-08T09:20:00+08:00', source:'beipan',  action:'use',     productId:'h5gt',    productName:'H5GT',             lotNumber:'260403-042882', qty:4,  qtyDelta:-4,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L025', ts:'2026-07-08T09:20:00+08:00', source:'beipan',  action:'use',     productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:11, qtyDelta:-11, unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L026', ts:'2026-07-08T09:20:00+08:00', source:'beipan',  action:'use',     productId:'gxtl',    productName:'GxTL',             lotNumber:'260315-GXTL00', qty:5,  qtyDelta:-5,  unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L027', ts:'2026-07-11T09:10:00+08:00', source:'beipan',  action:'use',     productId:'h5gt',    productName:'H5GT',             lotNumber:'260529-044410', qty:4,  qtyDelta:-4,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L028', ts:'2026-07-11T09:10:00+08:00', source:'beipan',  action:'use',     productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:11, qtyDelta:-11, unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L029', ts:'2026-07-11T09:10:00+08:00', source:'beipan',  action:'use',     productId:'gxtl',    productName:'GxTL',             lotNumber:'260315-GXTL00', qty:5,  qtyDelta:-5,  unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L030', ts:'2026-07-11T09:10:00+08:00', source:'beipan',  action:'use',     productId:'aoa-ci',  productName:'AOA 弘優 CI',     lotNumber:'260420-AOACI1', qty:2,  qtyDelta:-2,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L031', ts:'2026-07-12T09:05:00+08:00', source:'beipan',  action:'use',     productId:'h5gt',    productName:'H5GT',             lotNumber:'260529-044410', qty:4,  qtyDelta:-4,  unit:'mL', vendor:'弘優', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L032', ts:'2026-07-12T09:05:00+08:00', source:'beipan',  action:'use',     productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:11, qtyDelta:-11, unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    { id:'DEMO-L033', ts:'2026-07-12T09:05:00+08:00', source:'beipan',  action:'use',     productId:'gxtl',    productName:'GxTL',             lotNumber:'260315-GXTL00', qty:5,  qtyDelta:-5,  unit:'mL', vendor:'亞樸', operator:'Gordon', note:'備盤用量' },
+    // ── 盤點（source:'pandian', action:'pandian'）──
+    { id:'DEMO-L040', ts:'2026-06-15T09:30:00+08:00', source:'pandian', action:'pandian', productId:'h5gt',    productName:'H5GT',             lotNumber:null,            qty:4,  qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-06-15）' },
+    { id:'DEMO-L041', ts:'2026-06-15T09:30:00+08:00', source:'pandian', action:'pandian', productId:'givf',    productName:'G-IVF',            lotNumber:null,            qty:3,  qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-06-15）' },
+    { id:'DEMO-L042', ts:'2026-06-15T09:30:00+08:00', source:'pandian', action:'pandian', productId:'glue',    productName:'EmbryoGlue',       lotNumber:null,            qty:3,  qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-06-15）' },
+    { id:'DEMO-L043', ts:'2026-07-12T09:30:00+08:00', source:'pandian', action:'pandian', productId:'h5gt',    productName:'H5GT',             lotNumber:null,            qty:10, qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-07-12）' },
+    { id:'DEMO-L044', ts:'2026-07-12T09:30:00+08:00', source:'pandian', action:'pandian', productId:'glue',    productName:'EmbryoGlue',       lotNumber:null,            qty:1,  qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-07-12）' },
+    { id:'DEMO-L045', ts:'2026-07-12T09:30:00+08:00', source:'pandian', action:'pandian', productId:'givf',    productName:'G-IVF',            lotNumber:null,            qty:6,  qtyDelta:null,unit:'瓶', vendor:'', operator:'Gordon', note:'盤點（2026-07-12）' },
+    // ── 異常/作廢（action:'discard' / 'void'）──
+    { id:'DEMO-L050', ts:'2026-06-28T11:00:00+08:00', source:'jinhuo',  action:'void',    productId:'gxtl',    productName:'GxTL',             lotNumber:'260201-GXTL0X', qty:3,  qtyDelta:-3,  unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'作廢：批號效期已過（2026-06-01）' },
+    { id:'DEMO-L051', ts:'2026-07-13T10:00:00+08:00', source:'manual',  action:'discard', productId:'h5gt',    productName:'H5GT',             lotNumber:'260501-043568', qty:3,  qtyDelta:-3,  unit:'瓶', vendor:'弘優', operator:'Gordon', note:'報廢：整批效期 2026-07-10 已逾期' },
+    // ── 手動調整（source:'manual', action:'adjust'）──
+    { id:'DEMO-L060', ts:'2026-07-08T15:20:00+08:00', source:'manual',  action:'adjust',  productId:'gxtl',    productName:'GxTL',             lotNumber:'260315-GXTL00', qty:1,  qtyDelta:-1,  unit:'瓶', vendor:'亞樸', operator:'Gordon', note:'清點修正 -1 瓶' },
+    // ── 修改/調整（source:'manual', action:'edit'）──
+    { id:'DEMO-L070', ts:'2026-07-02T16:00:00+08:00', source:'manual',  action:'edit',    productId:'givf',    productName:'G-IVF',            lotNumber:'250815-GIVF01', qty:null,qtyDelta:null,unit:'',   vendor:'',    operator:'Gordon', note:'修改備盤備註：更新開封日期記錄' },
+    { id:'DEMO-L071', ts:'2026-07-09T09:30:00+08:00', source:'manual',  action:'adjust',  productId:'102',     productName:'102（磊柏）',     lotNumber:'260705-102001', qty:2,  qtyDelta:2,   unit:'盒', vendor:'磊柏', operator:'Gordon', note:'手動補登 +2 盒（補登漏記）' },
+  ];
+  for (const l of logs) {
+    const { ts: tsStr, ...rest } = l;
+    await setDoc(doc(db, COLLS.log, l.id), {
+      ...rest,
+      ts:    mkTs(tsStr),
+      tsRaw: tsStr,
+    });
+  }
+  addLog('  ✓ ' + logs.length + ' 筆異動日誌（進貨 / 備盤 / 盤點 / 訂貨 / 異常 / 手動）');
+
+  // ── 同步 localStorage ─────────────────────────────────────────
+  // changelog 轉回字串格式（Firestore 版用 Timestamp，localStorage 版保留 tsRaw）
+  const logsForLS = logs.map(l => ({ ...l }));
+  try {
+    localStorage.setItem('order-history',   JSON.stringify(orders));
+    localStorage.setItem('jinhuo-records',  JSON.stringify(jinhuo));
+    localStorage.setItem('kucun-changelog', JSON.stringify(logsForLS));
+  } catch(e) {}
+
+  localStorage.setItem('__demo_mode__', '1');
+  updateModeBar();
+
+  addLog('\n✅ Demo 資料重置完成！');
+  addLog('   舊資料已全部清空，示範情境全數寫入。');
+  addLog('   測試後再點一次「重置」即可恢復乾淨初始狀態。');
+  btn.disabled = false; btn.textContent = '🔄 重置並載入 Demo 資料';
+};
+
+if (localStorage.getItem('__demo_mode__') === '1') {
+  linksCard.style.display = 'block';
+}
+</script>
+</body>
+</html>

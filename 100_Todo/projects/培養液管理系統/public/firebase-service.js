@@ -31,8 +31,10 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── 環境偵測：正式站 vs 測試站 ────────────────────────────────
-const IS_PROD = location.hostname === 'stork11-embryo-lab.web.app'
-             || location.hostname === 'stork11-embryo-lab.firebaseapp.com';
+// __demo_mode__ localStorage flag 可在正式站強制切換至 test_ collection（供 Demo 展示用）
+const _hostIsProd = location.hostname === 'stork11-embryo-lab.web.app'
+                 || location.hostname === 'stork11-embryo-lab.firebaseapp.com';
+const IS_PROD = _hostIsProd && localStorage.getItem('__demo_mode__') !== '1';
 const DB_PREFIX = IS_PROD ? '' : 'test_';
 const COLLECTIONS = {
   changelog:       DB_PREFIX + 'kucun_changelog',

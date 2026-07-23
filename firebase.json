@@ -3,7 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
-    "public": "generated-pages",
+    "public": "100_Todo/projects/培養液管理系統/public",
     "ignore": [
       "firebase.json",
       "**/.*",

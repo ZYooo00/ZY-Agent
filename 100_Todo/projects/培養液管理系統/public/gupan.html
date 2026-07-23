@@ -495,6 +495,20 @@
 <script src="shared.js"></script>
 <script>
 
+// ── 測試開發面板（讓 shared.js 注入日期選擇器）──
+window.runDevReset = function() {
+  if (!confirm('【測試專用】確定要清除今日估盤草稿嗎？')) return;
+  localStorage.removeItem('gupan-draft');
+  localStorage.removeItem('gupan-confirmed');
+  location.reload();
+};
+window.runNuclearWipe = function() {
+  if (!confirm('💥 終極清理：將清除今日估盤所有暫存，確定？')) return;
+  ['gupan-draft','gupan-confirmed'].forEach(k => localStorage.removeItem(k));
+  location.reload();
+};
+window.dispatchEvent(new CustomEvent('devpanel-ready'));
+
 // ── 資料：台類輸入欄位 ──
 const taiFields = [
   { id: 'opu', label: 'OPU' },
