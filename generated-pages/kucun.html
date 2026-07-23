@@ -1034,7 +1034,7 @@ function calcKPIs() {
   PRODUCTS.forEach(p => {
     const info = productInfoCache[p.id];
     if (!info) return;
-    if (info.target !== null && info.stockNum !== null && info.stockNum < info.target) shortageCount++;
+    if (!p.paused && info.target !== null && info.stockNum !== null && info.stockNum < info.target) shortageCount++;
     info.lots.forEach(lot => {
       const d = daysBetween(lot.expiry);
       if (d !== null && d >= 0 && d <= 7) expiringCount++;

@@ -680,9 +680,19 @@ onReady(async function() {
   buildScanProductSelect();
   buildVendorFilter();
   renderRecords();
+  checkInterruptedSubmit();
   renderTray();
   renderExpectedDeliveries();
 });
+
+// 偵測「上次收貨送出到一半就離開頁面」的情況，避免暫存匣被無聲重新送出造成重複紀錄
+function checkInterruptedSubmit() {
+  if (!localStorage.getItem('session-tray-submitting')) return;
+  localStorage.removeItem('session-tray-submitting');
+  if (sessionTray.length === 0) return;
+  const keepTray = confirm('上次收貨可能因網路或重新整理中斷。\n\n請先檢查下方「歷史紀錄」是否已有剛才的資料。\n\n若確定沒送出成功，請點「確定」恢復暫存匣；若已成功，請點「取消」清空暫存。');
+  if (!keepTray) { sessionTray = []; saveTray(); }
+}
 
 function initDate() {
   const now = new Date();
@@ -727,8 +737,7 @@ function loadPendingOrdersForProduct(productId) {
       (order.orders || []).forEach(item => {
         const remaining = item.orderQty - (item.receivedQty || 0);
         if (remaining <= 0) return;
-        const n1 = item.name || '', n2 = product.name;
-        if (!(n1 === n2 || n1.includes(n2) || n2.includes(n1))) return;
+        if (!product.gupanId || item.orderId !== product.gupanId) return;
         results.push({
           parentId: order.id || '',
           orderId: item.orderId,
@@ -2343,6 +2352,16 @@ function reviewEditItem(idx) {
 }
 
 async function batchSaveAll() {
+  if (window._batchSaving) return;
+  window._batchSaving = true;
+  try {
+    await batchSaveAllInner();
+  } finally {
+    window._batchSaving = false;
+  }
+}
+
+async function batchSaveAllInner() {
   const receivedBy = document.getElementById('review-received-by')?.value.trim();
   const receivedAt = document.getElementById('review-received-at')?.value;
   if (!receivedBy) { showToast('請填入簽收人'); return; }
@@ -2396,6 +2415,7 @@ async function batchSaveAll() {
   let has102 = false;
   const count = sessionTray.length;
   const importBatchId = `BATCH-${Date.now()}`;  // 同一次整批收貨共用同一個批次 ID
+  const backupTray = [...sessionTray];  // 失敗時回滾用
 
   for (const item of sessionTray) {
     // 最終防護線：阻擋異常或空白資料寫入 Firebase
@@ -2443,6 +2463,7 @@ async function batchSaveAll() {
   // 找出本次新增的 records（records 陣列前 count 筆）
   const submitBtn = document.querySelector('[onclick="batchSaveAll()"]');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '儲存中…'; }
+  localStorage.setItem('session-tray-submitting', 'true');
   try {
     const newRecords = records.slice(0, count);
     await Promise.all(newRecords.map(r => window._fb.saveJinhuoRecord(r)));
@@ -2468,9 +2489,20 @@ async function batchSaveAll() {
     await Promise.all(logEntries.map(e => window._fb.fsLog(e)));
   } catch(e) {
     console.error('Firebase save error:', e);
-  } finally {
+    // 寫入失敗：回滾暫存匣與本地假紀錄，避免資料遺失或畫面與雲端不一致
+    sessionTray = backupTray;
+    saveTray();
+    records.splice(0, count);
+    saveRecords();
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '確認入庫'; }
+    localStorage.removeItem('session-tray-submitting');
+    renderTray();
+    renderExpectedDeliveries();
+    showToast('⚠ 儲存失敗，暫存區已還原，請重新確認送出');
+    return;
   }
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '確認入庫'; }
+  localStorage.removeItem('session-tray-submitting');
   renderRecords();
   sessionTray = [];
   saveTray();
