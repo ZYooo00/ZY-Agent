@@ -2454,7 +2454,6 @@ async function batchSaveAllInner() {
     };
 
     records.unshift(record);
-    if (item.orderId && !item.isRejected) await updateOrderStatus(item.orderId, item.qty, item.parentId || null);
     if (REQUIRE_QC_ITEMS.includes(item.productId)) has102 = true;
   }
 
@@ -2487,6 +2486,18 @@ async function batchSaveAllInner() {
       };
     });
     await Promise.all(logEntries.map(e => window._fb.fsLog(e)));
+
+    // 進貨紀錄與日誌都確定寫入成功後，才扣減訂單待收數量，避免寫入中途失敗、使用者重試時被重複扣兩次。
+    // 用獨立的 try/catch 包住：這一步失敗不代表進貨失敗（貨已經入庫成功），不應該觸發下面整批回滾，
+    // 否則已成功寫入的進貨紀錄會被錯誤刪除，使用者重試又會多建一筆重複紀錄。
+    try {
+      for (const item of sessionTray) {
+        if (item.orderId && !item.isRejected) await updateOrderStatus(item.orderId, item.qty, item.parentId || null);
+      }
+    } catch (orderErr) {
+      console.error('Order status sync error:', orderErr);
+      showToast('⚠ 進貨已成功入庫，但訂單待收數量同步失敗，請稍後至待收任務頁確認');
+    }
   } catch(e) {
     console.error('Firebase save error:', e);
     // 寫入失敗：回滾暫存匣與本地假紀錄，避免資料遺失或畫面與雲端不一致
