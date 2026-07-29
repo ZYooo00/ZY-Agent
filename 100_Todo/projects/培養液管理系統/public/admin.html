@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>培養液管理系統 — 後台設定</title>
+<meta name="theme-color" content="#9590D0">
+<link rel="stylesheet" href="design.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tailwind-config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="design.js" defer></script>
+<!-- 引入 shared.js 是為了共用 GLOBAL_SETTINGS／DEFAULT_OIL_FORMULA／DEFAULT_HEPES_FORMULA 這幾個預設值常數，避免跟 gupan.html 各自維護一份、改一邊忘改另一邊；admin.html 本身的品項/人員/廠商資料仍各自從 Firestore 讀，不吃 shared.js 的 PRODUCTS/STAFF_LIST -->
+<script src="shared.js?v=20"></script>
+<style>
+  .admin-tab { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:var(--r-sm); font-size:13.5px; font-weight:500; color:#64748B; cursor:pointer; transition:background .15s,color .15s; }
+  .admin-tab:hover  { background:#F1F5F9; }
+  .admin-tab.active { background:#EDE9FF; color:var(--color-primary-dark); font-weight:600; }
+  .admin-tab svg { width:16px; height:16px; flex-shrink:0; }
+  .admin-panel { display:none; }
+  .admin-panel.active { display:block; }
+  .admin-table { width:100%; border-collapse:separate; border-spacing:0; }
+  .admin-table th { text-align:left; font-size:11px; font-weight:700; color:#94A3B8; letter-spacing:.05em; text-transform:uppercase; padding:8px 10px; border-bottom:2px solid #F1F5F9; white-space:nowrap; }
+  .admin-table td { padding:8px 10px; border-bottom:1px solid #F8FAFC; font-size:13.5px; vertical-align:middle; }
+  .admin-table tbody tr:hover td { background:#FAFAFA; }
+  .field-input { width:100%; padding:6px 9px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; background:#fff; }
+  .field-input:focus { outline:none; border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(149,144,208,.15); }
+  .field-input[readonly] { background:#F8FAFC; color:#94A3B8; }
+  .field-label { font-size:12px; font-weight:600; color:#475569; margin-bottom:4px; display:block; }
+  .toggle { position:relative; display:inline-block; width:38px; height:22px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-track { position:absolute; inset:0; background:#E2E8F0; border-radius:999px; cursor:pointer; transition:background .15s; }
+  .toggle-track::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 2px rgba(0,0,0,.2); }
+  .toggle input:checked + .toggle-track { background:var(--color-primary); }
+  .toggle input:checked + .toggle-track::before { transform:translateX(16px); }
+  .locked-tag { font-size:10px; font-weight:700; color:#94A3B8; background:#F1F5F9; padding:1px 6px; border-radius:5px; margin-left:6px; }
+  .section-note { font-size:12.5px; color:#94A3B8; line-height:1.6; }
+  .coef-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+  .coef-row { display:flex; flex-wrap:nowrap; gap:5px; align-items:flex-end; overflow-x:auto; padding-bottom:2px; }
+  .coef-row .coef-item { flex:1; min-width:48px; }
+  .coef-row .coef-item.coef-fixed { flex:1.1; }
+  .coef-row .field-label { white-space:nowrap; font-size:11px; }
+  .coef-row .field-input { padding:5px 6px; font-size:12.5px; }
+  .recipe-rows { display:flex; flex-direction:column; gap:10px; }
+  .recipe-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .recipe-label { width:150px; flex-shrink:0; font-size:13px; font-weight:600; color:#334155; }
+  .recipe-text { font-size:13px; color:#64748B; white-space:nowrap; }
+  .recipe-input { width:70px; flex-shrink:0; text-align:center; }
+  .product-status-select.status-active { color:#334155; font-weight:500; }
+  .product-status-select.status-paused { color:#B45309; font-weight:600; }
+  .product-status-select.status-hidden { color:#94A3B8; }
+  .not-wired-badge { font-size:10px; font-weight:700; color:#92400E; background:#FEF3C7; padding:2px 8px; border-radius:999px; }
+</style>
+</head>
+<body class="bg-slate-50">
+
+<div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-50 px-4">
+  <div class="card w-full" style="max-width:360px">
+    <div class="flex flex-col items-center mb-5">
+      <img src="icon-192.png" class="w-10 h-10 rounded-xl mb-2" alt="logo">
+      <h1 class="heading font-semibold text-slate-800 text-base">培養液管理系統 · 後台設定</h1>
+      <p class="text-xs text-slate-400 mt-1">僅限管理員帳號登入</p>
+    </div>
+    <p id="login-error" class="text-xs text-red-500 hidden mb-3"></p>
+    <button class="btn-secondary flex items-center justify-center gap-2" id="login-submit" style="width:100%">
+      <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.6 6.6 0 015.5 12c0-.73.13-1.43.34-2.09V7.07H2.18A11 11 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 00-9.82 6.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+      使用 Google 帳號登入
+    </button>
+  </div>
+</div>
+
+<div id="app-shell" class="hidden">
+
+<header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-30 shadow-sm">
+  <div class="flex items-center gap-3">
+    <img src="icon-192.png" class="w-7 h-7 rounded-lg" alt="logo">
+    <span class="heading font-semibold text-slate-800 text-base">培養液管理系統 · 後台設定</span>
+    <span class="badge-info text-[10px]" id="env-badge"></span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm text-slate-500 hidden md:block" id="admin-email"></span>
+    <button class="text-xs text-slate-400 hover:text-slate-600 hover:underline" id="logout-btn">登出</button>
+  </div>
+</header>
+
+<div class="flex min-h-screen pt-14">
+
+  <aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-56 bg-white border-r border-slate-200 z-20 flex-col py-4">
+    <div class="px-3 space-y-0.5" id="admin-nav">
+      <div class="admin-tab active" data-tab="staff">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 10-4-4 4 4 0 004 4zm6 4a4 4 0 10-4-4"/></svg>
+        人員名單管理
+      </div>
+      <div class="admin-tab" data-tab="groups">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        盤點群組設定
+      </div>
+      <div class="admin-tab" data-tab="vendors">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01"/></svg>
+        廠商管理
+      </div>
+      <div class="admin-tab" data-tab="products">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        品項主檔管理
+      </div>
+      <div class="admin-tab" data-tab="dishes">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>
+        盤子與用量公式
+      </div>
+      <div class="admin-tab" data-tab="bulk">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Oil／HEPES 公式設定
+      </div>
+      <div class="admin-tab" data-tab="alerts">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        效期與庫存警示
+      </div>
+    </div>
+    <div class="mt-auto px-3 pt-4 border-t border-slate-100">
+      <div class="sidebar-link" onclick="location.href='kucun.html'">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        返回系統首頁
+      </div>
+    </div>
+  </aside>
+
+  <main class="flex-1 min-w-0 md:ml-56 px-4 md:px-6 py-5 pb-16">
+
+    <div class="md:hidden flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-slate-200" id="admin-nav-mobile"></div>
+
+    <div class="admin-panel active" id="panel-staff">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="heading font-semibold text-slate-800 text-lg">人員名單管理</h2>
+          <p class="section-note mt-1">對應現行 shared.js 的 STAFF_LIST，六個前臺頁面的人員下拉選單皆讀取此清單。停用人員不會被刪除，避免歷史紀錄找不到姓名。Gmail 欄位供未來綁定個人 Google 帳號登入使用。</p>
+        </div>
+        <button class="btn-primary" style="width:auto">+ 新增人員</button>
+      </div>
+      <div class="card overflow-x-auto">
+        <table class="admin-table">
+          <thead><tr><th style="width:36px"></th><th>姓名</th><th>Gmail</th><th>啟用狀態</th><th style="width:80px">排序</th><th style="width:60px"></th></tr></thead>
+          <tbody id="staff-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-panel" id="panel-groups">
+      <div class="mb-3">
+        <h2 class="heading font-semibold text-slate-800 text-lg">盤點群組設定</h2>
+        <p class="section-note mt-1">取代現行 pandian.html 裡「品牌優先攔截、其餘用 location 分組」的雙軌邏輯，統一成單一分組清單。這裡建立的群組會出現在下方「品項主檔管理」的盤點群組下拉選單中，不論是用空間（櫃1/冰箱）或廠牌（Vitrolife）命名皆可自由定義，所以要先在這裡建好群組，品項主檔那邊才有選項可選。</p>
+      </div>
+      <div class="card overflow-x-auto">
+        <table class="admin-table">
+          <thead><tr><th style="width:36px"></th><th>群組名稱</th><th>圖示</th><th>盤點時預設摺疊</th><th style="width:80px">排序</th><th style="width:60px"></th></tr></thead>
+          <tbody id="groups-tbody"></tbody>
+        </table>
+      </div>
+      <button class="btn-secondary mt-3" style="width:auto">+ 新增分組</button>
+    </div>
+
+    <div class="admin-panel" id="panel-vendors">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="heading font-semibold text-slate-800 text-lg">廠商管理</h2>
+          <p class="section-note mt-1">取代原本寫死在 order.html 的 VENDOR_META。品項主檔的「廠商」欄位改用這裡的清單當下拉選單，訂貨頁不會再因為廠商名稱不在清單裡而把品項靜默跳過。</p>
+        </div>
+        <button class="btn-primary" style="width:auto" id="add-vendor-btn">+ 新增廠商</button>
+      </div>
+      <div class="card overflow-x-auto">
+        <table class="admin-table">
+          <thead><tr><th>廠商名稱</th><th>聯絡人</th><th>交期</th><th style="width:60px"></th></tr></thead>
+          <tbody id="vendors-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-panel" id="panel-products">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="heading font-semibold text-slate-800 text-lg">品項主檔管理</h2>
+          <p class="section-note mt-1">對應現行 shared.js 的 PRODUCTS。「代號」建立後鎖定不可改，因為會被其他資料當外鍵引用。廠商／盤點群組下拉選單的選項分別來自「廠商管理」「盤點群組設定」分頁。</p>
+          <p class="section-note mt-1" style="color:#B45309">⚠️ 新增品項後請務必選擇「盤點群組」，沒選的話這個品項不會出現在盤點頁。若新增的是全新的培養液/試劑類別，備盤頁不會自動出現對應卡片，需要工程師協助開發。</p>
+        </div>
+        <button class="btn-primary" style="width:auto" id="add-product-btn">+ 新增品項</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <input id="product-search" class="field-input" style="width:200px" placeholder="搜尋名稱或代號">
+        <select id="product-filter-group" class="field-input" style="width:120px"><option value="">全部分類</option></select>
+        <select id="product-filter-vendor" class="field-input" style="width:120px"><option value="">全部廠商</option></select>
+        <select id="product-filter-pandiangroup" class="field-input" style="width:120px"><option value="">全部盤點群組</option></select>
+        <select id="product-filter-status" class="field-input" style="width:120px">
+          <option value="">全部狀態</option>
+          <option value="active">🟢 正常使用</option>
+          <option value="paused">🟡 暫停叫貨</option>
+          <option value="hidden">🔴 停用/隱藏</option>
+        </select>
+      </div>
+      <div class="card overflow-x-auto">
+        <table class="admin-table">
+          <thead><tr>
+            <th data-sort="id" style="cursor:pointer">代號 ⇅</th>
+            <th data-sort="name" style="cursor:pointer">名稱 ⇅</th>
+            <th>分類</th><th>廠商</th>
+            <th data-sort="pandianGroup" style="cursor:pointer">盤點群組 ⇅</th>
+            <th data-sort="sortOrder" style="cursor:pointer">排序 ⇅</th>
+            <th>單位</th>
+            <th data-sort="target" style="cursor:pointer">安全庫存 ⇅</th>
+            <th>總狀態</th><th style="width:50px"></th><th style="width:60px"></th>
+          </tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+      <p class="section-note mt-3">點「詳細」可展開建議訂購量／瓶容量／訂購備註／GTIN／品牌／需要 QC／開封效期／自訂效期預警等進階欄位。</p>
+    </div>
+
+    <div class="admin-panel" id="panel-dishes">
+      <div class="mb-3">
+        <h2 class="heading font-semibold text-slate-800 text-lg">盤子清單與估盤公式設定</h2>
+        <p class="section-note mt-1">解決 gupan.html／beipan.html 各自定義、以陣列順序脆弱對應的技術債，兩邊現在都改讀這份清單並用 key 對應。「體積係數」是備盤頁換算試劑用量的係數（盤數 × 體積係數 = mL，實際相乘的是備盤當天手動填的盤數，不是估盤建議值）。點「公式」可另外展開設定「台數→盤數」的估盤建議公式（六個台數欄位各一格係數 + 一個固定值）。若要新增一個全新的試劑類別直行（目前只有 G-IVF／胚胎矩陣兩類），仍需工程師調整版面。</p>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">G-IVF 盤子清單</div>
+        <table class="admin-table">
+          <thead><tr><th>盤子代號</th><th>盤子名稱</th><th>單位</th><th>體積係數<br><span class="text-slate-400 normal-case font-normal">（換算 G-IVF mL）</span></th><th>AOA 試劑係數<br><span class="text-slate-400 normal-case font-normal">（僅 AOA 盤適用）</span></th><th>手動輸入（無自動建議）</th><th>啟用</th><th style="width:50px"></th><th style="width:60px"></th></tr></thead>
+          <tbody id="givf-dish-tbody"></tbody>
+        </table>
+        <button class="btn-secondary mt-3" style="width:auto" id="add-givf-dish-btn">+ 新增 G-IVF 盤子</button>
+        <p class="section-note mt-3">⚠️ 「AOA 試劑係數」這欄需要工程師協助調整。因為未來若要新增其他像 AOA 弘優／AOA 明美 508 這種「一個盤子同時扣兩瓶試劑」的品項，牽涉到整個專案的連動、品項的連動、以及品項本身的新增，不是單純填係數就能完成。現在把這欄開放在這裡，只是方便對既有的 AOA 弘優、AOA 明美 508 做數值上的調整，不代表這個機制可以自由擴充給其他品項使用。</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">胚胎矩陣（H5GT × GxTL，含 Glue）</div>
+        <table class="admin-table">
+          <thead><tr><th>盤子代號</th><th>盤子名稱</th><th>提示文字</th><th>單位</th><th>體積係數<br><span class="text-slate-400 normal-case font-normal">（H5GT／GxTL 共用；Glue 用自己的）</span></th><th>手動輸入（無自動建議）</th><th>啟用</th><th style="width:50px"></th><th style="width:60px"></th></tr></thead>
+          <tbody id="matrix-dish-tbody"></tbody>
+        </table>
+        <button class="btn-secondary mt-3" style="width:auto" id="add-matrix-dish-btn">+ 新增矩陣盤子</button>
+        <p class="section-note mt-2">Glue 在備盤頁是獨立卡片顯示，但盤子身份資料與公式仍在這份清單裡一起管理。</p>
+      </div>
+    </div>
+
+    <div class="admin-panel" id="panel-bulk">
+      <div class="mb-3">
+        <h2 class="heading font-semibold text-slate-800 text-lg">Oil／HEPES 公式設定</h2>
+        <p class="section-note mt-1">這兩罐是分裝耗材，只在估盤頁計算一次，備盤頁僅顯示結果。此處只開放「消耗量」與「轉換設定」的數值可調，計算的先後順序（先加總、再除以每罐容量、無條件進位）仍寫在程式碼裡，若新竹院所的計算模型結構不同，需工程師客製開發。</p>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">Heavy Oil 分裝設定</div>
+        <p class="section-note mb-3">計算法則：各手術項目消耗的 mL 加總後除以「每罐容量」並無條件進位，再另外加上「基礎追加量」的整罐數。</p>
+        <div class="text-xs font-semibold text-slate-500 mb-2">手術項目消耗設定</div>
+        <div class="recipe-rows mb-4">
+          <div class="recipe-row">
+            <span class="recipe-label">受精顆數</span>
+            <span class="recipe-text">每</span>
+            <input type="number" class="field-input recipe-input" data-oil-field="szuDenom">
+            <span class="recipe-text">顆消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-oil-field="szuCoef">
+            <span class="recipe-text">mL</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">SP 盤（紡錘體）</span>
+            <span class="recipe-text">每盤消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-oil-field="spCoef">
+            <span class="recipe-text">mL</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">BX 盤（切片操作盤）</span>
+            <span class="recipe-text">每盤消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-oil-field="bxCoef">
+            <span class="recipe-text">mL</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">STD 盤</span>
+            <span class="recipe-text">每盤消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-oil-field="stdCoef">
+            <span class="recipe-text">mL</span>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-slate-500 mb-2">轉換設定</div>
+        <div class="recipe-rows" id="oil-formula-grid">
+          <div class="recipe-row">
+            <span class="recipe-label">基礎追加量</span>
+            <input type="number" class="field-input recipe-input" data-oil-field="baseAddCans">
+            <span class="recipe-text">罐</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">每罐換算容量</span>
+            <input type="number" class="field-input recipe-input" data-oil-field="perCanDivisor">
+            <span class="recipe-text">mL／罐</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">HEPES 分裝設定</div>
+        <p class="section-note mb-3">計算法則：各卵數區間消耗量加總後，加上「基礎追加量」並無條件進位；若結果低於「最低保底罐數」，則以保底罐數為準。</p>
+        <div class="text-xs font-semibold text-slate-500 mb-2">卵數 / 醫師別消耗設定</div>
+        <div class="recipe-rows mb-4">
+          <div class="recipe-row">
+            <span class="recipe-label">&lt; 5 顆卵</span>
+            <span class="recipe-text">每台消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-hepes-field="lt5Coef">
+            <span class="recipe-text">罐</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">6–9 顆卵</span>
+            <span class="recipe-text">每台消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-hepes-field="s69Coef">
+            <span class="recipe-text">罐</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">≥ 10 顆卵</span>
+            <span class="recipe-text">每台消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-hepes-field="ge10Coef">
+            <span class="recipe-text">罐</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">梁醫師／金醫師（LJK）</span>
+            <span class="recipe-text">每台消耗</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-hepes-field="ljkCoef">
+            <span class="recipe-text">罐</span>
+          </div>
+        </div>
+        <div class="text-xs font-semibold text-slate-500 mb-2">轉換設定</div>
+        <div class="recipe-rows" id="hepes-formula-grid">
+          <div class="recipe-row">
+            <span class="recipe-label">基礎追加量</span>
+            <input type="number" step="0.1" class="field-input recipe-input" data-hepes-field="baseAdd">
+            <span class="recipe-text">罐</span>
+          </div>
+          <div class="recipe-row">
+            <span class="recipe-label">最低保底罐數</span>
+            <input type="number" class="field-input recipe-input" data-hepes-field="minCans">
+            <span class="recipe-text">罐</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-panel" id="panel-alerts">
+      <div class="mb-3">
+        <h2 class="heading font-semibold text-slate-800 text-lg">效期與庫存警示設定</h2>
+        <p class="section-note mt-1">已將現行 calcProductInfo() 混在一起的「單瓶效期」與「整體庫存量」判斷拆成兩個獨立指標，分開設定門檻，避免單瓶快過期就讓庫存充足的品項被誤標為危急。</p>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">指標 A · 庫存健康度（供訂貨／庫存頁叫貨判斷）</div>
+        <div class="coef-grid">
+          <div><label class="field-label">庫存「注意」門檻</label><div class="flex items-center gap-2"><span class="text-xs text-slate-400">低於安全庫存 ×</span><input type="number" step="0.1" class="field-input" style="width:70px" data-alert-field="stockWarnRatio"></div></div>
+          <div><label class="field-label">庫存「缺貨/危急」門檻</label><div class="flex items-center gap-2"><span class="text-xs text-slate-400">低於安全庫存 ×</span><input type="number" step="0.1" class="field-input" style="width:70px" data-alert-field="stockCritRatio"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">指標 B · 批號效期（供備盤頁鎖定／報廢判斷）</div>
+        <div class="coef-grid">
+          <div><label class="field-label">🟠 黃燈警告門檻</label><div class="flex items-center gap-2"><input type="number" class="field-input" style="width:70px" data-alert-field="orangeDays"><span class="text-xs text-slate-400">天以內到期</span></div></div>
+          <div><label class="field-label">🔴 紅燈危急門檻</label><div class="flex items-center gap-2"><input type="number" class="field-input" style="width:70px" data-alert-field="redDays"><span class="text-xs text-slate-400">天以內到期</span></div></div>
+        </div>
+        <p class="section-note mt-3">個別品項可在「品項主檔」頁另外覆寫黃燈天數（對應現行 expiryWarnDays 欄位），此處為全域預設值。</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</div>
+
+<script>
+const TABS = [
+  { id:'staff',    label:'人員名單管理' },
+  { id:'groups',   label:'盤點群組設定' },
+  { id:'vendors',  label:'廠商管理' },
+  { id:'products', label:'品項主檔管理' },
+  { id:'dishes',   label:'盤子與用量公式' },
+  { id:'bulk',     label:'Oil／HEPES 公式設定' },
+  { id:'alerts',   label:'效期與庫存警示' },
+];
+
+function switchTab(id) {
+  document.querySelectorAll('.admin-tab').forEach(el => el.classList.toggle('active', el.dataset.tab === id));
+  document.querySelectorAll('.admin-panel').forEach(el => el.classList.toggle('active', el.id === 'panel-' + id));
+}
+document.getElementById('admin-nav').querySelectorAll('.admin-tab').forEach(el => {
+  el.addEventListener('click', () => switchTab(el.dataset.tab));
+});
+document.getElementById('admin-nav-mobile').innerHTML = TABS.map(t =>
+  `<button class="admin-tab flex-shrink-0" data-tab="${t.id}">${t.label}</button>`
+).join('');
+document.getElementById('admin-nav-mobile').querySelectorAll('.admin-tab').forEach(el => {
+  el.addEventListener('click', () => switchTab(el.dataset.tab));
+});
+
+// 盤子清單（givf/matrix）改由下方 module script 從 Firestore dish_config 載入渲染
+</script>
+
+<script type="module">
+import {
+  initFirebaseApp, adminSignIn, adminSignOut, watchAdminAuth,
+  getStaffConfig, upsertStaffMember, deleteStaffMember,
+  getProductsConfig, upsertProduct, deleteProduct,
+  getPandianGroups, upsertPandianGroup, deletePandianGroup,
+  getDishConfig, upsertDish, deleteDish,
+  getReagentFormulaConfig, upsertReagentFormula,
+  getBulkFormulaConfig, upsertBulkFormula,
+  getGlobalSettings, upsertGlobalSettings,
+  getVendorsConfig, upsertVendor, deleteVendor,
+} from './firebase-service.js?v=20';
+
+await initFirebaseApp();
+document.getElementById('env-badge').textContent = window._isTestEnv ? '測試站' : '正式站';
+
+let staffList = [];
+let groupList = [];
+let vendorList = [];
+let productList = [];
+let productFilters = { search: '', group: '', vendor: '', pandianGroup: '', status: '' };
+let productSort = { field: null, dir: 1 };
+let givfDishList = [];
+let matrixDishList = [];
+let reagentFormulaList = [];
+let bulkFormulaList = [];
+let globalSettings = null;
+
+// 預設值讀 shared.js 的 GLOBAL_SETTINGS（唯讀來源，展開成新物件用，不直接修改它本身）
+function renderGlobalSettings() {
+  const s = { ...GLOBAL_SETTINGS, ...(globalSettings || {}) };
+  document.querySelectorAll('[data-alert-field]').forEach(el => { el.value = s[el.dataset.alertField]; });
+  document.querySelectorAll('[data-alert-field]').forEach(el => {
+    el.addEventListener('change', async () => {
+      const current = { ...GLOBAL_SETTINGS, ...(globalSettings || {}) };
+      // 打錯字（非數字）時保留原本的值，不要靜默變成 0（0 天預警等於警示直接失效）
+      document.querySelectorAll('[data-alert-field]').forEach(x => {
+        const n = parseFloat(x.value);
+        if (Number.isFinite(n)) current[x.dataset.alertField] = n;
+      });
+      globalSettings = current;
+      try { await upsertGlobalSettings(current); }
+      catch (e) { console.warn('[admin] 警示設定儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
+    });
+  });
+}
+
+// DEFAULT_OIL_FORMULA／DEFAULT_HEPES_FORMULA 讀 shared.js 的同名常數（跟 gupan.html 共用同一份，不再各自維護）
+function renderBulkFormulas() {
+  const oil = { ...DEFAULT_OIL_FORMULA, ...(bulkFormulaList.find(r => r.id === 'oil') || {}) };
+  const hepes = { ...DEFAULT_HEPES_FORMULA, ...(bulkFormulaList.find(r => r.id === 'hepes') || {}) };
+  document.querySelectorAll('[data-oil-field]').forEach(el => { el.value = oil[el.dataset.oilField]; });
+  document.querySelectorAll('[data-hepes-field]').forEach(el => { el.value = hepes[el.dataset.hepesField]; });
+
+  const saveBulk = async (id, defaults, selector, datasetKey) => {
+    const current = { ...defaults, ...(bulkFormulaList.find(r => r.id === id) || {}), id };
+    document.querySelectorAll(selector).forEach(el => {
+      const n = parseFloat(el.value);
+      if (Number.isFinite(n)) current[el.dataset[datasetKey]] = n;
+    });
+    const idx = bulkFormulaList.findIndex(r => r.id === id);
+    if (idx >= 0) bulkFormulaList[idx] = current; else bulkFormulaList.push(current);
+    try { await upsertBulkFormula(current); }
+    catch (e) { console.warn('[admin] Oil/HEPES 公式儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
+  };
+  document.querySelectorAll('[data-oil-field]').forEach(el => {
+    el.addEventListener('change', () => saveBulk('oil', DEFAULT_OIL_FORMULA, '[data-oil-field]', 'oilField'));
+  });
+  document.querySelectorAll('[data-hepes-field]').forEach(el => {
+    el.addEventListener('change', () => saveBulk('hepes', DEFAULT_HEPES_FORMULA, '[data-hepes-field]', 'hepesField'));
+  });
+}
+
+// 哪個盤子的「體積係數」要寫進哪個試劑的 coefs，這層關係寫在程式碼裡（跟 beipan.html 的 recalcAllNeeded 對應），
+// 後臺只開放「係數數值」可調，不開放「這個試劑要不要吃某個盤子」
+const REAGENT_NAMES = { givf:'G-IVF', 'aoa-ci':'AOA 弘優 CI', 'aoa-508':'AOA 明美 GM508', h5gt:'H5GT', gxtl:'GxTL', glue:'EmbryoGlue' };
+
+function getReagentCoef(reagentId, dishKey) {
+  return reagentFormulaList.find(r => r.id === reagentId)?.coefs?.[dishKey] ?? 0;
+}
+
+async function setReagentCoef(reagentId, dishKey, value) {
+  let r = reagentFormulaList.find(x => x.id === reagentId);
+  if (!r) { r = { id: reagentId, name: productList.find(p => p.id === reagentId)?.name || REAGENT_NAMES[reagentId], fixed: 0, coefs: {} }; reagentFormulaList.push(r); }
+  r.coefs = { ...r.coefs, [dishKey]: value };
+  try { await upsertReagentFormula(r); }
+  catch (e) { console.warn('[admin] 消耗係數儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
+}
+
+function renderStaff() {
+  document.getElementById('staff-tbody').innerHTML = staffList.map((s, i) => `
+    <tr data-id="${s.id}">
+      <td class="text-slate-300">⠿</td>
+      <td><input class="field-input" data-field="name" value="${s.name || ''}"></td>
+      <td><input class="field-input" data-field="gmail" placeholder="尚未綁定" value="${s.gmail || ''}"></td>
+      <td><label class="toggle"><input type="checkbox" data-field="active" ${s.active ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><input class="field-input" data-field="sortOrder" value="${s.sortOrder ?? i + 1}"></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>`).join('');
+  wireRowEvents('staff-tbody', staffList, upsertStaffMember, deleteStaffMember, () => renderStaff());
+}
+
+function renderGroups() {
+  document.getElementById('groups-tbody').innerHTML = groupList.map((g, i) => `
+    <tr data-id="${g.id}">
+      <td class="text-slate-300">⠿</td>
+      <td><input class="field-input" data-field="name" value="${g.name || ''}"></td>
+      <td><input class="field-input" style="width:60px" data-field="icon" value="${g.icon || ''}"></td>
+      <td><label class="toggle"><input type="checkbox" data-field="collapsed" ${g.collapsed ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><input class="field-input" data-field="sortOrder" value="${g.sortOrder ?? i + 1}"></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>`).join('');
+  wireRowEvents('groups-tbody', groupList, upsertPandianGroup, deletePandianGroup, () => { renderGroups(); renderProducts(); });
+}
+
+function renderVendors() {
+  document.getElementById('vendors-tbody').innerHTML = vendorList.map(v => `
+    <tr data-id="${v.id}">
+      <td><span class="lm-lot">${v.id}</span><span class="locked-tag">鎖定</span></td>
+      <td><input class="field-input" data-field="contact" value="${v.contact || ''}"></td>
+      <td><input class="field-input" data-field="leadtime" value="${v.leadtime || ''}"></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>`).join('');
+  wireRowEvents('vendors-tbody', vendorList, upsertVendor, deleteVendor, () => { renderVendors(); renderProducts(); });
+}
+
+document.getElementById('add-vendor-btn').addEventListener('click', async () => {
+  const id = (prompt('請輸入廠商名稱（建立後不可修改）：') || '').trim();
+  if (!id) return;
+  if (id.includes('/')) { alert('名稱不可包含「/」符號'); return; }
+  if (vendorList.some(v => v.id === id)) { alert('這個廠商已經存在'); return; }
+  const newVendor = { id, contact: '', leadtime: '' };
+  vendorList.push(newVendor);
+  renderVendors();
+  renderProducts();
+  try { await upsertVendor(newVendor); } catch (e) { console.warn('[admin] 新增廠商失敗', e); }
+});
+
+const PRODUCT_GROUPS = ['培養液', '試劑', '耗材'];
+
+function statusColorClass(status) {
+  if (status === 'paused') return 'status-paused';
+  if (status === 'hidden') return 'status-hidden';
+  return 'status-active';
+}
+
+function productStatus(p) {
+  if (p.hidden) return 'hidden';
+  if (p.paused) return 'paused';
+  return 'active';
+}
+function applyProductStatus(p, status) {
+  p.hidden = status === 'hidden';
+  p.paused = status === 'paused';
+}
+
+function populateProductFilterOptions() {
+  const groupSel = document.getElementById('product-filter-group');
+  const vendorSel = document.getElementById('product-filter-vendor');
+  const pandianGroupSel = document.getElementById('product-filter-pandiangroup');
+  groupSel.innerHTML = '<option value="">全部分類</option>' + PRODUCT_GROUPS.map(g => `<option ${productFilters.group===g?'selected':''}>${g}</option>`).join('');
+  vendorSel.innerHTML = '<option value="">全部廠商</option>' + vendorList.map(v => `<option ${productFilters.vendor===v.id?'selected':''}>${v.id}</option>`).join('');
+  pandianGroupSel.innerHTML = '<option value="">全部盤點群組</option>' + groupList.map(g => `<option ${productFilters.pandianGroup===g.name?'selected':''}>${g.name}</option>`).join('');
+}
+
+function getFilteredSortedProducts() {
+  let list = productList.filter(p => {
+    if (productFilters.search) {
+      const kw = productFilters.search.toLowerCase();
+      if (!(p.name || '').toLowerCase().includes(kw) && !(p.id || '').toLowerCase().includes(kw)) return false;
+    }
+    if (productFilters.group && p.group !== productFilters.group) return false;
+    if (productFilters.vendor && p.vendor !== productFilters.vendor) return false;
+    if (productFilters.pandianGroup && p.pandianGroup !== productFilters.pandianGroup) return false;
+    if (productFilters.status && productStatus(p) !== productFilters.status) return false;
+    return true;
+  });
+  if (productSort.field) {
+    list = [...list].sort((a, b) => {
+      const av = a[productSort.field], bv = b[productSort.field];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * productSort.dir;
+      return String(av).localeCompare(String(bv)) * productSort.dir;
+    });
+  }
+  return list;
+}
+
+function renderProducts() {
+  populateProductFilterOptions();
+  const visible = getFilteredSortedProducts();
+  document.getElementById('products-tbody').innerHTML = visible.map(p => `
+    <tr data-id="${p.id}">
+      <td><span class="lm-lot">${p.id}</span><span class="locked-tag">鎖定</span></td>
+      <td><input class="field-input" data-field="name" value="${p.name || ''}"></td>
+      <td><select class="field-input" data-field="group">${PRODUCT_GROUPS.map(g => `<option ${g === p.group ? 'selected' : ''}>${g}</option>`).join('')}</select></td>
+      <td><select class="field-input" data-field="vendor"><option value="">（未設定）</option>${vendorList.map(v => `<option ${v.id === p.vendor ? 'selected' : ''}>${v.id}</option>`).join('')}</select></td>
+      <td><select class="field-input" data-field="pandianGroup" ${!groupList.some(g => g.name === p.pandianGroup) ? 'style="border-color:#EF4444;color:#EF4444"' : ''}>
+        ${!groupList.some(g => g.name === p.pandianGroup) ? `<option value="${p.pandianGroup || ''}" selected>⚠️ ${p.pandianGroup || '（未設定）'}（群組不存在，請重新指定）</option>` : ''}
+        ${groupList.map(g => `<option ${g.name === p.pandianGroup ? 'selected' : ''}>${g.name}</option>`).join('')}
+      </select></td>
+      <td><input type="number" class="field-input" style="width:70px" data-field="sortOrder" value="${p.sortOrder ?? ''}"></td>
+      <td><input class="field-input" data-field="unit" value="${p.unit || ''}"></td>
+      <td><input class="field-input" data-field="target" value="${p.target ?? ''}"></td>
+      <td><select class="field-input product-status-select ${statusColorClass(productStatus(p))}" data-field="status">
+        <option value="active" ${productStatus(p)==='active'?'selected':''}>正常使用</option>
+        <option value="paused" ${productStatus(p)==='paused'?'selected':''}>暫停叫貨</option>
+        <option value="hidden" ${productStatus(p)==='hidden'?'selected':''}>停用/隱藏</option>
+      </select></td>
+      <td><button class="text-xs text-primary-dark hover:underline" data-action="toggle-formula">詳細</button></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>
+    <tr class="formula-row hidden" data-formula-for="${p.id}">
+      <td colspan="11" class="bg-slate-50 rounded-b-lg">
+        <div class="text-xs font-semibold text-slate-500 mb-2">系統與追蹤</div>
+        <div class="coef-grid mb-4">
+          <div><label class="field-label">GTIN 條碼</label><input class="field-input" data-detail-field="gtin" value="${p.gtin || ''}"></div>
+          <div><label class="field-label">品牌</label><input class="field-input" data-detail-field="brand" value="${p.brand || ''}"></div>
+          <div><label class="field-label">需要 QC</label><label class="toggle"><input type="checkbox" data-detail-field="needQC" ${p.needQC ? 'checked' : ''}><span class="toggle-track"></span></label></div>
+          ${(p.gupanId && p.gupanId !== p.id) ? `<div><label class="field-label">系統底層關聯碼</label><span class="lm-lot">${p.gupanId}</span><span class="locked-tag">鎖定</span></div>` : ''}
+        </div>
+        <div class="text-xs font-semibold text-slate-500 mb-2">採購與效期設定（效期留空即使用系統預設）</div>
+        <div class="flex flex-wrap gap-3">
+          <div style="width:110px"><label class="field-label">建議訂購量</label><input type="number" class="field-input" data-detail-field="reorderQty" value="${p.reorderQty ?? ''}"></div>
+          <div style="width:110px"><label class="field-label">瓶容量</label><input type="number" class="field-input" data-detail-field="bottleVol" value="${p.bottleVol ?? ''}"></div>
+          <div style="width:110px"><label class="field-label">開封效期(天)</label><input type="number" class="field-input" data-detail-field="expiry" value="${p.expiry ?? ''}"></div>
+          <div style="width:130px"><label class="field-label">自訂效期預警(天)</label><input type="number" class="field-input" data-detail-field="expiryWarnDays" value="${p.expiryWarnDays ?? ''}"></div>
+          <div style="flex:1;min-width:160px"><label class="field-label">訂購備註</label><input class="field-input" data-detail-field="orderNote" value="${p.orderNote || ''}"></div>
+        </div>
+      </td>
+    </tr>`).join('');
+  document.querySelectorAll('#products-tbody .product-status-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      sel.classList.remove('status-active', 'status-paused', 'status-hidden');
+      sel.classList.add(statusColorClass(sel.value));
+    });
+  });
+
+  wireRowEvents('products-tbody', productList, (p) => {
+    const item = { ...p };
+    if (item.status) { applyProductStatus(item, item.status); delete item.status; }
+    return upsertProduct(item);
+  }, deleteProduct, () => renderProducts());
+  // status 是主表格裡對應 hidden/paused 的虛擬欄位，上面的 wireRowEvents 已經透過 saveFn 轉換處理，不需要額外監聽
+  wireFormulaToggle('products-tbody');
+  document.querySelectorAll('#products-tbody tr.formula-row').forEach(row => {
+    const id = row.dataset.formulaFor;
+    row.querySelectorAll('[data-detail-field]').forEach(inp => {
+      inp.addEventListener('change', async () => {
+        const item = productList.find(x => x.id === id);
+        if (!item) return;
+        row.querySelectorAll('[data-detail-field]').forEach(el => {
+          const field = el.dataset.detailField;
+          if (el.type === 'checkbox') item[field] = el.checked;
+          else if (['reorderQty','bottleVol','expiryWarnDays','expiry'].includes(field)) {
+            const n = Number(el.value);
+            item[field] = el.value === '' ? null : (Number.isFinite(n) ? n : item[field]);
+          }
+          else item[field] = el.value;
+        });
+        try { await upsertProduct(item); }
+        catch (e) { console.warn('[admin] 品項詳細儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
+      });
+    });
+  });
+}
+
+document.getElementById('product-search').addEventListener('input', (e) => { productFilters.search = e.target.value; renderProducts(); });
+document.getElementById('product-filter-group').addEventListener('change', (e) => { productFilters.group = e.target.value; renderProducts(); });
+document.getElementById('product-filter-vendor').addEventListener('change', (e) => { productFilters.vendor = e.target.value; renderProducts(); });
+document.getElementById('product-filter-pandiangroup').addEventListener('change', (e) => { productFilters.pandianGroup = e.target.value; renderProducts(); });
+document.getElementById('product-filter-status').addEventListener('change', (e) => { productFilters.status = e.target.value; renderProducts(); });
+document.querySelectorAll('#panel-products th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const field = th.dataset.sort;
+    if (productSort.field === field) productSort.dir *= -1;
+    else { productSort.field = field; productSort.dir = 1; }
+    renderProducts();
+  });
+});
+
+const FORMULA_FIELDS = [['opu','OPU'],['te','TE'],['szu','受精'],['fbt','FBT'],['bt','BT'],['tbx','TBx']];
+
+function formulaInputsHtml(attr, formula) {
+  const f = formula || {};
+  const c = f.coefs || {};
+  return `<div class="coef-row">
+    ${FORMULA_FIELDS.map(([k, label]) => `<div class="coef-item"><label class="field-label">${label}</label><input type="number" step="0.1" class="field-input" ${attr}="${k}" value="${c[k] ?? 0}"></div>`).join('')}
+    <div class="coef-item coef-fixed"><label class="field-label">固定值</label><input type="number" step="0.1" class="field-input" ${attr}="fixed" value="${f.fixed ?? 0}"></div>
+  </div>`;
+}
+
+function readFormulaFromInputs(container, attr) {
+  const coefs = {};
+  let fixed = 0;
+  container.querySelectorAll(`[${attr}]`).forEach(el => {
+    const key = el.getAttribute(attr);
+    const parsed = parseFloat(el.value);
+    const v = Number.isFinite(parsed) ? parsed : 0;
+    if (key === 'fixed') fixed = v; else coefs[key] = v;
+  });
+  return { fixed, coefs };
+}
+
+function renderGivfDishes() {
+  document.getElementById('givf-dish-tbody').innerHTML = givfDishList.map(d => {
+    const isAoa = d.id === 'aoa_ci' || d.id === 'aoa508';
+    const aoaReagentId = d.id === 'aoa_ci' ? 'aoa-ci' : 'aoa-508';
+    return `
+    <tr data-id="${d.id}">
+      <td><span class="lm-lot">${d.id}</span></td>
+      <td><input class="field-input" data-field="name" value="${d.name || ''}"></td>
+      <td><input class="field-input" style="width:70px" data-field="unit" value="${d.unit || ''}"></td>
+      <td><input type="number" step="0.1" class="field-input" style="width:80px" data-reagent-coef="givf" value="${getReagentCoef('givf', d.id)}"></td>
+      <td>${isAoa ? `<input type="number" step="0.1" class="field-input" style="width:80px" data-reagent-coef="${aoaReagentId}" value="${getReagentCoef(aoaReagentId, d.id)}">` : '<span class="text-slate-300">—</span>'}</td>
+      <td><label class="toggle"><input type="checkbox" data-field="manual" ${d.manual ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><label class="toggle"><input type="checkbox" data-field="active" ${d.active !== false ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><button class="text-xs text-primary-dark hover:underline" data-action="toggle-formula">公式</button></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>
+    <tr class="formula-row hidden" data-formula-for="${d.id}">
+      <td colspan="9" class="bg-slate-50 rounded-b-lg">
+        <div class="text-xs font-semibold text-slate-500 mb-2">估盤建議公式（台數→盤數）＝ 固定值 + Σ(係數 × 對應台數)</div>
+        ${formulaInputsHtml('data-coef', d.formula)}
+      </td>
+    </tr>`;
+  }).join('');
+  wireRowEvents('givf-dish-tbody', givfDishList, (d) => upsertDish({ ...d, category: 'givf' }), deleteDish, () => renderGivfDishes());
+  wireFormulaToggle('givf-dish-tbody');
+  document.querySelectorAll('#givf-dish-tbody [data-reagent-coef]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const id = inp.closest('tr').dataset.id;
+      setReagentCoef(inp.dataset.reagentCoef, id, parseFloat(inp.value) || 0);
+    });
+  });
+  document.querySelectorAll('#givf-dish-tbody tr.formula-row').forEach(row => {
+    const id = row.dataset.formulaFor;
+    row.querySelectorAll('[data-coef]').forEach(inp => {
+      inp.addEventListener('change', async () => {
+        const formula = readFormulaFromInputs(row, 'data-coef');
+        const item = givfDishList.find(x => x.id === id);
+        if (item) item.formula = formula;
+        try { await upsertDish({ id, category: 'givf', formula }); }
+        catch (e) { console.warn('[admin] 公式儲存失敗', e); alert('公式儲存失敗，請檢查網路連線'); }
+      });
+    });
+  });
+}
+
+function renderMatrixDishes() {
+  document.getElementById('matrix-dish-tbody').innerHTML = matrixDishList.map(d => {
+    const isGlue = d.id === 'glue';
+    return `
+    <tr data-id="${d.id}">
+      <td><span class="lm-lot">${d.id}</span></td>
+      <td><input class="field-input" data-field="name" value="${d.name || ''}"></td>
+      <td><input class="field-input" data-field="tooltip" value="${d.tooltip || ''}"></td>
+      <td><input class="field-input" style="width:70px" data-field="unit" value="${d.unit || ''}"></td>
+      <td><input type="number" step="0.1" class="field-input" style="width:80px" data-reagent-coef="${isGlue ? 'glue' : 'h5gt-gxtl'}" value="${isGlue ? getReagentCoef('glue', 'glue') : getReagentCoef('h5gt', d.id)}"></td>
+      <td><label class="toggle"><input type="checkbox" data-field="manual" ${d.manual ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><label class="toggle"><input type="checkbox" data-field="active" ${d.active !== false ? 'checked' : ''}><span class="toggle-track"></span></label></td>
+      <td><button class="text-xs text-primary-dark hover:underline" data-action="toggle-formula">公式</button></td>
+      <td><button class="text-xs text-red-500 hover:underline" data-action="delete">刪除</button></td>
+    </tr>
+    <tr class="formula-row hidden" data-formula-for="${d.id}">
+      <td colspan="9" class="bg-slate-50 rounded-b-lg">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <div class="text-xs font-semibold text-purple-500 mb-2">H5GT 估盤建議公式</div>
+            ${formulaInputsHtml('data-coef-h5', d.h5Formula)}
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-blue-500 mb-2">GxTL 估盤建議公式</div>
+            ${formulaInputsHtml('data-coef-gx', d.gxFormula)}
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  wireRowEvents('matrix-dish-tbody', matrixDishList, (d) => upsertDish({ ...d, category: 'matrix' }), deleteDish, () => renderMatrixDishes());
+  wireFormulaToggle('matrix-dish-tbody');
+  document.querySelectorAll('#matrix-dish-tbody [data-reagent-coef]').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const id = inp.closest('tr').dataset.id;
+      const v = parseFloat(inp.value) || 0;
+      if (inp.dataset.reagentCoef === 'glue') {
+        await setReagentCoef('glue', 'glue', v);
+      } else {
+        // H5GT／GxTL 目前共用同一個係數，一個輸入同時寫回兩個試劑
+        await Promise.all([setReagentCoef('h5gt', id, v), setReagentCoef('gxtl', id, v)]);
+      }
+    });
+  });
+  document.querySelectorAll('#matrix-dish-tbody tr.formula-row').forEach(row => {
+    const id = row.dataset.formulaFor;
+    const saveSide = async (attr, field) => {
+      const formula = readFormulaFromInputs(row, attr);
+      const item = matrixDishList.find(x => x.id === id);
+      if (item) item[field] = formula;
+      try { await upsertDish({ id, category: 'matrix', [field]: formula }); }
+      catch (e) { console.warn('[admin] 公式儲存失敗', e); alert('公式儲存失敗，請檢查網路連線'); }
+    };
+    row.querySelectorAll('[data-coef-h5]').forEach(inp => inp.addEventListener('change', () => saveSide('data-coef-h5', 'h5Formula')));
+    row.querySelectorAll('[data-coef-gx]').forEach(inp => inp.addEventListener('change', () => saveSide('data-coef-gx', 'gxFormula')));
+  });
+}
+
+function wireFormulaToggle(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.querySelectorAll('[data-action="toggle-formula"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.closest('tr').dataset.id;
+      tbody.querySelector(`tr.formula-row[data-formula-for="${id}"]`)?.classList.toggle('hidden');
+    });
+  });
+}
+
+function readRowValues(tr) {
+  const obj = { id: tr.dataset.id };
+  tr.querySelectorAll('[data-field]').forEach(el => {
+    const field = el.dataset.field;
+    if (el.type === 'checkbox') obj[field] = el.checked;
+    else if (field === 'target' || field === 'expiry' || field === 'sortOrder') obj[field] = el.value === '' ? null : Number(el.value);
+    else obj[field] = el.value;
+  });
+  return obj;
+}
+
+function wireRowEvents(tbodyId, list, saveFn, deleteFn, onDeleted) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.querySelectorAll('[data-field]').forEach(el => {
+    el.addEventListener('change', async () => {
+      const tr = el.closest('tr');
+      const id = tr.dataset.id;
+      const idx = list.findIndex(x => x.id === id);
+      if (idx < 0) return;
+      // 數字欄位打錯字會變 NaN，靜默讓庫存警示失效，這裡擋下來要求重打，不儲存
+      const field = el.dataset.field;
+      if (['target', 'expiry', 'sortOrder'].includes(field) && el.value !== '' && !Number.isFinite(Number(el.value))) {
+        alert('請輸入有效的數字');
+        el.value = list[idx][field] ?? '';
+        return;
+      }
+      const updated = { ...list[idx], ...readRowValues(tr) };
+      list[idx] = updated;
+      try { await saveFn(updated); } catch (e) { console.warn('[admin] 儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
+    });
+  });
+  tbody.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      // 刪除廠商/盤點群組前先檢查有沒有品項還在引用，避免刪掉後品項的對應欄位變成孤兒值
+      let warning = '';
+      if (tbodyId === 'vendors-tbody') {
+        const n = productList.filter(p => p.vendor === id).length;
+        if (n > 0) warning = `\n\n⚠️ 目前有 ${n} 個品項的廠商設定是這一筆，刪除後這些品項的廠商欄位會變成未設定。`;
+      } else if (tbodyId === 'groups-tbody') {
+        const g = list.find(x => x.id === id);
+        const n = g ? productList.filter(p => p.pandianGroup === g.name).length : 0;
+        if (n > 0) warning = `\n\n⚠️ 目前有 ${n} 個品項的盤點群組是這一筆，刪除後這些品項會顯示「群組不存在」，需要重新指定。`;
+      }
+      if (!confirm(`確定要刪除這筆資料嗎？${warning}`)) return;
+      try {
+        await deleteFn(id);
+        const idx = list.findIndex(x => x.id === id);
+        if (idx >= 0) list.splice(idx, 1);
+        onDeleted();
+      } catch (e) { console.warn('[admin] 刪除失敗', e); alert('刪除失敗，請檢查網路連線'); }
+    });
+  });
+}
+
+document.querySelector('#panel-staff .btn-primary').addEventListener('click', async () => {
+  const id = 'staff-' + Date.now();
+  const newStaff = { id, name: '', gmail: '', active: true, sortOrder: staffList.length + 1 };
+  staffList.push(newStaff);
+  renderStaff();
+  try { await upsertStaffMember(newStaff); } catch (e) { console.warn('[admin] 新增人員失敗', e); }
+});
+
+document.querySelector('#panel-groups .btn-secondary').addEventListener('click', async () => {
+  const id = 'grp-' + Date.now();
+  const newGroup = { id, name: '新群組', icon: '📦', collapsed: false, sortOrder: groupList.length + 1 };
+  groupList.push(newGroup);
+  renderGroups();
+  renderProducts();
+  try { await upsertPandianGroup(newGroup); } catch (e) { console.warn('[admin] 新增群組失敗', e); }
+});
+
+document.querySelector('#panel-products .btn-primary').addEventListener('click', async () => {
+  const raw = (prompt('請輸入品項代號（建立後不可修改，例如 givf、h5gt）：') || '').trim();
+  if (!raw) return;
+  // 品項代號會被拿去當 DOM id／CSS selector 用，強制清成純小寫英數字+連字號，避免空白或特殊符號讓畫面互動壞掉
+  const id = raw.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!id) { alert('代號需包含至少一個英文字母或數字'); return; }
+  if (productList.some(p => p.id === id)) { alert('這個代號已經存在'); return; }
+  const newProduct = { id, name: '', group: PRODUCT_GROUPS[0], vendor: '', unit: '', target: null, expiry: null, expiryWarnDays: null,
+    pandianGroup: groupList[0]?.name || '', sortOrder: null, gupanId: id, hidden: false, paused: false };
+  productList.push(newProduct);
+  renderProducts();
+  try { await upsertProduct(newProduct); } catch (e) { console.warn('[admin] 新增品項失敗', e); }
+});
+
+document.getElementById('add-givf-dish-btn').addEventListener('click', async () => {
+  const raw = (prompt('請輸入盤子代號（建立後不可修改，例如 opu、te）：') || '').trim();
+  if (!raw) return;
+  const id = raw.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!id) { alert('代號需包含至少一個英文字母或數字'); return; }
+  if (givfDishList.some(d => d.id === id)) { alert('這個代號已經存在'); return; }
+  const newDish = { id, category: 'givf', name: '', unit: '盤', manual: true, active: true, sortOrder: givfDishList.length + 1 };
+  givfDishList.push(newDish);
+  renderGivfDishes();
+  try { await upsertDish(newDish); } catch (e) { console.warn('[admin] 新增盤子失敗', e); }
+});
+
+document.getElementById('add-matrix-dish-btn').addEventListener('click', async () => {
+  const raw = (prompt('請輸入盤子代號（建立後不可修改，例如 d0、tb）：') || '').trim();
+  if (!raw) return;
+  const id = raw.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!id) { alert('代號需包含至少一個英文字母或數字'); return; }
+  if (matrixDishList.some(d => d.id === id)) { alert('這個代號已經存在'); return; }
+  const newDish = { id, category: 'matrix', name: '', tooltip: '', unit: '盤', manual: true, active: true, sortOrder: matrixDishList.length + 1 };
+  matrixDishList.push(newDish);
+  renderMatrixDishes();
+  try { await upsertDish(newDish); } catch (e) { console.warn('[admin] 新增盤子失敗', e); }
+});
+
+async function loadAllConfig() {
+  let dishes;
+  [staffList, groupList, vendorList, productList, dishes, reagentFormulaList, bulkFormulaList, globalSettings] = await Promise.all([
+    getStaffConfig(), getPandianGroups(), getVendorsConfig(), getProductsConfig(), getDishConfig(), getReagentFormulaConfig(), getBulkFormulaConfig(), getGlobalSettings(),
+  ]);
+  givfDishList = dishes.filter(d => d.category === 'givf');
+  matrixDishList = dishes.filter(d => d.category === 'matrix');
+  renderStaff();
+  renderGroups();
+  renderVendors();
+  renderProducts();
+  renderGivfDishes();
+  renderMatrixDishes();
+  renderBulkFormulas();
+  renderGlobalSettings();
+}
+
+const loginScreen = document.getElementById('login-screen');
+const appShell = document.getElementById('app-shell');
+
+watchAdminAuth((admin) => {
+  if (admin && admin.isAdmin) {
+    loginScreen.classList.add('hidden');
+    appShell.classList.remove('hidden');
+    document.getElementById('admin-email').textContent = '管理員：' + admin.email;
+    loadAllConfig();
+  } else if (admin && !admin.isAdmin) {
+    loginScreen.classList.remove('hidden');
+    appShell.classList.add('hidden');
+    document.getElementById('login-error').textContent = '此帳號未被授權為後台管理員，請聯絡系統管理者加入 admins 清單';
+    document.getElementById('login-error').classList.remove('hidden');
+  } else {
+    loginScreen.classList.remove('hidden');
+    appShell.classList.add('hidden');
+  }
+});
+
+document.getElementById('login-submit').addEventListener('click', async () => {
+  const errEl = document.getElementById('login-error');
+  const submitBtn = document.getElementById('login-submit');
+  errEl.classList.add('hidden');
+  submitBtn.disabled = true;
+  try {
+    await adminSignIn();
+  } catch (e2) {
+    console.warn('[admin] Google 登入失敗', e2);
+    errEl.textContent = '登入失敗或取消，請再試一次';
+    errEl.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await adminSignOut();
+});
+</script>
+</body>
+</html>

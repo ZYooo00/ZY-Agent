@@ -17,13 +17,17 @@
 <script type="module">
   import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
            acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
-           getManualKucunLogsAfter } from './firebase-service.js?v=11';
+           getManualKucunLogsAfter, getDishConfig, getReagentFormulaConfig, getStaffConfig, getProductsConfig } from './firebase-service.js?v=20';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
                  acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
-                 getManualKucunLogsAfter };
+                 getManualKucunLogsAfter, getDishConfig, getReagentFormulaConfig, getStaffConfig, getProductsConfig };
+  try {
+    const rows = await getProductsConfig();
+    if (typeof window.resolveProductsFromConfig === 'function') window.resolveProductsFromConfig(rows);
+  } catch (e) { console.warn('[products_config] 讀取失敗，使用內建預設', e); }
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 
@@ -31,7 +35,10 @@
   window.devResetBeipan = async function() {
     const todayStr = new Date().toISOString().slice(0, 10);
     localStorage.removeItem('beipan-result');
-    console.log('[devReset] localStorage beipan-result 已清除');
+    // 草稿（實際備盤輸入值）跟送出快照是兩份不同的東西，之前這裡漏清草稿，
+    // 導致重置後重新整理，舊草稿還是會把「實際備盤」蓋回去
+    if (typeof window.getDraftKey === 'function') localStorage.removeItem(window.getDraftKey());
+    console.log('[devReset] localStorage beipan-result／草稿 已清除');
     try {
       const db = getFirestore(getApp());
       await deleteDoc(doc(db, 'beipan_snapshots', todayStr));
@@ -174,7 +181,7 @@
     庫存總覽
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -227,7 +234,7 @@
       庫存總覽
     </div>
     <div class="mt-auto pt-3 border-t border-slate-100">
-      <div class="sidebar-link text-slate-400 cursor-default">
+      <div class="sidebar-link" onclick="location.href='admin.html'">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         後台設定
       </div>
@@ -236,35 +243,6 @@
 
   <!-- MAIN -->
   <main class="flex-1 md:ml-52">
-
-    <!-- DEMO SWITCHER（開發用，隱藏）-->
-    <div id="dev-demo-controls" class="hidden sticky top-14 z-10 bg-white border-b border-slate-200 px-6 py-2 flex items-center gap-2 overflow-x-auto" style="display: none !important;">
-      <span class="text-xs text-slate-400 font-medium whitespace-nowrap">示範：</span>
-      <button class="demo-btn" id="btn-a" onclick="switchState('a')">🔒 A：備盤鎖定</button>
-      <button class="demo-btn active" id="btn-b" onclick="switchState('b')">📋 B：備盤作業中</button>
-      <button class="demo-btn" id="btn-c" onclick="switchState('c')">✅ C：確認送出</button>
-    </div>
-
-    <!-- ════ STATE A ════ -->
-    <div id="state-a" class="hidden p-8">
-      <div class="max-w-lg mx-auto mt-16">
-        <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
-          <div id="state-a-icon" class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
-            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          </div>
-          <h2 id="state-a-title" class="font-heading text-xl font-semibold text-slate-700 mb-2">備盤尚未解鎖</h2>
-          <p id="state-a-desc" class="text-slate-500 text-sm">估盤確認後才能開始備盤。</p>
-          <div id="state-a-badge" class="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm text-amber-700">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            高任佑已送出估盤，等待第二人核對確認
-          </div>
-          <div id="state-a-hint" class="hidden mt-4 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-left">
-            <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span>若實際用量與備盤不符，請至 <strong>庫存總覽 → 手動補登</strong> 進行修正。</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ════ STATE B ════ -->
     <div id="state-b" class="p-6 space-y-5">
@@ -476,35 +454,6 @@
       </div>
     </div><!-- end state-b -->
 
-    <!-- ════ STATE C ════ -->
-    <div id="state-c" class="hidden p-8">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="font-heading text-2xl font-bold text-slate-800">明日備盤 <span style="font-size:11px;font-weight:400;color:#94a3b8;font-family:monospace;">v1.2</span></h1>
-      </div>
-      <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
-        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <div>
-          <div class="font-medium text-amber-800 text-sm">確認備盤結果</div>
-          <div class="text-xs text-amber-600 mt-0.5" id="state-c-staff-display">備盤人員：—　·　請核對盤子數量（批號與開封日由備盤人員負責）</div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
-        <div class="text-sm font-medium text-slate-700 mb-3">批號使用摘要（唯讀）</div>
-        <div class="grid grid-cols-3 gap-3 text-sm"></div>
-      </div>
-      <div class="mt-4 mb-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-        <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span>送出後今日備盤將<strong>鎖定</strong>，無法重新填寫。若實際用量與備盤不符，請送出後至 <strong>庫存總覽 → 手動補登</strong> 進行修正。</span>
-      </div>
-      <div class="flex justify-end gap-3 pb-8">
-        <button onclick="switchState('b')" class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">返回修改</button>
-        <button onclick="submitBeipan()" class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          確認無誤，送出備盤
-        </button>
-      </div>
-    </div>
-
   </main>
 </div>
 
@@ -661,16 +610,35 @@
   </div>
 </div>
 
-<script src="shared.js"></script>
+<script src="shared.js?v=20"></script>
 <script>
-// ── 填充備盤人員選單 ──
-(function() {
-  const opts = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option>${n}</option>`).join('');
+// ── 填充備盤人員選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）──
+let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+function renderStaffOptions() {
+  const opts = EFFECTIVE_STAFF_LIST.map(n => `<option>${n}</option>`).join('');
   ['beipan-staff-1','beipan-staff-2'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = '<option value="">（選擇備盤人）</option>' + opts;
+    if (el) {
+      const prev = el.value;
+      el.innerHTML = '<option value="">（選擇備盤人）</option>' + opts;
+      if (prev && EFFECTIVE_STAFF_LIST.includes(prev)) el.value = prev;
+    }
   });
-})();
+}
+renderStaffOptions();
+
+async function resolveStaffList() {
+  try {
+    const rows = await window._fb?.getStaffConfig?.();
+    if (!rows || !rows.length) return;
+    EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(r => r.name);
+    renderStaffOptions();
+  } catch (e) {
+    console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
+  }
+}
 
 // ── State switching ──
 function previewBeipan() {
@@ -915,40 +883,6 @@ async function openHistoryModal() {
 }
 
 // ── 唯讀版 State B（備盤送出後鎖定） ──
-function restoreStateC(snapshot) {
-  // 從 snapshot.batches 重建 State C 批號卡片
-  const cards = [];
-  const seen = new Set();
-  (snapshot.batches || []).forEach(b => {
-    if (seen.has(b.reagentId)) return;  // 同品項多批次只顯示一張卡
-    seen.add(b.reagentId);
-    const bgCls  = b.reagentId === 'h5gt' ? 'bg-purple-50 border border-purple-100' :
-                   b.reagentId === 'gxtl' ? 'bg-blue-50 border border-blue-100' :
-                   b.reagentId === 'aoa-508' ? 'bg-amber-50 border border-amber-100' : 'bg-slate-50';
-    const lblCls = b.reagentId === 'h5gt' ? 'text-purple-400' :
-                   b.reagentId === 'gxtl' ? 'text-blue-400' :
-                   b.reagentId === 'aoa-508' ? 'text-amber-500' : 'text-slate-500';
-    // 同品項若有多個批次（混批），收集所有 lot（過濾 null/undefined）
-    const lots = (snapshot.batches || [])
-      .filter(x => x.reagentId === b.reagentId)
-      .map(x => x.selectedLot)
-      .filter(Boolean);
-    const lotText = lots.length > 0 ? lots.join(' + ') : '—';
-    cards.push(`<div class="${bgCls} rounded-lg p-3">
-      <span class="${lblCls} text-xs block">${b.reagentName}</span>
-      <span class="font-mono font-semibold text-slate-800">${lotText}</span>
-    </div>`);
-  });
-
-  const grid = document.querySelector('#state-c .grid');
-  if (grid) grid.innerHTML = cards.join('');
-
-  const staffEl = document.getElementById('state-c-staff-display');
-  if (staffEl) staffEl.textContent = `備盤人員：${snapshot.operator || '—'}　·　今日備盤已完成，批號與開封日由備盤人員負責`;
-
-  switchState('c');
-}
-
 async function lockStateB(snapshot) {
   window._beipanLocked = true;  // 必須在任何重繪（recalcAllNeeded）之前設定，否則按鈕會被重繪出來
   // 鎖定時清除草稿（不論是自己送出還是被他人強制鎖定）
@@ -1063,13 +997,9 @@ async function lockStateB(snapshot) {
   }
 }
 
+// 現在只會被呼叫 'b'（State A/C 已確認為死碼並移除，State B 身兼編輯與鎖定唯讀兩種模式）
 function switchState(s) {
-  ['a','b','c'].forEach(id => {
-    const el = document.getElementById('state-'+id);
-    if (el) el.classList.toggle('hidden', id !== s);
-    const btn = document.getElementById('btn-'+id);
-    if (btn) btn.classList.toggle('active', id === s);
-  });
+  document.getElementById('state-'+s)?.classList.remove('hidden');
 }
 
 // ── 修改剩餘量（整合殘液校正 + 標記空瓶）──
@@ -1227,31 +1157,31 @@ const reagentConfig = [
     id: 'givf', name: 'G-IVF', label: '卵子培養液',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 11.5, baseNeeded: 9.5,
-    bottleVol: 60, batches: []
+    bottleVol: PRODUCT_MAP['givf']?.bottleVol ?? 60, batches: []
   },
   {
     id: 'aoa-ci', name: 'AOA 弘優 CI', label: '卵子添加劑',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 2.0,
-    bottleVol: 10, batches: [],
+    bottleVol: PRODUCT_MAP['aoa-ci']?.bottleVol ?? 10, batches: [],
   },
   {
     id: 'h5gt', name: 'H5GT', label: '胚胎培養液',
     labelCls: 'text-purple-500 bg-purple-50 border border-purple-100',
     border: 'border-2 border-purple-200', headerBg: 'background:#faf8ff', needed: 8.0, baseNeeded: 6.0,
-    bottleVol: 30, batches: []
+    bottleVol: PRODUCT_MAP['h5gt']?.bottleVol ?? 30, batches: []
   },
   {
     id: 'gxtl', name: 'GxTL', label: '胚胎培養液',
     labelCls: 'text-blue-500 bg-blue-50 border border-blue-100',
     border: 'border-2 border-blue-200', headerBg: 'background:#f5f8ff', needed: 12.0, baseNeeded: 10.0,
-    bottleVol: 30, batches: []
+    bottleVol: PRODUCT_MAP['gxtl']?.bottleVol ?? 30, batches: []
   },
   {
     id: 'glue', name: 'EmbryoGlue', label: '植入培養液',
     labelCls: 'text-slate-400 bg-slate-100',
     border: 'border border-slate-200', headerBg: '', needed: 1.6,
-    bottleVol: 10, batches: []
+    bottleVol: PRODUCT_MAP['glue']?.bottleVol ?? 10, batches: []
   }
 ];
 
@@ -1291,7 +1221,7 @@ const reagentConfig = [
 
 const gm508Config = {
   id: 'aoa-508', name: 'AOA 明美 GM508', needed: 2.0,
-  bottleVol: 1, batches: []
+  bottleVol: PRODUCT_MAP['aoa-508']?.bottleVol ?? 1, batches: []
 };
 
 // ── 從 Firebase 動態載入進貨批號，注入各 reagentConfig ──
@@ -1564,6 +1494,7 @@ function saveDraft() {
     note: document.getElementById('beipan-note-input')?.value || '',
     glue: document.getElementById('glue-plan-input')?.value || '',
     givf, matrix, bulkSmall, bulkLot, cards, batchData,
+    gupanConfirmedToken: window._gupanConfirmedToken || null,
   }));
 }
 
@@ -1572,19 +1503,30 @@ function loadDraft() {
   try { draft = JSON.parse(localStorage.getItem(getDraftKey()) || 'null'); } catch(e) {}
   if (!draft) return;
 
-  draft.givf?.forEach((val, i) => {
-    const inp = document.querySelector(`#givf-row-${i} input[type="number"]`);
-    if (inp && val !== '') { inp.value = val; inp.dispatchEvent(new Event('input')); }
-  });
-  draft.matrix?.forEach((pair, i) => {
-    const h5 = document.querySelector(`#mrow-${i} .cell-h5gt input`);
-    const gx = document.querySelector(`#mrow-${i} .cell-gxtl input`);
-    if (h5 && pair.h5gt !== '') { h5.value = pair.h5gt; h5.dispatchEvent(new Event('input')); }
-    if (gx && pair.gxtl !== '') { gx.value = pair.gxtl; gx.dispatchEvent(new Event('input')); }
-  });
-  if (draft.glue !== '') {
-    const glueInp = document.getElementById('glue-plan-input');
-    if (glueInp) { glueInp.value = draft.glue; glueInp.dispatchEvent(new Event('input')); }
+  // 草稿如果是對應「舊」估盤存的（估盤後來被重新確認過、數字可能已經不同），
+  // 盤子數量／矩陣／Glue 這幾個會直接覆蓋畫面預填值的欄位就不套用，避免用舊草稿蓋掉剛載入的新估盤數字。
+  // 批號校正、備註、大宗耗材等跟估盤本身無關的欄位不受影響，照常還原。
+  // 只要目前有載到估盤（_gupanConfirmedToken 存在），草稿的 token 對不上（含舊格式草稿完全沒有這欄位）就一律當作過期，
+  // 不能只在「兩邊都有 token」時才比對，否則舊草稿會直接繞過這層防呆
+  const isStaleAgainstEstimate = !!window._gupanConfirmedToken
+    && draft.gupanConfirmedToken !== window._gupanConfirmedToken;
+  if (isStaleAgainstEstimate) {
+    console.log('[beipan] 偵測到草稿對應的估盤已過期，略過盤子數量/矩陣/Glue 的還原');
+  } else {
+    draft.givf?.forEach((val, i) => {
+      const inp = document.querySelector(`#givf-row-${i} input[type="number"]`);
+      if (inp && val !== '') { inp.value = val; inp.dispatchEvent(new Event('input')); }
+    });
+    draft.matrix?.forEach((pair, i) => {
+      const h5 = document.querySelector(`#mrow-${i} .cell-h5gt input`);
+      const gx = document.querySelector(`#mrow-${i} .cell-gxtl input`);
+      if (h5 && pair.h5gt !== '') { h5.value = pair.h5gt; h5.dispatchEvent(new Event('input')); }
+      if (gx && pair.gxtl !== '') { gx.value = pair.gxtl; gx.dispatchEvent(new Event('input')); }
+    });
+    if (draft.glue !== '') {
+      const glueInp = document.getElementById('glue-plan-input');
+      if (glueInp) { glueInp.value = draft.glue; glueInp.dispatchEvent(new Event('input')); }
+    }
   }
   bulkReagents.forEach(cfg => {
     const sm  = document.getElementById(`bulk-small-${cfg.id}`);
@@ -1666,10 +1608,10 @@ function scheduleDraftSave() {
 
 function initDraftListeners() {
   document.addEventListener('input', e => {
-    if (e.target.closest('#state-a') || e.target.closest('#state-b')) scheduleDraftSave();
+    if (e.target.closest('#state-b')) scheduleDraftSave();
   });
   document.addEventListener('change', e => {
-    if (e.target.type === 'radio' && (e.target.closest('#state-a') || e.target.closest('#state-b'))) scheduleDraftSave();
+    if (e.target.type === 'radio' && e.target.closest('#state-b')) scheduleDraftSave();
   });
 }
 
@@ -2395,17 +2337,18 @@ function onLotChange() {
 }
 
 // ── GIVF 盤子表格 ──
-const givfDishes = [
-  { name:'OPU',       plan:0,   unit:'盤' },
-  { name:'De',        plan:0,   unit:'盤' },
-  { name:'TE',        plan:0,   unit:'盤' },
-  { name:'AOA 弘優',  plan:0,   unit:'盤' },
-  { name:'AOA 508',   plan:0,   unit:'盤' },
-  { name:'COC',       plan:0,   unit:'盤' },
-  { name:'精蟲',      plan:0,   unit:'台' },
-  { name:'G-IVF pH', plan:0,   unit:'盤', key:'givf_ph' },
-  { name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
+const DEFAULT_GIVF_DISHES = [
+  { key:'opu',     name:'OPU',       plan:0,   unit:'盤' },
+  { key:'de',      name:'De',        plan:0,   unit:'盤' },
+  { key:'te',      name:'TE',        plan:0,   unit:'盤' },
+  { key:'aoa_ci',  name:'AOA 弘優',  plan:0,   unit:'盤' },
+  { key:'aoa508',  name:'AOA 508',   plan:0,   unit:'盤' },
+  { key:'coc',     name:'COC',       plan:0,   unit:'盤' },
+  { key:'sperm',   name:'精蟲',      plan:0,   unit:'台' },
+  { key:'givf_ph', name:'G-IVF pH', plan:0,   unit:'盤' },
+  { key:'givf_x',  name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
 ];
+let givfDishes = DEFAULT_GIVF_DISHES;
 
 function buildGivfTable() {
   const tbody = document.getElementById('givf-dish-body');
@@ -2445,15 +2388,56 @@ function checkGivfDiff(input, plan, i) {
 }
 
 // ── 胚胎矩陣（H5GT 左、GxTL 右） ──
-const matrixDishes = [
-  { name:'D0',          h5gt:0,   gxtl:0   },
-  { name:'Bx',          h5gt:0,   gxtl:0,  note:'*不PGS者 ≥5# 須備' },
-  { name:'TB',          h5gt:0,   gxtl:0   },
-  { name:'Geri-受精',   h5gt:0,   gxtl:0   },
-  { name:'Geri-FBT',    h5gt:0,   gxtl:0   },
-  { name:'pH 盤',       h5gt:0,   gxtl:0,   key:'ph'  },
-  { name:'多配 (mL)',   h5gt:0,   gxtl:0,   isMl:true },
+// 這份保底陣列的品項/順序需跟 gupan.html 的 DEFAULT_MATRIX_DISHES 保持一致，避免兩頁同時連不上 dish_config 時矩陣列數對不上
+const DEFAULT_MATRIX_DISHES = [
+  { key:'geri_szu', name:'Geri-受精',   h5gt:0,   gxtl:0   },
+  { key:'d0',       name:'D0',          h5gt:0,   gxtl:0   },
+  { key:'bx',       name:'Bx',          h5gt:0,   gxtl:0,  note:'*不PGS者 ≥5# 須備' },
+  { key:'tb',       name:'TB',          h5gt:0,   gxtl:0   },
+  { key:'glue',     name:'Glue',        h5gt:0,   gxtl:0   },
+  { key:'geri_fbt', name:'Geri-FBT',    h5gt:0,   gxtl:0   },
+  { key:'ph',       name:'pH 盤',       h5gt:0,   gxtl:0   },
+  { key:'multi',    name:'多配 (mL)',   h5gt:0,   gxtl:0,   isMl:true },
 ];
+let matrixDishes = DEFAULT_MATRIX_DISHES;
+
+// dish_config 只覆寫盤子的「名稱/單位/備註」等身份資料，plan/h5gt/gxtl 一律從 0 開始
+// （分類 matrix 但 key='glue' 的項目不進這個陣列，Glue 走獨立卡片）
+async function resolveDishLists() {
+  try {
+    const rows = await window._fb?.getDishConfig?.();
+    if (!rows || !rows.length) return; // 空集合／讀取失敗：維持程式內建預設
+    const givfRows = rows.filter(r => r.category === 'givf' && r.active !== false);
+    const matrixRows = rows.filter(r => r.category === 'matrix' && r.active !== false && r.id !== 'glue');
+    if (givfRows.length) {
+      givfDishes = givfRows.map(r => {
+        const def = DEFAULT_GIVF_DISHES.find(d => d.key === r.id);
+        return { key: r.id, name: r.name, unit: r.unit, plan: 0,
+                 calc: def?.calc, extraTarget: def?.extraTarget };
+      });
+    }
+    if (matrixRows.length) {
+      matrixDishes = matrixRows.map(r => ({
+        key: r.id, name: r.name, note: r.note || undefined, isMl: r.unit === 'mL', h5gt: 0, gxtl: 0,
+      }));
+    }
+  } catch (e) {
+    console.warn('[resolveDishLists] 讀取 dish_config 失敗，使用程式內建預設', e);
+  }
+}
+
+// 備盤「盤數→mL」消耗公式：REAGENT_FORMULAS[reagentId] = { fixed, coefs:{dishKey:coef} }
+// 讀不到（或某試劑沒設定）就用 recalcAllNeeded() 裡的程式內建係數 fallback，行為不變
+let REAGENT_FORMULAS = {};
+async function resolveReagentFormulas() {
+  try {
+    const rows = await window._fb?.getReagentFormulaConfig?.();
+    if (!rows || !rows.length) return;
+    REAGENT_FORMULAS = Object.fromEntries(rows.map(r => [r.id, r]));
+  } catch (e) {
+    console.warn('[resolveReagentFormulas] 讀取 reagent_formula_config 失敗，使用程式內建預設', e);
+  }
+}
 
 function cellCls(val, side) {
   if (val === null) return 'cell-na text-slate-300';
@@ -2585,43 +2569,72 @@ function recalcAllNeeded() {
     return inp && inp.value !== '' ? (parseFloat(inp.value) || 0) : 0;
   }
 
-  // GIVF 盤子索引：0=OPU 1=De 2=TE 3=AOA弘優 4=AOA508 5=COC 6=精蟲(台) 7=G-IVF pH 8=多配mL
-  const opu       = givfVal(0);
-  const de        = givfVal(1);
-  const te        = givfVal(2);
-  const aoaCi     = givfVal(3);
-  const aoa508    = givfVal(4);
-  const coc       = givfVal(5);  // COC 卵子盤
-  const spermTai  = givfVal(6);  // 台數
-  const givfPh    = givfVal(7);
-  const givfMulti = givfVal(8);  // 已是 mL
+  // 依 key 查值（取代原本的陣列位置索引，dish_config 順序改變也不會錯位）
+  function givfByKey(key) {
+    const idx = givfDishes.findIndex(d => d.key === key);
+    return idx >= 0 ? givfVal(idx) : 0;
+  }
+  function h5ByKey(key) {
+    const idx = matrixDishes.findIndex(d => d.key === key);
+    return idx >= 0 ? mxH5(idx) : 0;
+  }
+  function gxByKey(key) {
+    const idx = matrixDishes.findIndex(d => d.key === key);
+    return idx >= 0 ? mxGx(idx) : 0;
+  }
 
-  // 矩陣索引：0=D0 1=Bx 2=TB 3=Geri受精 4=GeriFBT 5=pH盤 6=多配mL
-  const h5Multi = mxH5(6), gxMulti = mxGx(6);
+  const opu = givfByKey('opu'), de = givfByKey('de'), te = givfByKey('te'),
+        aoaCi = givfByKey('aoa_ci'), aoa508 = givfByKey('aoa508'), coc = givfByKey('coc'),
+        spermTai = givfByKey('sperm'), givfPh = givfByKey('givf_ph'), givfMulti = givfByKey('givf_x');
 
   // Glue 獨立卡片
   const glueInp = document.getElementById('glue-plan-input');
   const gluePanCount = (glueInp && glueInp.value !== '') ? (parseFloat(glueInp.value) || 0) : 0;
 
+  // formula = { fixed, coefs:{dishKey:coef} }；REAGENT_FORMULAS 讀不到該試劑時用程式內建預設（跟現行公式完全一致）
+  function applyFormula(formula, valFn) {
+    let sum = formula.fixed || 0;
+    Object.entries(formula.coefs || {}).forEach(([k, coef]) => { sum += valFn(k) * (coef || 0); });
+    return sum;
+  }
+
   // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
-  const givfNeeded = opu*3 + (de+te+aoaCi+aoa508+coc)*0.6 + spermTai*0.7 + givfPh*1 + givfMulti;
+  const givfFormula = REAGENT_FORMULAS['givf'] || { fixed: 0, coefs: {
+    opu: 3, de: 0.6, te: 0.6, aoa_ci: 0.6, aoa508: 0.6, coc: 0.6, sperm: 0.7, givf_ph: 1, givf_x: 1,
+  }};
+  const givfNeeded = applyFormula(givfFormula, givfByKey);
   const givfCfg = reagentConfig.find(c => c.id === 'givf');
-  if (givfCfg) givfCfg._breakdown = { opu: opu*3, sperm: parseFloat((spermTai*0.7).toFixed(1)), other: parseFloat(((de+te+aoaCi+aoa508+coc)*0.6 + givfPh*1 + givfMulti).toFixed(1)) };
+  if (givfCfg) {
+    const gc = givfFormula.coefs || {};
+    const opuPart = opu * (gc.opu || 0);
+    const spermPart = spermTai * (gc.sperm || 0);
+    givfCfg._breakdown = { opu: opuPart, sperm: parseFloat(spermPart.toFixed(1)),
+      other: parseFloat((givfNeeded - opuPart - spermPart).toFixed(1)) };
+  }
 
   // ── AOA 弘優 CI: 盤數 × 0.3 mL ──
-  const aoaCiNeeded = aoaCi * 0.3;
+  const aoaCiFormula = REAGENT_FORMULAS['aoa-ci'] || { fixed: 0, coefs: { aoa_ci: 0.3 } };
+  const aoaCiNeeded = applyFormula(aoaCiFormula, givfByKey);
 
   // ── AOA 明美 GM508: 盤數 × 0.3 mL ──
-  const aoa508Needed = aoa508 * 0.3;
+  const aoa508Formula = REAGENT_FORMULAS['aoa-508'] || { fixed: 0, coefs: { aoa508: 0.3 } };
+  const aoa508Needed = applyFormula(aoa508Formula, givfByKey);
 
   // ── H5GT: (D0+Bx+TB+Geri受精+GeriFBT)×0.4 + pH×1 + 多配mL ──
-  const h5gtNeeded = (mxH5(0)+mxH5(1)+mxH5(2)+mxH5(3)+mxH5(4))*0.4 + mxH5(5)*1 + h5Multi;
+  const h5gtFormula = REAGENT_FORMULAS['h5gt'] || { fixed: 0, coefs: {
+    d0: 0.4, bx: 0.4, tb: 0.4, geri_szu: 0.4, geri_fbt: 0.4, ph: 1, multi: 1,
+  }};
+  const h5gtNeeded = applyFormula(h5gtFormula, h5ByKey);
 
   // ── GxTL: (D0+Bx+TB+Geri受精+GeriFBT)×0.4 + pH×1 + 多配mL ──
-  const gxTLNeeded = (mxGx(0)+mxGx(1)+mxGx(2)+mxGx(3)+mxGx(4))*0.4 + mxGx(5)*1 + gxMulti;
+  const gxtlFormula = REAGENT_FORMULAS['gxtl'] || { fixed: 0, coefs: {
+    d0: 0.4, bx: 0.4, tb: 0.4, geri_szu: 0.4, geri_fbt: 0.4, ph: 1, multi: 1,
+  }};
+  const gxTLNeeded = applyFormula(gxtlFormula, gxByKey);
 
   // ── EmbryoGlue: Glue盤 × 0.9 mL ──
-  const glueNeeded = gluePanCount * 0.9;
+  const glueFormula = REAGENT_FORMULAS['glue'] || { fixed: 0, coefs: { glue: 0.9 } };
+  const glueNeeded = applyFormula(glueFormula, (k) => (k === 'glue' ? gluePanCount : 0));
 
   function setNeeded(cfgId, val) {
     const cfg = reagentConfig.find(c => c.id === cfgId);
@@ -3005,6 +3018,9 @@ async function loadGupanData() {
   const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
   if (data.date !== todayStr) return;
 
+  // 記錄這份估盤的識別碼（日期+確認時間），loadDraft() 用來判斷已存的草稿是不是對應「舊」估盤
+  window._gupanConfirmedToken = `${data.date}_${data.confirmedAt || ''}`;
+
   // 更新 Oil / HEPES 待分裝罐數（從估盤計算結果）
   if (data.oilCans != null) {
     const oilCfg = bulkReagents.find(r => r.id === 'oil');
@@ -3027,18 +3043,18 @@ async function loadGupanData() {
 
   const { givf, matrix } = data;
 
-  // GIVF 陣列映射（依順序：OPU/De/TE/AOA弘優/AOA508/COC/精蟲/G-IVF pH/多配）
-  const givfKeys = ['opu','de','te','aoa_ci','aoa508','coc','sperm','givf_ph','givf_x'];
-  givfKeys.forEach((k, i) => {
-    if (givf[k] != null) givfDishes[i].plan = givf[k];
+  // GIVF／矩陣映射：依 key 對應到 gupan.html 送出的盤子資料，不再依賴陣列順序
+  // （兩邊陣列若日後新增/刪除/調整順序，只要 key 字串一致，資料就不會錯位）
+  Object.entries(givf || {}).forEach(([k, v]) => {
+    if (v == null) return;
+    const dish = givfDishes.find(d => d.key === k);
+    if (dish) dish.plan = v;
   });
 
-  // 矩陣陣列映射（依順序：D0/Bx/TB/Geri-受精/Geri-FBT/pH盤/多配）
-  const mxKeys = ['d0','bx','tb','geri_szu','geri_fbt','ph','multi'];
-  mxKeys.forEach((k, i) => {
-    if (!matrix[k]) return;
-    matrixDishes[i].h5gt = matrix[k].h5;
-    matrixDishes[i].gxtl = matrix[k].gx;
+  Object.entries(matrix || {}).forEach(([k, v]) => {
+    if (k === 'glue' || !v) return; // Glue 走下方獨立卡片處理，不在矩陣清單裡
+    const dish = matrixDishes.find(d => d.key === k);
+    if (dish) { dish.h5gt = v.h5; dish.gxtl = v.gx; }
   });
 
   // Glue（H5GT 值帶入）
@@ -3243,7 +3259,10 @@ function onReady(fn) {
   if (!fbOk) window.addEventListener('fb-ready', tick, { once: true });
 }
 onReady(async function() {
-  // 從 Firebase 讀取估盤資料並重建表格（跨裝置同步）
+  // aoa-508 瓶容量改跟品項主檔同步，不再寫死（products_config 若有覆寫值就用該值）
+  if (PRODUCT_MAP['aoa-508']?.bottleVol != null) gm508Config.bottleVol = PRODUCT_MAP['aoa-508'].bottleVol;
+  // 先嘗試讀取 dish_config／reagent_formula_config（讀不到則維持程式內建預設），再讀估盤資料並重建表格（跨裝置同步）
+  await Promise.all([resolveDishLists(), resolveReagentFormulas(), resolveStaffList()]);
   await loadGupanData();
   buildGivfTable();
   buildMatrixTable();
@@ -3289,10 +3308,9 @@ onReady(async function() {
 }, { once: true });
 
 async function refreshGupanData() {
-  // 已送出鎖定（state-c 可見）或被其他裝置鎖定，不做任何重建
-  const isStateCVisible = !document.getElementById('state-c')?.classList.contains('hidden');
+  // 已送出鎖定或被其他裝置鎖定，不做任何重建
   const isLockedByOther = !!document.getElementById('state-b-locked-banner');
-  if (isStateCVisible || isLockedByOther) return;
+  if (window._beipanLocked || isLockedByOther) return;
 
   await loadGupanData();
 

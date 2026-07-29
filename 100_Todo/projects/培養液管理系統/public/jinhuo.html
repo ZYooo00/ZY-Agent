@@ -15,9 +15,17 @@
 <script src="design.js" defer></script>
 <!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog } from './firebase-service.js?v=11';
+  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=20';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, fsLog };
+  window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, fsLog, getStaffConfig, getProductsConfig, getVendorsConfig };
+  try {
+    const rows = await getProductsConfig();
+    if (typeof window.resolveProductsFromConfig === 'function') window.resolveProductsFromConfig(rows);
+  } catch (e) { console.warn('[products_config] 讀取失敗，使用內建預設', e); }
+  try {
+    const vendors = await getVendorsConfig();
+    if (typeof window.resolveVendorsFromConfig === 'function') window.resolveVendorsFromConfig(vendors);
+  } catch (e) { console.warn('[vendors_config] 讀取失敗，使用內建預設', e); }
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -206,7 +214,7 @@
     <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -243,7 +251,7 @@
       <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
     </div>
     <div class="mt-auto px-3 pt-4 border-t border-slate-100">
-      <div class="sidebar-link">
+      <div class="sidebar-link" onclick="location.href='admin.html'">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定
       </div>
     </div>
@@ -637,15 +645,31 @@
       <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
         <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
       </div>
-      <h3 class="heading font-semibold text-slate-800">102 到貨提醒</h3>
+      <h3 class="heading font-semibold text-slate-800" id="alert-102-title">102 到貨提醒</h3>
     </div>
-    <p class="text-sm text-slate-600 mb-5">到貨後 3 天內（禮拜日順延）需新增 <strong>TE QC 盤 +1</strong></p>
+    <p class="text-sm text-slate-600 mb-5" id="alert-102-text">到貨後 3 天內（禮拜日順延）需新增 <strong>TE QC 盤 +1</strong></p>
     <button onclick="close102Alert()" class="w-full py-2.5 bg-primary text-white font-semibold rounded-xl text-sm hover:bg-primary-dark transition-colors">了解，已記錄</button>
   </div>
 </div>
 
-<script src="shared.js"></script>
+<script src="shared.js?v=20"></script>
 <script>
+
+// ── 人員名單（先用 shared.js 內建預設，Firebase ready 後嘗試改用 staff_config；本頁人員選單是動態產生，故不需要 repaint 函式）──
+let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+async function resolveStaffList() {
+  try {
+    const rows = await window._fb?.getStaffConfig?.();
+    if (!rows || !rows.length) return;
+    EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(r => r.name);
+  } catch (e) {
+    console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
+  }
+}
+if (window.__fbDone) resolveStaffList();
+else window.addEventListener('fb-ready', resolveStaffList, { once: true });
 
 // ───────────────────────────────────────
 // STATE
@@ -812,7 +836,7 @@ function openCancelSheet(parentId, itemOrderId, itemName, remaining) {
   // 填人員下拉
   const sel = document.getElementById('cancel-by');
   sel.innerHTML = '<option value="">請選擇</option>' +
-    (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option>${n}</option>`).join('');
+    EFFECTIVE_STAFF_LIST.map(n => `<option>${n}</option>`).join('');
   // 預設現在時間（台北 UTC+8）
   const now = new Date(Date.now() + 8*3600000);
   document.getElementById('cancel-at').value = now.toISOString().slice(0,16);
@@ -835,7 +859,14 @@ async function confirmCancelItem() {
   if (!by) { showToast('請選擇取消人員', 'warn'); return; }
   if (!at) { showToast('請填寫取消時間', 'warn'); return; }
   try {
-    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    // 動作前重新抓最新資料，避免蓋掉其他裝置同時寫入的異動（跟 updateOrderStatus() 同一套防呆）
+    let history = [];
+    try {
+      history = await window._fb.getOrders();
+      localStorage.setItem('order-history', JSON.stringify(history));
+    } catch(e) {
+      history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    }
     const order = history.find(o => o.id === _cancelParentId);
     if (!order) { showToast('找不到對應訂單', 'warn'); return; }
     const item = (order.orders || []).find(o => o.orderId === _cancelItemOrderId);
@@ -861,7 +892,14 @@ async function confirmCancelItem() {
 async function undoCancelItem(parentId, itemOrderId) {
   if (!confirm('確定要撤銷此取消？品項將恢復到待收清單。')) return;
   try {
-    const history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    // 動作前重新抓最新資料，避免蓋掉其他裝置同時寫入的異動（跟 updateOrderStatus() 同一套防呆）
+    let history = [];
+    try {
+      history = await window._fb.getOrders();
+      localStorage.setItem('order-history', JSON.stringify(history));
+    } catch(e) {
+      history = JSON.parse(localStorage.getItem('order-history') || '[]');
+    }
     const order = history.find(o => o.id === parentId);
     if (!order) { showToast('找不到對應訂單', 'warn'); return; }
     const item = (order.orders || []).find(o => o.orderId === itemOrderId);
@@ -2296,7 +2334,7 @@ function _renderReviewContent(savedBy, savedAt) {
         <label class="block text-sm font-semibold text-slate-700 mb-1.5">簽收人 *</label>
         <select id="review-received-by" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
           <option value="">（選擇簽收人）</option>
-          ${(typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option${n === savedBy ? ' selected' : ''}>${n}</option>`).join('')}
+          ${EFFECTIVE_STAFF_LIST.map(n => `<option${n === savedBy ? ' selected' : ''}>${n}</option>`).join('')}
         </select>
       </div>
       <div>
@@ -2412,7 +2450,7 @@ async function batchSaveAllInner() {
     return;
   }
 
-  let has102 = false;
+  const qcTriggeredNames = new Set();
   const count = sessionTray.length;
   const importBatchId = `BATCH-${Date.now()}`;  // 同一次整批收貨共用同一個批次 ID
   const backupTray = [...sessionTray];  // 失敗時回滾用
@@ -2454,7 +2492,7 @@ async function batchSaveAllInner() {
     };
 
     records.unshift(record);
-    if (REQUIRE_QC_ITEMS.includes(item.productId)) has102 = true;
+    if (REQUIRE_QC_ITEMS.includes(item.productId)) qcTriggeredNames.add(PRODUCT_MAP[item.productId]?.name || item.productId);
   }
 
   saveRecords();
@@ -2522,10 +2560,13 @@ async function batchSaveAllInner() {
   showToast(`✓ 已新增 ${count} 筆進貨記錄`);
   renderExpectedDeliveries();
 
-  if (has102) setTimeout(show102Alert, 500);
+  if (qcTriggeredNames.size) setTimeout(() => show102Alert([...qcTriggeredNames]), 500);
 }
 
-function show102Alert() {
+function show102Alert(names) {
+  const label = (names && names.length) ? names.join('、') : '品項';
+  document.getElementById('alert-102-title').textContent = `${label} 到貨提醒`;
+  document.getElementById('alert-102-text').innerHTML = `到貨後 3 天內（禮拜日順延）需新增 <strong>TE QC 盤 +1</strong>`;
   document.getElementById('alert-102-overlay').classList.add('open');
 }
 
@@ -2536,12 +2577,6 @@ function close102Alert() {
 // ───────────────────────────────────────
 // BARCODE / GS1 PARSER
 // ───────────────────────────────────────
-
-function matchProductByGtin(gtin) {
-  if (!gtin) return null;
-  const norm = gtin.padStart(14, '0');
-  return PRODUCTS.find(p => p.gtin && p.gtin.padStart(14, '0') === norm) || null;
-}
 
 function matchProductsByGtin(gtin) {
   if (!gtin) return [];

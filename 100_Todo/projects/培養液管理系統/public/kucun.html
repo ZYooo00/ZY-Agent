@@ -17,11 +17,19 @@
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders } from './firebase-service.js?v=14';
+           getLatestBeipan, getOrders, getGlobalSettings, getStaffConfig, getProductsConfig } from './firebase-service.js?v=20';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-                 getLatestBeipan, getOrders };
+                 getLatestBeipan, getOrders, getGlobalSettings, getStaffConfig, getProductsConfig };
+  try {
+    const settings = await getGlobalSettings();
+    if (settings && typeof window.applyGlobalSettings === 'function') window.applyGlobalSettings(settings);
+  } catch (e) { console.warn('[global_settings] 讀取失敗，使用內建預設', e); }
+  try {
+    const rows = await getProductsConfig();
+    if (typeof window.resolveProductsFromConfig === 'function') window.resolveProductsFromConfig(rows);
+  } catch (e) { console.warn('[products_config] 讀取失敗，使用內建預設', e); }
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -241,7 +249,7 @@
     <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -278,7 +286,7 @@
       <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
     </div>
     <div class="mt-auto px-3 pt-4 border-t border-slate-100">
-      <div class="sidebar-link"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定</div>
+      <div class="sidebar-link" onclick="location.href='admin.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>後台設定</div>
     </div>
   </aside>
 
@@ -340,7 +348,7 @@
             <span class="text-3xl font-bold text-orange-500 tabular" id="kpi-expiring-num">0</span>
             <span class="text-sm text-slate-500 mb-0.5">個批號</span>
           </div>
-          <div class="text-xs text-slate-400 mt-1">7 天內即將過期</div>
+          <div class="text-xs text-slate-400 mt-1" id="kpi-expiring-label">即將過期</div>
         </div>
         <div class="kpi-card kpi-blue" id="kpi-pending" onclick="setKpiFilter('pending')">
           <div class="text-xs font-semibold text-blue-400 mb-1 uppercase tracking-wider">📦 待收貨</div>
@@ -665,7 +673,7 @@
   </div>
   <div id="drawer-body">
     <div id="drawer-sparkline"></div>
-    <div class="dw-section">批號 / 效期</div>
+    <div class="dw-section">批號 / 效期 <span class="info-tip" data-tip="批號明細依最新進貨與備盤推算，可能與盤點總數略有落差" style="font-size:12px">ℹ️</span></div>
     <div style="max-height:160px;overflow-y:auto;border-radius:8px;border:1px solid #F1F5F9">
       <table class="dw-lot-tbl" style="border:none"><tbody id="drawer-lot-tbody"></tbody></table>
     </div>
@@ -677,10 +685,25 @@
 <div id="toast"></div>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="shared.js"></script>
+<script src="shared.js?v=20"></script>
 <script>
-const GROUP_ORDER = ['培養液','試劑','耗材'];
 const STATUS_ORDER = { crit:0, warn:1, ok:2, none:3 };
+
+// ── 人員名單（先用 shared.js 內建預設，Firebase ready 後嘗試改用 staff_config；本頁人員選單是動態產生，故不需要 repaint 函式）──
+let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+async function resolveStaffList() {
+  try {
+    const rows = await window._fb?.getStaffConfig?.();
+    if (!rows || !rows.length) return;
+    EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(r => r.name);
+  } catch (e) {
+    console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
+  }
+}
+if (window.__fbDone) resolveStaffList();
+else window.addEventListener('fb-ready', resolveStaffList, { once: true });
 
 // ════════════════════════════════
 // STATE
@@ -699,18 +722,6 @@ let tableRangeDays = 30;
 // ════════════════════════════════
 function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function thisMonth() { return todayStr().slice(0,7); }
-
-function daysBetween(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr + 'T00:00:00');
-  const now = new Date(); now.setHours(0,0,0,0);
-  return Math.round((d - now) / 86400000);
-}
-
-function fmtNum(n) {
-  if (n === null || n === undefined) return '--';
-  return Number.isInteger(n) ? String(n) : parseFloat(n.toFixed(2)).toString();
-}
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function getLocalYMD(isoStr) { if (!isoStr) return ''; const d = new Date(isoStr); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -783,247 +794,17 @@ function saveChangelog(cl) { localStorage.setItem('kucun-changelog', JSON.string
 // ════════════════════════════════
 // PRODUCT INFO CALCULATION
 // ════════════════════════════════
-function calcProductInfo(product, data) {
-  const { jinhuo, pandian, beipan, order, changelog } = data;
-  const th = beipan?.threshold || {};
-  const orangeDays = product.expiryWarnDays ?? (th.orange_days ?? 3);
-  const redDays    = th.red_days    ?? 1;
+// calcProductInfo 已搬到 shared.js（純函數，供 kucun.html 與 order.html 共用）
 
-  // ── Stock ──
-  let stockDisplay = null;
-  let stockNum     = null;
-  let stockSource  = null;
-  const beipanBatches = (beipan?.batches || []).filter(b => b.reagentId === product.id);
-  const beipanBatch   = beipanBatches[0] || null; // for the if (beipanBatch) check
-  const pandianItem  = product.gupanId
-    ? pandian?.allValues?.find(v => v.id === product.gupanId)
-    : null;
-
-  // 統一日期格式為 YYYY-MM-DD（gupan.html 存 YYYY/MM/DD，beipan/jinhuo 存 YYYY-MM-DD）
-  const beipanDate   = (beipan?.date  || '').replace(/\//g, '-');
-  const pandianDate  = (pandian?.date || '').replace(/\//g, '-');
-
-  // 盤點精確截止時間（防止盤點當天早上的手動異動被重複扣除）
-  // pandian.completedAt = "HH:MM" 台灣時間，需轉為 UTC ISOString 才能和 log.tsRaw 公平字串比較
-  let pandianCutoff = pandianDate;
-  if (pandianDate && pandian?.completedAt) {
-    try {
-      pandianCutoff = new Date(`${pandianDate}T${pandian.completedAt}:00+08:00`).toISOString();
-    } catch(e) {
-      pandianCutoff = pandianDate;
-    }
-  }
-
-  // 計算指定時間點後的手動異動合計（qtyDelta 通常為負數）
-  const calcManualDelta = (isoCutoff) => (changelog || [])
-    .filter(log => {
-      const logTime = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
-      return log.productId === product.id
-          && log.source === 'manual'
-          && ['use','discard','adjust','lend','return'].includes(log.action)
-          && logTime > isoCutoff;
-    })
-    .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
-
-  if (beipanBatch) {
-    // 跨批次加總：只計算全新未開封瓶數（正在使用中的殘液不佔庫存名額）
-    const unopened    = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
-    if (pandianItem && pandianDate > beipanDate) {
-      // 有更新的盤點覆蓋備盤：以盤點為基準，加上盤點後進貨與手動異動
-      const newIncoming = jinhuo
-        .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > pandianDate)
-        .reduce((s, r) => s + (r.receivedQty||0), 0);
-      const manualDelta = calcManualDelta(pandianCutoff);
-      stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta);
-      stockDisplay = `${fmtNum(stockNum)} ${pandianItem.unit || product.unit}`;
-      stockSource  = 'pandian';
-    } else {
-      // 正常備盤路線：備盤快照 + 備盤後進貨 + 備盤後手動異動
-      // 用 >= beipanDate 且排除已在備盤內的批號，避免備盤同日手動還入的新批號被漏算
-      const beipanLotSet = new Set(beipanBatches.map(bb => bb.selectedLot).filter(Boolean));
-      const newIncoming = jinhuo
-        .filter(r => r.productId === product.id && !r.isVoided
-                  && !beipanLotSet.has(r.lotNumber)
-                  && (r.receivedAt||'') >= beipanDate)
-        .reduce((s, r) => s + (r.receivedQty||0), 0);
-      const beipanCutoff = beipan?.submittedAt || beipanDate;
-      const manualDelta  = calcManualDelta(beipanCutoff);
-      const baseBottles  = unopened; // 只計算全新未開封瓶
-      stockNum    = Math.max(0, baseBottles + newIncoming + manualDelta);
-      stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
-      stockSource  = 'beipan';
-    }
-  } else if (pandianItem) {
-    // 非備盤品項（602、110 等試劑類）：盤點基準 + 盤點後進貨 + 手動異動
-    const newIncoming = jinhuo
-      .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > pandianDate)
-      .reduce((s, r) => s + (r.receivedQty||0), 0);
-    const manualDelta = calcManualDelta(pandianCutoff);
-    stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta);
-    stockDisplay = `${fmtNum(stockNum)} ${pandianItem.unit || product.unit}`;
-    stockSource  = 'pandian';
-  } else {
-    // 從未盤點的品項：以全部進貨紀錄為基準
-    const totalJinhuo = jinhuo
-      .filter(r => r.productId === product.id && !r.isVoided)
-      .reduce((s, r) => s + (r.receivedQty||0), 0);
-    if (totalJinhuo > 0) {
-      const manualDelta = calcManualDelta(''); // 無快照基準，計算全部歷史
-      stockNum     = Math.max(0, totalJinhuo + manualDelta);
-      stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
-      stockSource  = 'jinhuo';
-    }
-    // 若連進貨紀錄都沒有，stockNum 維持 null（顯示 —）
-  }
-
-  // ── Target（優先用 PRODUCTS 的最新設定，fallback 到盤點快照的舊值）──
-  const target = PRODUCTS.find(p => p.id === product.id)?.target ?? pandianItem?.target ?? null;
-
-  // ── Pending delivery ──
-  let pending = 0;
-  if (product.gupanId) {
-    const orderHistory = data.orderHistory || [];
-    orderHistory.forEach(ord => {
-      if (!['pending', 'partial'].includes(ord.status)) return;
-      (ord.orders || []).forEach(oi => {
-        if (oi.orderId === product.gupanId) {
-          pending += Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
-        }
-      });
-    });
-    // fallback：若 orderHistory 為空但舊 order-result 存在
-    if (pending === 0 && data.order?.orders) {
-      const oi = data.order.orders.find(o => o.itemId === product.gupanId);
-      if (oi) pending = Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
-    }
-  }
-
-  // ── Active lots (from jinhuo, group by lot#) ──
-  const lotMap = {};
-  jinhuo
-    .filter(r => r.productId === product.id && !r.isVoided && r.lotNumber)
-    .sort((a,b) => (a.receivedAt||'').localeCompare(b.receivedAt||''))
-    .forEach(r => {
-      const k = r.lotNumber;
-      if (!lotMap[k]) lotMap[k] = { lot:k, expiry:r.expiryDate||'', qty:0 };
-      lotMap[k].qty += r.receivedQty||0;
-    });
-  const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
-
-  // ── A1：對非備盤批號逐批套用 manual changelog 扣減 ──
-  const beipanSelectedLots = new Set(
-    beipanBatches.map(bb => bb.selectedLot).filter(Boolean)
-  );
-  lots.forEach(lot => {
-    if (beipanSelectedLots.has(lot.lot)) return; // 備盤批號由下方 beipan block 處理
-    const netDelta = (changelog || [])
-      .filter(log => {
-        return log.productId === product.id
-            && log.lotNumber === lot.lot
-            && log.source === 'manual'
-            && ['use','discard','lend','return','adjust'].includes(log.action);
-      })
-      .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
-    lot.qty = Math.max(0, lot.qty + netDelta);
-  });
-
-  // ── 修正備盤批號的庫存數（只在備盤為基準時執行，避免以舊備盤覆蓋更新的盤點數據）──
-  if (stockSource === 'beipan') {
-    const bpCutoff = beipan?.submittedAt || beipanDate;
-    beipanBatches.forEach(bb => {
-      if (!bb.selectedLot) return;
-      const currLot = lots.find(l => l.lot === bb.selectedLot);
-      if (!currLot) return;
-      const snapQty     = bb.unopened ?? 0;
-      const lotIncoming = jinhuo
-        .filter(r => r.productId === product.id && r.lotNumber === bb.selectedLot
-                  && !r.isVoided && (r.receivedAt||'') > beipanDate)
-        .reduce((s, r) => s + (r.receivedQty||0), 0);
-      const lotDelta = (changelog || [])
-        .filter(log => {
-          const t = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
-          return log.productId === product.id && log.lotNumber === bb.selectedLot
-              && log.source === 'manual' && ['use','discard','adjust','lend','return'].includes(log.action)
-              && t > bpCutoff;
-        })
-        .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
-      currLot.qty = Math.max(0, snapQty + lotIncoming + lotDelta);
-    });
-  }
-
-  // ── Status ──
-  let status = (stockSource || lots.length>0) ? 'ok' : 'none';
-  if (status !== 'none') {
-    lots.forEach(lot => {
-      if (lot.qty <= 0) return; // A2：耗盡批號不觸發效期警告
-      const d = daysBetween(lot.expiry);
-      if (d !== null) {
-        if (d <= redDays) {
-          // 今明到期：不論備貨量，需今日用完或丟棄 → 危急
-          status = 'crit';
-        } else if (d <= orangeDays && status !== 'crit') {
-          // 效期預警：只有在該批號到期後剩餘庫存低於安全量時才標注意
-          // 若有足夠備用批號撐到下次補貨，不需打擾管理者
-          if (target !== null) {
-            const remainAfterExpiry = (stockNum ?? 0) - lot.qty;
-            if (remainAfterExpiry < target) status = 'warn';
-          }
-        }
-      }
-    });
-    if (target !== null && stockNum !== null) {
-      if (stockNum < target * 0.5 && status !== 'crit') status = 'crit';
-      else if (stockNum < target && status === 'ok')    status = 'warn';
-    }
-  }
-
-  return { stockDisplay, stockSource, stockNum, pending, lots, status, target, orangeDays, redDays };
-}
-
-// ── 期間估計用量（盤點推算 優先，備盤推算 次之）──
-function calcEstUsage(productId, pandianHistory, beipanResult, jinhuoRecs) {
-  // 統一日期格式：pandian 存 YYYY/MM/DD，beipan/jinhuo 存 YYYY-MM-DD
-  const normDate = d => (d || '').replace(/\//g, '-');
-  const sortedPandian = [...(pandianHistory || [])]
-    .sort((a,b) => normDate(a.date).localeCompare(normDate(b.date)));
-  const beipanDate = normDate(beipanResult?.date);
-  const latestPandianDate = sortedPandian.length > 0 ? normDate(sortedPandian[sortedPandian.length-1].date) : '';
-
-  // Case 1: 有 ≥2 筆盤點，且最新盤點 ≥ 最新備盤 → 盤點推算（精確）
-  if (sortedPandian.length >= 2 && latestPandianDate >= beipanDate) {
-    const prev = sortedPandian[sortedPandian.length - 2];
-    const curr = sortedPandian[sortedPandian.length - 1];
-    const prevItem = (prev.allValues||[]).find(v => v.id === `m-${productId}`);
-    const currItem = (curr.allValues||[]).find(v => v.id === `m-${productId}`);
-    if (!prevItem || !currItem) return { usage: null, label: '—' };
-    const prevDate = normDate(prev.date);
-    const currDate = normDate(curr.date);
-    const purchases = (jinhuoRecs||[])
-      .filter(r => r.productId === productId && !r.isVoided
-                && (r.receivedAt||'') > prevDate && (r.receivedAt||'') <= currDate)
-      .reduce((s,r) => s + (r.receivedQty||0), 0);
-    const usage = prevItem.actual + purchases - currItem.actual;
-    return { usage: usage >= 0 ? usage : null, label: '盤點推算' };
-  }
-
-  // Case 2: 最新備盤 > 最新盤點，且有 ≥1 筆盤點 → 備盤推算（估）
-  if (beipanDate && sortedPandian.length >= 1 && beipanDate > latestPandianDate) {
-    const prevPandian = sortedPandian[sortedPandian.length - 1];
-    const prevItem = (prevPandian.allValues||[]).find(v => v.id === `m-${productId}`);
-    if (!prevItem) return { usage: null, label: '—' };
-    const beipanBatch = beipanResult?.batches?.find(b => b.reagentId === productId);
-    if (!beipanBatch) return { usage: null, label: '—' };
-    const currActual = beipanBatch.unopened || 0;
-    const prevDate = normDate(prevPandian.date);
-    const purchases = (jinhuoRecs||[])
-      .filter(r => r.productId === productId && !r.isVoided
-                && (r.receivedAt||'') > prevDate && (r.receivedAt||'') <= beipanDate)
-      .reduce((s,r) => s + (r.receivedQty||0), 0);
-    const usage = prevItem.actual + purchases - currActual;
-    return { usage: usage >= 0 ? usage : null, label: '備盤推算（估）' };
-  }
-
-  return { usage: null, label: '—' };
+// ── 期間估計用量：優先用近 30 天滾動用量，非備盤試劑/耗材退到盤點多期平均（見 shared.js calcMonthlyUsage）──
+// 舊算法是兩次盤點/備盤的快照差值 ÷ 間隔天數，間隔天數不固定、易被單一離群值放大；
+// changelog 逐日消耗紀錄只有走備盤流程的品項才有，非備盤試劑/耗材（PVP、Top tips……）改用
+// calcPandianDeltaUsage 的多期盤點平均，兩者由 calcMonthlyUsage 統一包裝。
+function calcEstUsage(productId, pandianHistory, beipanResult, jinhuoRecs, changelog) {
+  const product = PRODUCT_MAP[productId];
+  if (!product) return { usage: null, label: '—' };
+  const r = calcMonthlyUsage(product, { changelog, jinhuo: jinhuoRecs, pandianHistory });
+  return { usage: r.monthlyUsage > 0 ? r.monthlyUsage : null, label: r.label };
 }
 
 // ════════════════════════════════
@@ -1037,7 +818,7 @@ function calcKPIs() {
     if (!p.paused && info.target !== null && info.stockNum !== null && info.stockNum < info.target) shortageCount++;
     info.lots.forEach(lot => {
       const d = daysBetween(lot.expiry);
-      if (d !== null && d >= 0 && d <= 7) expiringCount++;
+      if (d !== null && d >= 0 && d <= info.orangeDays) expiringCount++;
       if (d !== null && d < 0 && (lot.qty || 0) > 0) disposalCount++;
     });
     if (info.pending > 0) pendingCount++;
@@ -1052,6 +833,7 @@ function renderKPIs() {
   const kpis = calcKPIs();
   document.getElementById('kpi-shortage-num').textContent = kpis.shortageCount;
   document.getElementById('kpi-expiring-num').textContent = kpis.expiringCount;
+  document.getElementById('kpi-expiring-label').textContent = `${GLOBAL_SETTINGS.orangeDays} 天內即將過期`;
   document.getElementById('kpi-pending-num').textContent  = kpis.pendingCount;
   document.getElementById('kpi-qc-num').textContent       = kpis.pendingQCCount;
   document.getElementById('kpi-disposal-num').textContent = kpis.disposalCount;
@@ -1135,6 +917,20 @@ function badgeHtml(status) {
   if (status === 'ok')   return `<span class="badge-ok">🟢 充足</span>`;
   return `<span class="badge-none">⚪ 無資料</span>`;
 }
+// Phase 3：庫存健康度／批號效期已在 calcProductInfo() 拆成獨立指標，這兩個 badge 專供詳情抽屜使用
+// （主表格「狀態」欄維持用上面合併版的 badgeHtml(info.status)，避免既有欄寬要大改）
+function stockBadgeHtml(status) {
+  if (status === 'crit') return `<span class="badge-crit">🔴 缺貨</span>`;
+  if (status === 'warn') return `<span class="badge-warn">🟠 庫存偏低</span>`;
+  if (status === 'ok')   return `<span class="badge-ok">🟢 庫存充足</span>`;
+  return `<span class="badge-none">⚪ 無資料</span>`;
+}
+function expiryBadgeHtml(status) {
+  if (status === 'crit') return `<span class="badge-crit">🔴 即將到期</span>`;
+  if (status === 'warn') return `<span class="badge-warn">🟠 效期注意</span>`;
+  if (status === 'ok')   return `<span class="badge-ok">🟢 效期正常</span>`;
+  return `<span class="badge-none">⚪ 無批號</span>`;
+}
 
 function getSortedProducts(data) {
   const products = PRODUCTS.filter(p => !p.hidden);
@@ -1169,9 +965,10 @@ function renderInventoryTable(data) {
       return i.target !== null && i.stockNum !== null && i.stockNum < i.target;
     });
   } else if (kpiFilter === 'expiring') {
-    products = products.filter(p =>
-      productInfoCache[p.id].lots.some(l => { const d = daysBetween(l.expiry); return d !== null && d >= 0 && d <= 7; })
-    );
+    products = products.filter(p => {
+      const info = productInfoCache[p.id];
+      return info.lots.some(l => { const d = daysBetween(l.expiry); return d !== null && d >= 0 && d <= info.orangeDays; });
+    });
   } else if (kpiFilter === 'pending') {
     products = products.filter(p => productInfoCache[p.id].pending > 0);
   } else if (kpiFilter === 'qc') {
@@ -1192,7 +989,7 @@ function renderInventoryTable(data) {
   const totalCols = 4 + cols.length + 2;
 
   // ── Header row ──
-  const tooltipText = '盤點推算 = 前次盤點 + 期間進貨 − 本次盤點\n備盤推算（估）= 以最新備盤換算瓶數，誤差略高';
+  const tooltipText = '走備盤流程的品項：加總 changelog 中近 30 天的每日消耗紀錄\n非備盤試劑/耗材：改用近 90 天內多次盤點差值的平均換算';
   let theadHtml = `
     <th class="sl sl-0">品項</th>
     <th class="sl sl-1">庫存</th>
@@ -1219,7 +1016,7 @@ function renderInventoryTable(data) {
   });
   theadHtml += '<th style="width:100%;min-width:20px;border-bottom:2px solid #E2E4F4"></th>';
   theadHtml += `<th class="sr-1" style="padding:10px 8px">期間估計用量 <span class="info-tip" data-tip="${tooltipText}" style="font-size:14px">ℹ️</span></th>`;
-  theadHtml += `<th class="sr" style="padding:10px 8px">預計可撐天數 <span class="info-tip" data-tip="公式：目前庫存 ÷ (期間估計用量 ÷ 期間天數)" style="font-size:14px">ℹ️</span></th>`;
+  theadHtml += `<th class="sr" style="padding:10px 8px">預計可撐天數 <span class="info-tip" data-tip="公式：目前庫存 ÷ 近 30 天日均消耗量" style="font-size:14px">ℹ️</span></th>`;
   document.getElementById('inv-thead').innerHTML = `<tr>${theadHtml}</tr>`;
 
   // ── Body rows ──
@@ -1307,11 +1104,11 @@ function renderInventoryTable(data) {
     });
     midCells += '<td style="width:100%"></td>';
 
-    const est = calcEstUsage(p.id, data.pandianHistory, data.beipan, data.jinhuo);
+    const est = calcEstUsage(p.id, data.pandianHistory, data.beipan, data.jinhuo, data.changelog);
     let estCell;
     if (est.usage !== null) {
-      const labelCls = est.label === '盤點推算' ? 'text-violet-600' : 'text-violet-400';
-      estCell = `<div class="font-semibold ${labelCls} text-sm tabular">${fmtNum(est.usage)} ${p.unit}</div>
+      const labelCls = est.label === '近 30 天' ? 'text-violet-600' : 'text-violet-400';
+      estCell = `<div class="font-semibold ${labelCls} text-sm tabular">${Math.ceil(est.usage)} ${p.unit}</div>
         <div class="text-xs text-slate-400 mt-0.5">${est.label}</div>`;
     } else {
       estCell = `<span class="text-slate-300 text-sm">—</span>`;
@@ -1352,31 +1149,32 @@ function renderInventoryTable(data) {
 function exportCSV() {
   if (!cachedData) { showToast('尚無資料，請先載入'); return; }
   const STATUS_ZH = { crit:'危急', warn:'注意', ok:'充足', none:'無資料' };
-  const CAT_MEDIA = new Set(['givf','gxtl','glue','h5gt','aoa-ci','aoa-508','hepes','oil']);
-  const header = ['品項分類','品項名稱','廠商','目前庫存','狀態','待收貨數量','預計可撐天數','期間估計用量'];
+  const header = ['品項分類','品項名稱','廠商','目前庫存','狀態','庫存健康度','批號效期','待收貨數量','預計可撐天數','期間估計用量'];
   const rows = PRODUCTS.map(p => {
     const info = productInfoCache[p.id] || calcProductInfo(p, cachedData);
-    const cat = CAT_MEDIA.has(p.id) ? '培養液' : '試劑';
+    const cat = p.group || '試劑';
     const stock  = info.stockDisplay || '—';
     const status = STATUS_ZH[info.status] || '—';
+    const stockStatus  = STATUS_ZH[info.stockStatus] || '—';
+    const expiryStatus = STATUS_ZH[info.expiryStatus] || '—';
     const pending = info.pending > 0 ? `${info.pending} ${p.unit}` : '—';
     const doi = calcDoI(p.id, cachedData);
     const daysStr = doi !== null ? `≈ ${doi} 天` : '—';
-    const est = calcEstUsage(p.id, cachedData.pandianHistory, cachedData.beipan, cachedData.jinhuo);
+    const est = calcEstUsage(p.id, cachedData.pandianHistory, cachedData.beipan, cachedData.jinhuo, cachedData.changelog);
     const estStr = est.usage !== null ? `${est.usage} ${p.unit}（${est.label}）` : '—';
-    return [cat, p.name, p.vendor, stock, status, pending, daysStr, estStr]
+    return [cat, p.name, p.vendor, stock, status, stockStatus, expiryStatus, pending, daysStr, estStr]
       .map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   const now = new Date();
   const ymd = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const hm  = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
   const rptTime = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const infoRow = `"報表產生時間：${rptTime}，報表產生人：高任佑"`;
+  const infoRow = `"報表產生時間：${rptTime}，報表產生人：（未指定）"`;
   const csvContent = '﻿' + [infoRow, '', header.join(','), ...rows].join('\r\n');
   const blob = new Blob([csvContent], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `台北胚胎室_庫存快照_${ymd}_${hm}.csv`;
+  a.href = url; a.download = `${CLINIC_NAME}_庫存快照_${ymd}_${hm}.csv`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`已匯出 ${PRODUCTS.length} 品項庫存快照`);
@@ -1416,12 +1214,12 @@ function exportChangelogCSV() {
   const ymd = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const hm  = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
   const rptTime = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const infoRow = `"報表產生時間：${rptTime}，報表產生人：高任佑"`;
+  const infoRow = `"報表產生時間：${rptTime}，報表產生人：（未指定）"`;
   const csvContent = '﻿' + [infoRow, '', header.join(','), ...rows].join('\r\n');
   const blob = new Blob([csvContent], { type:'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `台北胚胎室_異動日誌_${ymd}_${hm}.csv`;
+  a.href = url; a.download = `${CLINIC_NAME}_異動日誌_${ymd}_${hm}.csv`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`已匯出 ${sorted.length} 筆異動日誌`);
@@ -1675,26 +1473,11 @@ function sparklineHtml(productId, changelog, w=160, h=40) {
 function calcDoI(productId, data) {
   const info = productInfoCache[productId];
   if (!info || info.stockNum === null) return null;
-  const est = calcEstUsage(productId, data.pandianHistory, data.beipan, data.jinhuo);
-  if (est.usage === null || est.usage <= 0) return null;
-  const sortedPandian = [...(data.pandianHistory || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  const beipanDate = data.beipan?.date || '';
-  const latestPandianDate = sortedPandian.length > 0 ? sortedPandian[sortedPandian.length-1].date : '';
-  let prevDate, currDate;
-  if (sortedPandian.length >= 2 && latestPandianDate >= beipanDate) {
-    prevDate = sortedPandian[sortedPandian.length - 2].date;
-    currDate = sortedPandian[sortedPandian.length - 1].date;
-  } else if (beipanDate && sortedPandian.length >= 1 && beipanDate > latestPandianDate) {
-    prevDate = sortedPandian[sortedPandian.length - 1].date;
-    currDate = beipanDate;
-  } else {
-    return null;
-  }
-  const periodDays = Math.round((new Date(currDate) - new Date(prevDate)) / 86400000);
-  if (periodDays <= 0) return null;
-  const dailyUsage = est.usage / periodDays;
-  if (dailyUsage <= 0) return null;
-  return Math.round(info.stockNum / dailyUsage);
+  const product = PRODUCT_MAP[productId];
+  if (!product) return null;
+  const r = calcMonthlyUsage(product, { changelog: data.changelog, jinhuo: data.jinhuo, pandianHistory: data.pandianHistory });
+  if (!r.dailyUsage || r.dailyUsage <= 0) return null; // 兩種算法都無用量紀錄 → 顯示「—」，不能除以零
+  return Math.round(info.stockNum / r.dailyUsage);
 }
 
 // ════════════════════════════════
@@ -1714,7 +1497,7 @@ function openDrawer(productId) {
   document.getElementById('drawer-stock-row').innerHTML = `
     <div class="text-sm text-slate-700"><span class="font-semibold tabular">${stockStr}</span> 庫存</div>
     ${targetStr}
-    <div class="ml-auto">${badgeHtml(info.status)}</div>
+    <div class="ml-auto flex flex-col items-end gap-1">${stockBadgeHtml(info.stockStatus)}${expiryBadgeHtml(info.expiryStatus)}</div>
   `;
 
   // Sparkline（近 90 天趨勢）
@@ -1738,7 +1521,7 @@ function openDrawer(productId) {
       const isExpired = (d ?? 1) <= 0;
       const expClr = isExpired ? '#94A3B8' : origIdx === 0 ? '#15803D' : '#1D4ED8';
       const dLabel = !isExpired && d !== null
-        ? `<span style="font-size:10px;color:${d <= 3 ? '#DC2626' : d <= 7 ? '#D97706' : '#94A3B8'}">&nbsp;(${d}天後)</span>`
+        ? `<span style="font-size:10px;color:${d <= info.redDays ? '#DC2626' : d <= info.orangeDays ? '#D97706' : '#94A3B8'}">&nbsp;(${d}天後)</span>`
         : (isExpired ? `<span style="font-size:10px;color:#CBD5E1">&nbsp;已過期</span>` : '');
       const lotBg  = isExpired ? '#F8FAFC' : origIdx === 0 ? '#F0FDF4' : '#EFF6FF';
       const lotClr = isExpired ? '#CBD5E1' : origIdx === 0 ? '#15803D' : '#1D4ED8';
@@ -1859,7 +1642,7 @@ function markQcPassed(productId, lotNumber) {
   // 填入人員下拉選單
   if (operatorSel) {
     operatorSel.innerHTML = '<option value="">請選擇人員</option>';
-    (STAFF_LIST || []).forEach(s => {
+    (EFFECTIVE_STAFF_LIST || []).forEach(s => {
       const opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
       operatorSel.appendChild(opt);
@@ -1890,7 +1673,7 @@ function revertQcPassed(productId, lotNumber) {
   if (reasonInput) reasonInput.value = '';
   if (operatorSel) {
     operatorSel.innerHTML = '<option value="">請選擇人員</option>';
-    (STAFF_LIST || []).forEach(s => {
+    (EFFECTIVE_STAFF_LIST || []).forEach(s => {
       const opt = document.createElement('option');
       opt.value = s; opt.textContent = s;
       operatorSel.appendChild(opt);
@@ -2191,7 +1974,7 @@ function openLogModal() {
   }
   const opSel = document.getElementById('log-operator');
   if (opSel.options.length <= 1) {
-    STAFF_LIST.forEach(name => {
+    EFFECTIVE_STAFF_LIST.forEach(name => {
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;

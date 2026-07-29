@@ -15,9 +15,23 @@
   <script src="design.js" defer></script>
   <!-- Firebase bridge -->
   <script type="module">
-    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog } from './firebase-service.js?v=11';
+    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getKucunChangelogByRange, getPandianHistory, getGlobalSettings, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=20';
     try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-    window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog };
+    window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog, getJinhuoRecords, getLatestBeipan, getKucunChangelogByRange, getPandianHistory, getGlobalSettings, getStaffConfig, getProductsConfig, getVendorsConfig };
+    try {
+      const settings = await getGlobalSettings();
+      if (settings && typeof window.applyGlobalSettings === 'function') window.applyGlobalSettings(settings);
+    } catch (e) { console.warn('[global_settings] 讀取失敗，使用內建預設', e); }
+    try {
+      const rows = await getProductsConfig();
+      if (typeof window.resolveProductsFromConfig === 'function') window.resolveProductsFromConfig(rows);
+    } catch (e) { console.warn('[products_config] 讀取失敗，使用內建預設', e); }
+    try {
+      const vendors = await getVendorsConfig();
+      if (vendors && vendors.length) {
+        window.VENDOR_META = Object.fromEntries(vendors.map(v => [v.id, { contact: v.contact, leadtime: v.leadtime }]));
+      }
+    } catch (e) { console.warn('[vendors_config] 讀取失敗，使用內建預設', e); }
     window.__fbDone = true;
     window.dispatchEvent(new CustomEvent('fb-ready'));
   </script>
@@ -121,7 +135,7 @@
       庫存總覽
     </div>
     <div class="mt-auto" style="margin-top:auto;padding-top:16px;border-top:1px solid #f1f5f9">
-      <div class="sidebar-link" style="color:#94a3b8;cursor:default">
+      <div class="sidebar-link" onclick="location.href='admin.html'">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         後台設定
       </div>
@@ -173,7 +187,7 @@
         庫存總覽
       </div>
       <div class="mt-auto" style="margin-top:auto;padding-top:12px;border-top:1px solid #f1f5f9">
-        <div class="sidebar-link" style="color:#94a3b8;cursor:default">
+        <div class="sidebar-link" onclick="location.href='admin.html'">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           後台設定
         </div>
@@ -313,7 +327,7 @@
     </main>
   </div>
 
-  <script src="shared.js"></script>
+  <script src="shared.js?v=20"></script>
   <script>
   // ═══════════════════════════════════════════════════════════════
   // MEDIUM_CONFIG — 培養液批次訂購（LifeGlobal / Vitrolife）
@@ -321,26 +335,31 @@
   // ═══════════════════════════════════════════════════════════════
   // 廠商聯絡資訊（廠商層級，不放進 PRODUCTS）
   // ═══════════════════════════════════════════════════════════════
-  const VENDOR_META = {
+  const DEFAULT_VENDOR_META = {
     '弘優': { contact:'小花 / Summer', leadtime:'1–2 週' },
     '亞樸': { contact:'Edward',        leadtime:'2–3 週' },
     '億宸': { contact:'Raphael',       leadtime:'1–2 週' },
     '磊柏': { contact:'Sherry Peng',   leadtime:'約 1 個月' },
     '明美': { contact:'Eric',          leadtime:'當天到' },
   };
+  let VENDOR_META = DEFAULT_VENDOR_META;
+  // 廠商聯絡資訊在 VENDOR_META 裡找不到時的預設值，取代原本「直接跳過品項」的靜默失敗
+  const FALLBACK_VENDOR_META = { contact:'（聯絡人未設定）', leadtime:'（交期未設定）' };
+  function vendorMeta(v) { return VENDOR_META[v] || FALLBACK_VENDOR_META; }
 
   // ═══════════════════════════════════════════════════════════════
   // MEDIUM_CONFIG — 有原廠品牌的培養液（Vitrolife / LifeGlobal）
   // 依 brand 欄位分組；brand=null 的品項不在此區
   // ═══════════════════════════════════════════════════════════════
-  const MEDIUM_CONFIG = (() => {
+  // 兩者都改成函式，可以在 PRODUCTS／VENDOR_META 從 Firestore 解析完後重新呼叫一次
+  function buildMediumConfig() {
     const brandMap = {};
     PRODUCTS.forEach(p => {
-      if (!p.gupanId || !p.brand || p.hidden) return;
+      if (!p.gupanId || !p.brand || p.hidden || p.paused) return;
       if (!brandMap[p.brand]) brandMap[p.brand] = {
         brand:   p.brand,
         vendor:  p.vendor,
-        contact: VENDOR_META[p.vendor]?.contact || '',
+        contact: vendorMeta(p.vendor).contact,
         items:   [],
       };
       brandMap[p.brand].items.push({
@@ -354,18 +373,18 @@
       });
     });
     return Object.values(brandMap);
-  })();
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // ORDER_CONFIG — brand=null 的品項，依廠商分組
   // 有 brand 的品項（Vitrolife/LifeGlobal）已在 MEDIUM_CONFIG，不重複出現
+  // 廠商聯絡資訊查不到時改用 vendorMeta() 的預設值顯示，不再直接跳過整個品項
   // ═══════════════════════════════════════════════════════════════
-  const ORDER_CONFIG = (() => {
+  function buildOrderConfigList() {
     const vendorMap = {};
     PRODUCTS.forEach(p => {
-      if (!p.gupanId || p.brand !== null || p.hidden) return; // 跳過有品牌或隱藏的品項
+      if (!p.gupanId || p.brand !== null || p.hidden || p.paused) return; // 跳過有品牌、隱藏、或暫停叫貨的品項
       const v = p.vendor;
-      if (!VENDOR_META[v]) return;
       if (!vendorMap[v]) vendorMap[v] = [];
       vendorMap[v].push({
         itemId:     p.gupanId,
@@ -379,19 +398,40 @@
     });
     return Object.entries(vendorMap).map(([vendor, items]) => ({
       vendor,
-      contact:  VENDOR_META[vendor].contact,
-      leadtime: VENDOR_META[vendor].leadtime,
+      contact:  vendorMeta(vendor).contact,
+      leadtime: vendorMeta(vendor).leadtime,
       items,
     }));
-  })();
+  }
 
-  // 填充訂貨人選單
-  (function() {
+  let MEDIUM_CONFIG = buildMediumConfig();
+  let ORDER_CONFIG = buildOrderConfigList();
+
+  // 填充訂貨人選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）
+  let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+  function renderStaffOptions() {
     const el = document.getElementById('order-staff');
-    if (el && typeof STAFF_LIST !== 'undefined') {
-      el.innerHTML = '<option value="">（選擇）</option>' + STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+    if (!el) return;
+    const prev = el.value;
+    el.innerHTML = '<option value="">（選擇）</option>' + EFFECTIVE_STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+    if (prev && EFFECTIVE_STAFF_LIST.includes(prev)) el.value = prev;
+  }
+  renderStaffOptions();
+
+  async function resolveStaffList() {
+    try {
+      const rows = await window._fb?.getStaffConfig?.();
+      if (!rows || !rows.length) return;
+      EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .map(r => r.name);
+      renderStaffOptions();
+    } catch (e) {
+      console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
     }
-  })();
+  }
+  if (window.__fbDone) resolveStaffList();
+  else window.addEventListener('fb-ready', resolveStaffList, { once: true });
 
   // ═══════════════════════════════════════════════════════════════
   // State
@@ -400,6 +440,59 @@
   let intransitMap = {};   // orderId → { name, vendor, unit, orderQty } (aggregated pending)
   let pandianMeta = null;
   let activeOrders = [];   // all pending/partial orders from order-history
+
+  // 月使用量 / 應有效期與瓶數 欄位用的資料（近 90 天，供 calcMonthlyUsage / calcProductInfo 共用）
+  let usageJinhuo = [];
+  let usageBeipan = null;
+  let usageChangelog = [];
+  let usagePandianHistory = [];
+
+  async function loadUsageData() {
+    try {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      ninetyDaysAgo.setHours(0, 0, 0, 0);
+      const [jinhuo, beipan, changelog, pandianHistory] = await Promise.all([
+        window._fb.getJinhuoRecords(),
+        window._fb.getLatestBeipan(),
+        window._fb.getKucunChangelogByRange(ninetyDaysAgo.toISOString(), new Date().toISOString()),
+        window._fb.getPandianHistory(),
+      ]);
+      usageJinhuo = jinhuo || [];
+      usageBeipan = beipan || null;
+      usageChangelog = changelog || [];
+      usagePandianHistory = pandianHistory || [];
+    } catch(e) {
+      console.warn('[order] 用量資料讀取失敗', e);
+      usageJinhuo = []; usageBeipan = null; usageChangelog = []; usagePandianHistory = [];
+    }
+  }
+
+  // 近 30 / 31–60 / 61–90 天三個區間的實際數字（不做箭頭，只給數字，由近到遠排列，跟表頭「(30/60/90)」一致）
+  // 只適用走備盤流程、changelog 有逐日消耗紀錄的品項；非備盤試劑/耗材沒有這個粒度，不適用。
+  function calcThreeMonthBuckets(productId, changelog) {
+    const CONSUME_ACTIONS = ['beipan', 'beipan_addon'];
+    const now = Date.now();
+    function sumBucket(daysFrom, daysTo) {
+      const from = now - daysTo * 86400000;
+      const to   = now - daysFrom * 86400000;
+      let sum = 0;
+      (changelog || []).forEach(log => {
+        if (log.productId !== productId || log.source !== 'beipan') return;
+        if (!CONSUME_ACTIONS.includes(log.action)) return;
+        const t = getLogTime(log);
+        if (!t) return;
+        const ts = new Date(t).getTime();
+        if (ts >= from && ts < to) sum += Math.abs(log.bottlesOpened ?? log.qtyDelta ?? 0);
+      });
+      return parseFloat(sum.toFixed(1));
+    }
+    return [sumBucket(0, 30), sumBucket(30, 60), sumBucket(60, 90)];
+  }
+
+  function buildBucketsHtml(buckets) {
+    return buckets.map(v => Math.ceil(v)).join(' / ');
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // Module navigation
@@ -523,7 +616,10 @@
   // Build order page
   // ═══════════════════════════════════════════════════════════════
   async function buildOrderPage() {
-    await loadIntransit();
+    // Firebase bridge 已在 fb-ready 前解析過 products_config／vendors_config，這裡重新計算才會吃到最新資料
+    MEDIUM_CONFIG = buildMediumConfig();
+    ORDER_CONFIG = buildOrderConfigList();
+    await Promise.all([loadIntransit(), loadUsageData()]);
     const hasPandian = await loadPandianResult();
 
     document.getElementById('order-pandian-card').classList.toggle('hidden', !hasPandian);
@@ -576,7 +672,7 @@
             <tr>
               <th style="min-width:140px">品項名稱</th>
               <th style="width:100px">安全警戒線</th>
-              <th style="width:70px">月使用量</th>
+              <th style="width:90px;white-space:nowrap">月使用量 <span style="font-weight:400;font-size:10px;color:#94a3b8">(30/60/90)</span></th>
               <th style="width:80px">現有庫存</th>
               <th style="min-width:80px">效期備註</th>
               <th style="min-width:100px">應有效期與瓶數</th>
@@ -629,13 +725,42 @@
       ? `<span class="text-blue-600 font-semibold">${transit.orderQty}</span>`
       : `<span class="text-slate-300 text-xs">—</span>`;
 
+    // 月使用量（見 shared.js calcMonthlyUsage：走備盤流程用 changelog 逐日消耗，其餘退到盤點多期平均）
+    const product = GUPAN_MAP[item.itemId];
+    let usageHtml = `<span class="text-slate-300 text-xs">—</span>`;
+    let lotsHtml = `<span class="text-slate-300 text-xs">—</span>`;
+    if (product) {
+      const r = calcMonthlyUsage(product, { changelog: usageChangelog, jinhuo: usageJinhuo, pandianHistory: usagePandianHistory });
+      if (r.monthlyUsage > 0) {
+        // 走備盤流程、changelog 有逐日消耗紀錄的品項 → 顯示近 30/31-60/61-90 天三個數值（不做箭頭）
+        // 非備盤試劑/耗材（盤點多期平均推算）沒有這個粒度，不顯示任何字樣——沒有三個數值就代表是盤點推算的，不用每筆都重複標示
+        const subHtml = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan')
+          ? buildBucketsHtml(calcThreeMonthBuckets(product.id, usageChangelog))
+          : '';
+        usageHtml = `<div class="font-medium text-slate-700 text-sm">${Math.ceil(r.monthlyUsage)} ${item.unit}</div>`
+          + (subHtml ? `<div class="text-xs text-slate-400 mt-0.5" style="white-space:nowrap">${subHtml}</div>` : '');
+      }
+
+      const info = calcProductInfo(product, {
+        jinhuo: usageJinhuo, pandian: pandianMeta, beipan: usageBeipan,
+        order: activeOrders[0] || null, orderHistory: activeOrders, changelog: usageChangelog,
+      });
+      const activeLots = (info.lots || []).filter(l => l.qty > 0);
+      if (activeLots.length > 0) {
+        const shown = activeLots.slice(0, 2);
+        const rest  = activeLots.length - shown.length;
+        lotsHtml = shown.map(l => `<div class="text-xs text-slate-600">${l.expiry || '—'}　×${fmtNum(l.qty)}</div>`).join('')
+          + (rest > 0 ? `<div class="text-xs text-slate-400 mt-0.5">還有 ${rest} 批…</div>` : '');
+      }
+    }
+
     return `<tr class="${rowClass}">
       <td class="font-medium text-slate-800">${item.name}</td>
       <td>${safetyHtml}</td>
-      <td><span class="text-slate-300 text-xs">—</span></td>
+      <td>${usageHtml}</td>
       <td>${actualHtml}</td>
       <td>${noteHtml}</td>
-      <td><span class="text-slate-300 text-xs">—</span></td>
+      <td>${lotsHtml}</td>
       <td>${transitHtml}</td>
       <td>
         <input type="number" min="0" step="1" placeholder="—"
@@ -672,7 +797,7 @@
             <tr>
               <th style="min-width:140px">品項名稱</th>
               <th style="width:100px">安全警戒線</th>
-              <th style="width:70px">月使用量</th>
+              <th style="width:90px;white-space:nowrap">月使用量 <span style="font-weight:400;font-size:10px;color:#94a3b8">(30/60/90)</span></th>
               <th style="width:80px">現有庫存</th>
               <th style="min-width:80px">效期備註</th>
               <th style="width:75px">在途數量</th>
@@ -760,10 +885,24 @@
       ? `<span class="text-xs text-slate-500">${noteText}</span>`
       : `<span class="text-slate-300 text-xs">—</span>`;
 
+    // 月使用量（見 shared.js calcMonthlyUsage：走備盤流程用 changelog 逐日消耗，其餘退到盤點多期平均）
+    let usageHtml = `<span class="text-slate-300 text-xs">—</span>`;
+    const product = GUPAN_MAP[item.itemId];
+    if (product) {
+      const r = calcMonthlyUsage(product, { changelog: usageChangelog, jinhuo: usageJinhuo, pandianHistory: usagePandianHistory });
+      if (r.monthlyUsage > 0) {
+        const subHtml = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan')
+          ? buildBucketsHtml(calcThreeMonthBuckets(product.id, usageChangelog))
+          : '';
+        usageHtml = `<div class="font-medium text-slate-700 text-sm">${Math.ceil(r.monthlyUsage)} ${item.unit}</div>`
+          + (subHtml ? `<div class="text-xs text-slate-400 mt-0.5" style="white-space:nowrap">${subHtml}</div>` : '');
+      }
+    }
+
     return `<tr class="${rowClass}">
       <td class="font-medium text-slate-800">${nameHtml}</td>
       <td>${safetyHtml}</td>
-      <td><span class="text-slate-300 text-xs">—</span></td>
+      <td>${usageHtml}</td>
       <td>${actualHtml}</td>
       <td>${noteHtml}</td>
       <td>${transitHtml}</td>
@@ -1029,7 +1168,7 @@
       .replace(new RegExp(`\\s+${v}(?=\\s|$)`), '')
       .trim();
     let text = `${date}\n`;
-    text += `【訂貨通知】送子鳥台北胚胎室\n\n`;
+    text += `【訂貨通知】送子鳥${CLINIC_NAME}\n\n`;
     if (contact) text += `${contact} 您好\n`;
     text += `本次想訂購\n\n`;
     orders.forEach(o => { text += `${cleanName(o.name, o.vendor)} × ${o.orderQty} ${o.unit}\n`; });

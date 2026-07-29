@@ -15,9 +15,17 @@
 <script src="design.js" defer></script>
 <!-- Firebase Phase 9b bridge -->
 <script type="module">
-  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders } from './firebase-service.js?v=11';
+  import { initFirebaseApp, savePandianSnapshot, appendKucunLog as fsLog, getOrders, getStaffConfig, getProductsConfig, getPandianGroups } from './firebase-service.js?v=20';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { savePandianSnapshot, fsLog, getOrders };
+  window._fb = { savePandianSnapshot, fsLog, getOrders, getStaffConfig, getProductsConfig, getPandianGroups };
+  try {
+    const rows = await getProductsConfig();
+    if (typeof window.resolveProductsFromConfig === 'function') window.resolveProductsFromConfig(rows);
+  } catch (e) { console.warn('[products_config] 讀取失敗，使用內建預設', e); }
+  try {
+    const groups = await getPandianGroups();
+    if (groups && groups.length && typeof window.resolvePandianGroups === 'function') window.resolvePandianGroups(groups);
+  } catch (e) { console.warn('[pandian_groups] 讀取失敗，使用內建預設', e); }
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -95,7 +103,7 @@
     <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -129,7 +137,7 @@
     <div class="sidebar-link" onclick="location.href='kucun.html'"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>庫存總覽</div>
   </div>
   <div class="mt-auto px-3 pt-4 border-t border-slate-100">
-    <div class="sidebar-link">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -218,16 +226,34 @@
 
 <div id="toast"></div>
 
-<script src="shared.js"></script>
+<script src="shared.js?v=20"></script>
 <script>
 
-// 填充盤點人選單
-(function() {
+// 填充盤點人選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）
+let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+function renderStaffOptions() {
   const el = document.getElementById('pd-staff');
-  if (el && typeof STAFF_LIST !== 'undefined') {
-    el.innerHTML = '<option value="">（選擇）</option>' + STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+  if (!el) return;
+  const prev = el.value;
+  el.innerHTML = '<option value="">（選擇）</option>' + EFFECTIVE_STAFF_LIST.map(n => `<option>${n}</option>`).join('');
+  if (prev && EFFECTIVE_STAFF_LIST.includes(prev)) el.value = prev;
+}
+renderStaffOptions();
+
+async function resolveStaffList() {
+  try {
+    const rows = await window._fb?.getStaffConfig?.();
+    if (!rows || !rows.length) return;
+    EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(r => r.name);
+    renderStaffOptions();
+  } catch (e) {
+    console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
   }
-})();
+}
+if (window.__fbDone) resolveStaffList();
+else window.addEventListener('fb-ready', resolveStaffList, { once: true });
 
 const LOCATION_ORDER = ['培養箱','冰箱','櫃1','櫃2','櫃3','精蟲室','半年一次','需要再叫'];
 const LOCATION_ICONS = {
@@ -236,57 +262,77 @@ const LOCATION_ICONS = {
 };
 const LOCATION_COLLAPSED_SET = new Set(['培養箱','半年一次','需要再叫']);
 
-const FREEZER_ORDER = ['f-102-mm','f-102','f-101','f-110','f-hepes','f-oil','f-pvp','f-cum','m-aoa-ci','f-508','f-gm501','f-602'];
+// 讀不到 pandian_groups 時的內建預設順序／圖示，跟現行寫死的分組行為完全一致
+const DEFAULT_GROUP_DEFS = [
+  { name:'Life Global', icon:'🔬', collapsed:false },
+  { name:'VitroLife',   icon:'🔬', collapsed:false },
+  ...LOCATION_ORDER.map(loc => ({ name:loc, icon:LOCATION_ICONS[loc]||'📦', collapsed:LOCATION_COLLAPSED_SET.has(loc) })),
+];
+let PANDIAN_GROUPS = [];
 
-const STOCK_GROUPS = (() => {
-  const branded = new Set();
-
-  const lgItems = PRODUCTS.filter(p => p.brand === 'LifeGlobal' && p.gupanId)
-    .map(p => { branded.add(p.id); return {id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0}; });
-
-  const vlItems = PRODUCTS.filter(p => p.brand === 'Vitrolife' && p.gupanId)
-    .map(p => { branded.add(p.id); return {id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0}; });
-
-  // aoa-ci (location:'培養箱') is overridden to appear in 冰箱 here
-  const PANDIAN_OVERRIDE = new Set(['aoa-ci']);
-
+function buildStockGroups() {
+  // 品項改用單一的 pandianGroup 欄位分組（取代原本 brand 攔截 + location 雙軌邏輯）
+  // 沒填盤點群組、或群組名稱對不上任何現有群組的品項，不能直接濾掉消失不見（管理者盤點時完全看不出少了東西）
+  // 一律先收進 grouped，未分類/遺失的部分最後會被撿到「⚠️ 未分類 / 群組遺失」區塊
+  const UNASSIGNED_KEY = '__unassigned__';
   const grouped = {};
-  PRODUCTS.filter(p => !branded.has(p.id) && !PANDIAN_OVERRIDE.has(p.id) && p.gupanId && p.location && !p.hidden).forEach(p => {
-    if (!grouped[p.location]) grouped[p.location] = [];
-    grouped[p.location].push({id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0});
+  PRODUCTS.filter(p => p.gupanId && !p.hidden).forEach(p => {
+    const key = p.pandianGroup || UNASSIGNED_KEY;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push({id:p.gupanId, name:p.name, unit:p.unit, target:p.target||0});
   });
 
-  // Insert aoa-ci into 冰箱
-  const aoaCi = PRODUCTS.find(p => p.id === 'aoa-ci');
-  if (aoaCi && aoaCi.gupanId) {
-    if (!grouped['冰箱']) grouped['冰箱'] = [];
-    grouped['冰箱'].push({id:aoaCi.gupanId, name:aoaCi.name, unit:aoaCi.unit, target:aoaCi.target||0});
-  }
-
-  // Sort 冰箱 group by specified order
-  if (grouped['冰箱']) {
-    grouped['冰箱'].sort((a, b) => {
-      const ai = FREEZER_ORDER.indexOf(a.id);
-      const bi = FREEZER_ORDER.indexOf(b.id);
-      return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+  // 群組內品項排序：統一依品項主檔的 sortOrder 排（後臺可調整）；沒填 sortOrder 的一律排最後
+  const groupIdMap = {};
+  PRODUCTS.forEach(p => { if (p.gupanId) groupIdMap[p.gupanId] = p; });
+  Object.values(grouped).forEach(items => {
+    items.sort((a, b) => {
+      const pa = groupIdMap[a.id], pb = groupIdMap[b.id];
+      const sa = pa && pa.sortOrder != null ? pa.sortOrder : 999;
+      const sb = pb && pb.sortOrder != null ? pb.sortOrder : 999;
+      return sa - sb;
     });
-  }
+  });
 
-  const locationGroups = LOCATION_ORDER.filter(loc => grouped[loc]).map(loc => ({
-    id: loc.replace(/[^a-z0-9一-鿿]/gi, '-').toLowerCase(),
-    label: loc, icon: LOCATION_ICONS[loc]||'📦',
-    collapsed: LOCATION_COLLAPSED_SET.has(loc),
-    items: grouped[loc],
+  const groupDefs = PANDIAN_GROUPS.length
+    ? [...PANDIAN_GROUPS].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    : DEFAULT_GROUP_DEFS;
+
+  const result = groupDefs.filter(g => grouped[g.name]).map(g => ({
+    id: (g.id || g.name).replace(/[^a-z0-9一-鿿]/gi, '-').toLowerCase(),
+    label: g.name, icon: g.icon || '📦',
+    collapsed: !!g.collapsed,
+    items: grouped[g.name],
   }));
 
-  const result = [];
-  if (lgItems.length) result.push({id:'life-global', label:'Life Global', icon:'🔬', collapsed:false, items:lgItems});
-  if (vlItems.length) result.push({id:'vitrolife', label:'VitroLife', icon:'🔬', collapsed:false, items:vlItems});
-  result.push(...locationGroups);
-  return result;
-})();
+  // 未分類（沒填群組）或群組名稱對不上任何現有群組（後臺被改名/刪除）的品項，收進固定排最後的區塊，而不是靜默消失
+  const matchedNames = new Set(groupDefs.map(g => g.name));
+  const strayItems = Object.entries(grouped)
+    .filter(([key]) => key === UNASSIGNED_KEY || !matchedNames.has(key))
+    .flatMap(([, items]) => items);
+  if (strayItems.length) {
+    result.push({ id: 'unassigned', label: '⚠️ 未分類 / 群組遺失', icon: '⚠️', collapsed: false, items: strayItems });
+  }
 
+  return result;
+}
+
+let STOCK_GROUPS = buildStockGroups();
 const pdCollapsed = {};
+
+// products_config 解析完後（fb-ready）重新計算一次分組結構並重繪，讀不到就維持上面預設算好的結果
+function resolveStockGroups() {
+  STOCK_GROUPS = buildStockGroups();
+  buildPandianGroups();
+}
+if (window.__fbDone) resolveStockGroups();
+else window.addEventListener('fb-ready', resolveStockGroups, { once: true });
+
+// Firebase 橋接（module script）在讀到 pandian_groups 後會呼叫這支函式；本身是 classic script 頂層函式，自動掛在 window 上
+function resolvePandianGroups(groups) {
+  PANDIAN_GROUPS = groups;
+  resolveStockGroups();
+}
 
 function buildPandianGroups() {
   const total = STOCK_GROUPS.reduce((s, g) => s + g.items.length, 0);

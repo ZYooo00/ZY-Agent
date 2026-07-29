@@ -1,9 +1,28 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.07.23'; // 格式：YY.MM.DD
+const APP_VERSION = '26.07.27'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.07.27',
+    date: '2026-07-27',
+    changes: [
+      '【優化】訂貨管理「月使用量」拿掉三時段趨勢細節，改回單一數字，畫面更清爽',
+      '【新功能】PVP、Cumulase、Top tips 等不走備盤流程的試劑耗材，現在也能看到「月使用量」（改用近期多次盤點的平均值推算），庫存總覽跟訂貨管理都補齊',
+      '【調整】人員名單新增 Tiffany',
+    ],
+  },
+  {
+    version: '26.07.26',
+    date: '2026-07-26',
+    changes: [
+      '【修正】盤點完成後，庫存總覽的批號明細不會再短暫顯示錯誤（已過期或已用完的舊批號金額卡住不動），已知曉此問題並修正',
+      '【優化】「期間估計用量」與「預計可撐天數」改用近 30 天實際消耗紀錄計算，不再受盤點頻率影響，數字更穩定',
+      '【新功能】訂貨管理新增「月使用量」「應有效期與瓶數」欄位，不用再切換到庫存總覽查詢',
+      '【新功能】每月 1 號自動寄送「近三個月用量報表」信件',
+    ],
+  },
   {
     version: '26.07.23',
     date: '2026-07-23',
@@ -137,65 +156,65 @@ const CHANGELOG = [
 ];
 
 const STAFF_LIST = [
-  'Ally','Sunny','Linkin','Alvin','Rina','Cara','Lauren',
+  'Ally','Sunny','Linkin','Alvin','Rina','Cara','Tiffany','Lauren',
   'Harvey','Linda','Windy','Irene','Tini','Gordon',
   'Wilson','Corrine','Xuan','Yvette',
 ];
 
 const PRODUCTS = [
   // ── 培養液（8 項）──
-  { id:'givf',     name:'G-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910550', brand:'Vitrolife',  gupanId:'m-givf',   target:2, reorderQty:10,  bottleVol:60,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null },
-  { id:'gxtl',     name:'GxTL',                vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910611', brand:'Vitrolife',  gupanId:'m-gxtl',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null },
-  { id:'glue',     name:'EmbryoGlue',           vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910048', brand:'Vitrolife',  gupanId:'m-glue',   target:2, reorderQty:10,   bottleVol:10,   openExpiryDays:14,   needQC:false, location:'培養箱', orderNote:null },
-  { id:'h5gt',     name:'H5GT',                vendor:'弘優', unit:'瓶', group:'培養液', gtin:'00888937029147', brand:'LifeGlobal',    gupanId:'m-h5gt',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null },
-  { id:'aoa-ci',   name:'AOA 弘優 CI',         vendor:'弘優', unit:'瓶', group:'培養液', gtin:'04582231465118', brand:null,         gupanId:'m-aoa-ci', target:1, reorderQty:3,   bottleVol:10,   openExpiryDays:14,   needQC:false, location:'培養箱', orderNote:null },
-  { id:'aoa-508',  name:'AOA 明美 GM508',      vendor:'明美', unit:'罐', group:'培養液', gtin:'04260173184043', brand:null,         gupanId:'f-508',    target:2, reorderQty:4,   bottleVol:null, openExpiryDays:7,    needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30 },
-  { id:'hepes',    name:'HEPES',               vendor:'億宸', unit:'瓶', group:'培養液', gtin:'00888937818314', brand:null,         gupanId:'f-hepes',  target:4, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null },
-  { id:'oil',      name:'Heavy Oil',            vendor:'億宸', unit:'瓶', group:'培養液', gtin:'05411967001224', brand:null,         gupanId:'f-oil',    target:3, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null },
+  { id:'givf',     name:'G-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910550', brand:'Vitrolife',  gupanId:'m-givf',   target:2, reorderQty:10,  bottleVol:60,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:1 },
+  { id:'gxtl',     name:'GxTL',                vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910611', brand:'Vitrolife',  gupanId:'m-gxtl',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:2 },
+  { id:'glue',     name:'EmbryoGlue',           vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910048', brand:'Vitrolife',  gupanId:'m-glue',   target:2, reorderQty:10,   bottleVol:10,   openExpiryDays:14,   needQC:false, location:'培養箱', orderNote:null, sortOrder:3 },
+  { id:'h5gt',     name:'H5GT',                vendor:'弘優', unit:'瓶', group:'培養液', gtin:'00888937029147', brand:'LifeGlobal',    gupanId:'m-h5gt',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:1 },
+  { id:'aoa-ci',   name:'AOA 弘優 CI',         vendor:'弘優', unit:'瓶', group:'培養液', gtin:'04582231465118', brand:null,         gupanId:'m-aoa-ci', target:1, reorderQty:3,   bottleVol:10,   openExpiryDays:14,   needQC:false, location:'培養箱', orderNote:null, sortOrder:9 },
+  { id:'aoa-508',  name:'AOA 明美 GM508',      vendor:'明美', unit:'罐', group:'培養液', gtin:'04260173184043', brand:null,         gupanId:'f-508',    target:2, reorderQty:4,   bottleVol:1, openExpiryDays:7,    needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30, sortOrder:10 },
+  { id:'hepes',    name:'HEPES',               vendor:'億宸', unit:'瓶', group:'培養液', gtin:'00888937818314', brand:null,         gupanId:'f-hepes',  target:4, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, sortOrder:5 },
+  { id:'oil',      name:'Heavy Oil',            vendor:'億宸', unit:'瓶', group:'培養液', gtin:'05411967001224', brand:null,         gupanId:'f-oil',    target:3, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, sortOrder:6 },
 
   // ── 試劑（16 項，含 102-mm）──
-  { id:'pvp',      name:'PVP',                vendor:'億宸', unit:'組', group:'試劑',   gtin:'20888937818813', brand:null, gupanId:'f-pvp',    target:1, reorderQty:8,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'1 盒 = 6 管' },
-  { id:'cumulase', name:'Cumulase',            vendor:'億宸', unit:'組', group:'試劑',   gtin:'20888937817977', brand:null, gupanId:'f-cum',    target:1, reorderQty:10,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'1 盒 = 5 管' },
-  { id:'fertipro', name:'Fertipro',            vendor:'億宸', unit:'瓶', group:'試劑',   gtin:'05411987000722', brand:null, gupanId:'s-fert',   target:1, reorderQty:7,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null },
-  { id:'spermfr',  name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶', group:'試劑',   gtin:'00888937800661', brand:null, gupanId:'s-sf',     target:1, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null },
+  { id:'pvp',      name:'PVP',                vendor:'億宸', unit:'組', group:'試劑',   gtin:'20888937818813', brand:null, gupanId:'f-pvp',    target:1, reorderQty:8,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'1 盒 = 6 管', sortOrder:7 },
+  { id:'cumulase', name:'Cumulase',            vendor:'億宸', unit:'組', group:'試劑',   gtin:'20888937817977', brand:null, gupanId:'f-cum',    target:1, reorderQty:10,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'1 盒 = 5 管', sortOrder:8 },
+  { id:'fertipro', name:'Fertipro',            vendor:'億宸', unit:'瓶', group:'試劑',   gtin:'05411987000722', brand:null, gupanId:'s-fert',   target:1, reorderQty:7,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null, sortOrder:1 },
+  { id:'spermfr',  name:'Sperm Freeze (Origio)',vendor:'億宸',unit:'瓶', group:'試劑',   gtin:'00888937800661', brand:null, gupanId:'s-sf',     target:1, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null, sortOrder:2 },
   { id:'601',      name:'601',                vendor:'弘優', unit:'套', group:'試劑',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
-  { id:'602',      name:'602',                vendor:'弘優', unit:'套', group:'試劑',   gtin:'14582231460691', brand:null, gupanId:'f-602',    target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30 },
-  { id:'spas',     name:'S-PAS',              vendor:'弘優', unit:'盒', group:'試劑',   gtin:'14582231468048', brand:null, gupanId:'s-spas',   target:1, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null },
-  { id:'101',      name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑',   gtin:'04589700012163', brand:null, gupanId:'f-101',    target:2, reorderQty:120,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'亦可向明美訂購' },
-  { id:'102',      name:'102（磊柏）',          vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102',    target:2, reorderQty:100,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向明美訂購' },
-  { id:'102-mm',   name:'102（明美）',          vendor:'明美', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102-mm', target:2, reorderQty:null,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向磊柏訂購' },
-  { id:'tyb',      name:'TYB',               vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'00893727002217', brand:null, gupanId:'s-tyb',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'1 盒 = 20 小瓶' },
+  { id:'602',      name:'602',                vendor:'弘優', unit:'套', group:'試劑',   gtin:'14582231460691', brand:null, gupanId:'f-602',    target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30, sortOrder:12 },
+  { id:'spas',     name:'S-PAS',              vendor:'弘優', unit:'盒', group:'試劑',   gtin:'14582231468048', brand:null, gupanId:'s-spas',   target:1, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null, sortOrder:3 },
+  { id:'101',      name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑',   gtin:'04589700012163', brand:null, gupanId:'f-101',    target:2, reorderQty:120,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'亦可向明美訂購', sortOrder:3 },
+  { id:'102',      name:'102（磊柏）',          vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102',    target:2, reorderQty:100,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向明美訂購', sortOrder:2 },
+  { id:'102-mm',   name:'102（明美）',          vendor:'明美', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102-mm', target:2, reorderQty:null,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向磊柏訂購', sortOrder:1 },
+  { id:'tyb',      name:'TYB',               vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'00893727002217', brand:null, gupanId:'s-tyb',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'1 盒 = 20 小瓶', sortOrder:4 },
   { id:'brightv',  name:'BrightVit',           vendor:'磊柏', unit:'個', group:'試劑',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
-  { id:'mountgl',  name:'Mounting Glue',       vendor:'磊柏', unit:'瓶', group:'試劑',   gtin:null,             brand:null, gupanId:'s-mg',     target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'至少 1/2 瓶' },
-  { id:'gm501',    name:'GM501 (SpermMobil)',  vendor:'明美', unit:'瓶', group:'試劑',   gtin:'04260173193978', brand:null, gupanId:'f-gm501',  target:1, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30 },
-  { id:'pure100',  name:'Pure 100',            vendor:'明美', unit:'個', group:'試劑',   gtin:'07350025610030', brand:null, gupanId:'s-pure',   target:2, reorderQty:8,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null },
-  { id:'110',      name:'110',               vendor:'明美', unit:'套', group:'試劑',   gtin:'04589700012217', brand:null, gupanId:'f-110',    target:2, reorderQty:5,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null },
+  { id:'mountgl',  name:'Mounting Glue',       vendor:'磊柏', unit:'瓶', group:'試劑',   gtin:null,             brand:null, gupanId:'s-mg',     target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'至少 1/2 瓶', sortOrder:5 },
+  { id:'gm501',    name:'GM501 (SpermMobil)',  vendor:'明美', unit:'瓶', group:'試劑',   gtin:'04260173193978', brand:null, gupanId:'f-gm501',  target:1, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30, sortOrder:11 },
+  { id:'pure100',  name:'Pure 100',            vendor:'明美', unit:'個', group:'試劑',   gtin:'07350025610030', brand:null, gupanId:'s-pure',   target:2, reorderQty:8,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null, sortOrder:6 },
+  { id:'110',      name:'110',               vendor:'明美', unit:'套', group:'試劑',   gtin:'04589700012217', brand:null, gupanId:'f-110',    target:2, reorderQty:5,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, sortOrder:4 },
 
   // ── 耗材（23 項）──
-  { id:'toptip-y', name:'Top tips（黃）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460929', brand:null, gupanId:'c1-ty',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒' },
-  { id:'toptip-g', name:'Top tips（綠）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460882', brand:null, gupanId:'c1-tg',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒' },
-  { id:'toptip-r', name:'Top tips（紅）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460899', brand:null, gupanId:'c1-tr',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒' },
-  { id:'toptip-b', name:'Top tips（藍）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460912', brand:null, gupanId:'c1-tb',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒' },
-  { id:'toptip-w', name:'Top tips（白）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460905', brand:null, gupanId:'c1-tw',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒' },
-  { id:'riez135',  name:'RI-EZ tip 135',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'05060488047060', brand:null, gupanId:'c2-135',   target:2, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true },
-  { id:'riez145',  name:'RI-EZ tip 145',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'05060170181478', brand:null, gupanId:'c2-145',   target:2, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true },
-  { id:'riez200',  name:'RI-EZ tip 200',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-200',   target:2, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true },
-  { id:'vltip135', name:'VL-tip 135',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl135', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
-  { id:'vltip145', name:'VL-tip 145',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl145', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
-  { id:'vltip200', name:'VL-tip 200',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl200', target:0, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null },
-  { id:'6well',    name:'6 Well dish',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231462414', brand:null, gupanId:'c1-6w',    target:4, reorderQty:24,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:null },
-  { id:'mouth',    name:'Mouth piece',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231461103', brand:null, gupanId:'b-mp',     target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'依人數，半年一次' },
-  { id:'oosafe-c', name:'Oosafe（培養箱用）',  vendor:'弘優', unit:'罐', group:'耗材',   gtin:null,             brand:null, gupanId:'r-os1',    target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'需要再叫', orderNote:null },
-  { id:'oosafe-f', name:'Oosafe（地板用）',    vendor:'弘優', unit:'罐', group:'耗材',   gtin:null,             brand:null, gupanId:'r-os2',    target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'需要再叫', orderNote:null },
-  { id:'3well',    name:'3 well dish',         vendor:'磊柏', unit:'包', group:'耗材',   gtin:'04589700012125', brand:null, gupanId:'c1-3w',    target:3, reorderQty:24,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:null },
+  { id:'toptip-y', name:'Top tips（黃）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460929', brand:null, gupanId:'c1-ty',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒', sortOrder:1 },
+  { id:'toptip-g', name:'Top tips（綠）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460882', brand:null, gupanId:'c1-tg',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒', sortOrder:2 },
+  { id:'toptip-r', name:'Top tips（紅）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460899', brand:null, gupanId:'c1-tr',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒', sortOrder:3 },
+  { id:'toptip-b', name:'Top tips（藍）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460912', brand:null, gupanId:'c1-tb',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒', sortOrder:4 },
+  { id:'toptip-w', name:'Top tips（白）',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'14582231460905', brand:null, gupanId:'c1-tw',    target:2, reorderQty:30,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:'10 支/盒', sortOrder:5 },
+  { id:'riez135',  name:'RI-EZ tip 135',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'05060488047060', brand:null, gupanId:'c2-135',   target:2, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true, sortOrder:1 },
+  { id:'riez145',  name:'RI-EZ tip 145',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:'05060170181478', brand:null, gupanId:'c2-145',   target:2, reorderQty:2,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true, sortOrder:2 },
+  { id:'riez200',  name:'RI-EZ tip 200',      vendor:'弘優', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-200',   target:2, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, paused:true, sortOrder:3 },
+  { id:'vltip135', name:'VL-tip 135',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl135', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, sortOrder:4 },
+  { id:'vltip145', name:'VL-tip 145',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl145', target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, sortOrder:5 },
+  { id:'vltip200', name:'VL-tip 200',           vendor:'亞樸', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c2-vl200', target:0, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃2',    orderNote:null, sortOrder:6 },
+  { id:'6well',    name:'6 Well dish',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231462414', brand:null, gupanId:'c1-6w',    target:4, reorderQty:24,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:null, sortOrder:6 },
+  { id:'mouth',    name:'Mouth piece',         vendor:'弘優', unit:'包', group:'耗材',   gtin:'04582231461103', brand:null, gupanId:'b-mp',     target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'依人數，半年一次', sortOrder:1 },
+  { id:'oosafe-c', name:'Oosafe（培養箱用）',  vendor:'弘優', unit:'罐', group:'耗材',   gtin:null,             brand:null, gupanId:'r-os1',    target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'需要再叫', orderNote:null, sortOrder:1 },
+  { id:'oosafe-f', name:'Oosafe（地板用）',    vendor:'弘優', unit:'罐', group:'耗材',   gtin:null,             brand:null, gupanId:'r-os2',    target:1, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:'需要再叫', orderNote:null, sortOrder:2 },
+  { id:'3well',    name:'3 well dish',         vendor:'磊柏', unit:'包', group:'耗材',   gtin:'04589700012125', brand:null, gupanId:'c1-3w',    target:3, reorderQty:24,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃1',    orderNote:null, sortOrder:7 },
   { id:'phsensor', name:'pH sensor dish',      vendor:'磊柏', unit:'包', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
-  { id:'geridish', name:'Geri dish',           vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003014', brand:null, gupanId:'c3-gd',    target:2, reorderQty:20,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'20 個/盒' },
-  { id:'geriwat',  name:'Geri water bottle',   vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003045', brand:null, gupanId:'c3-gw',    target:2, reorderQty:12,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'12 個/盒' },
-  { id:'gerifl',   name:'Geri filter',         vendor:'磊柏', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c3-gf',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'50 個/盒' },
-  { id:'coda',     name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材',   gtin:null,             brand:null, gupanId:'b-cf',     target:3, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次' },
+  { id:'geridish', name:'Geri dish',           vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003014', brand:null, gupanId:'c3-gd',    target:2, reorderQty:20,  bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'20 個/盒', sortOrder:1 },
+  { id:'geriwat',  name:'Geri water bottle',   vendor:'磊柏', unit:'盒', group:'耗材',   gtin:'19348265003045', brand:null, gupanId:'c3-gw',    target:2, reorderQty:12,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'12 個/盒', sortOrder:2 },
+  { id:'gerifl',   name:'Geri filter',         vendor:'磊柏', unit:'盒', group:'耗材',   gtin:null,             brand:null, gupanId:'c3-gf',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'櫃3',    orderNote:'50 個/盒', sortOrder:3 },
+  { id:'coda',     name:'Coda Filter K-730',   vendor:'磊柏', unit:'個', group:'耗材',   gtin:null,             brand:null, gupanId:'b-cf',     target:3, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次', sortOrder:2 },
   { id:'oritip135',name:'Origio tip 135',     vendor:'億宸', unit:'管', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'oritip150',name:'Origio tip 150',     vendor:'億宸', unit:'管', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
-  { id:'orifl',    name:'Origio Filter',       vendor:'億宸', unit:'個', group:'耗材',   gtin:'0888937014693',  brand:null, gupanId:'b-of',     target:2, reorderQty:10,  bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次' },
+  { id:'orifl',    name:'Origio Filter',       vendor:'億宸', unit:'個', group:'耗材',   gtin:'0888937014693',  brand:null, gupanId:'b-of',     target:2, reorderQty:10,  bottleVol:null, openExpiryDays:null, needQC:false, location:'半年一次', orderNote:'半年一次', sortOrder:3 },
   { id:'glasspip', name:'玻璃 pipette',        vendor:'億宸', unit:'箱', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'cellvis',  name:'Cellvis spindle dish',vendor:'岑祥', unit:'箱', group:'耗材',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
 ];
@@ -212,6 +231,447 @@ const PRODUCT_MAP = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 const GUPAN_MAP = Object.fromEntries(
   PRODUCTS.filter(p => p.gupanId).map(p => [p.gupanId, p])
 );
+
+// ── 品項主檔改用 Firestore products_config（Phase 3b）──
+// 讀不到／空集合就完全不動，維持上面這份程式內建的 PRODUCTS 陣列與其衍生索引（現行正式站行為）。
+// 讀到資料時「原地」改寫 PRODUCTS/PRODUCT_MAP/GUPAN_MAP/REQUIRE_QC_ITEMS 的內容（不是重新賦值整個變數），
+// 這樣所有頁面裡任何時間點取得的 PRODUCTS/PRODUCT_MAP/GUPAN_MAP 參照都會自動看到最新內容。
+function resolveProductsFromConfig(rows) {
+  if (!rows || !rows.length) return false;
+  const mapped = rows
+    .filter(r => r.hidden !== true) // hidden 品項不進入前臺（比照原本 hidden:true 的用途）
+    .map(r => ({
+      id: r.id, name: r.name, vendor: r.vendor, unit: r.unit, group: r.group,
+      gtin: r.gtin ?? null, brand: r.brand ?? null, gupanId: r.gupanId ?? null,
+      target: r.target ?? null, reorderQty: r.reorderQty ?? null, bottleVol: r.bottleVol ?? null,
+      openExpiryDays: r.expiry ?? null, needQC: !!r.needQC,
+      location: r.location ?? null, orderNote: r.orderNote ?? null,
+      paused: !!r.paused, expiryWarnDays: r.expiryWarnDays ?? undefined,
+      pandianGroup: r.pandianGroup ?? null, sortOrder: r.sortOrder ?? null,
+    }));
+
+  PRODUCTS.length = 0;
+  PRODUCTS.push(...mapped);
+
+  Object.keys(PRODUCT_MAP).forEach(k => delete PRODUCT_MAP[k]);
+  PRODUCTS.forEach(p => { PRODUCT_MAP[p.id] = p; });
+
+  Object.keys(GUPAN_MAP).forEach(k => delete GUPAN_MAP[k]);
+  PRODUCTS.filter(p => p.gupanId).forEach(p => { GUPAN_MAP[p.gupanId] = p; });
+
+  REQUIRE_QC_ITEMS.length = 0;
+  REQUIRE_QC_ITEMS.push(...PRODUCTS.filter(p => p.needQC).map(p => p.id));
+
+  return true;
+}
+
+// vendors_config 文件 id 即廠商名稱，直接拿來取代 VENDORS 這份廠商名稱清單（原本只有 contact/leadtime 被搬過去，名稱清單本身沒有）
+function resolveVendorsFromConfig(rows) {
+  if (!rows || !rows.length) return false;
+  VENDORS.length = 0;
+  VENDORS.push(...rows.map(r => r.id));
+  return true;
+}
+
+// ── 估盤建議公式求值（Phase 3：後臺可視化係數）──
+// formula 形狀：{ fixed: number, coefs: { opu, te, szu, fbt, bt, tbx } }（欄位皆可省略，預設 0）
+// 回傳：fixed + Σ(coefs[欄位] × taiVals[欄位])
+function evalFormula(formula, taiVals) {
+  if (!formula) return 0;
+  let sum = formula.fixed || 0;
+  Object.entries(formula.coefs || {}).forEach(([field, coef]) => {
+    sum += (taiVals[field] || 0) * (coef || 0);
+  });
+  return sum;
+}
+
+// changelog 單筆時間戳記統一取值（ts 可能是 ISO 字串或 Firestore Timestamp）
+function getLogTime(log) {
+  return log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
+}
+
+// ── 近 30 天滾動用量（用異動日誌加總，取代「兩次盤點/備盤差值 ÷ 間隔天數」的舊算法）──
+// 舊算法（kucun.html 原 calcEstUsage）用兩個快照做差值，間隔天數不固定（1 天到 3 週都有可能），
+// 單一離群值就會讓推算出的用量大幅波動；beipan.html 每次送出備盤時其實已經把每個批號的真實
+// 消耗量寫進 changelog，改用這份逐日流水帳加總更精準、不受盤點頻率干擾。
+// 注意單位：changelog 的 qtyDelta 對培養液是「mL」，但庫存數／DoI 都是「瓶」——
+// 真正該加總的是 bottlesOpened（開封瓶數，培養液與散裝品項都一致用這個單位），
+// 不能直接加總 qtyDelta，否則跟庫存單位對不起來。
+// 回傳：
+//   usage        近 effectiveDays 天內的實際消耗總量（正值，單位＝product.unit）
+//   loss         同期間的異常損耗（報廢/作廢，單位＝changelog 記錄的原始單位，如 mL），與 usage 分開，不計入日均消耗
+//   days         實際採計的天數（新品項會小於 30；查無資料時可能是 90）
+//   dailyUsage   usage / days，供「預計可撐天數」使用；查無可用資料時為 0
+//   monthlyUsage dailyUsage 換算成 30 天的等效月用量，供「月使用量」欄位顯示
+function calcRolling30dUsage(productId, changelog, jinhuo) {
+  const CONSUME_ACTIONS = ['beipan', 'beipan_addon'];
+  const LOSS_ACTIONS = ['discard', 'void'];
+  const now = Date.now();
+
+  // 品項「年紀」一律用 jinhuo 最早一筆進貨日判斷，不能用 changelog 最早一筆——
+  // changelog 逐日消耗紀錄是後來才開始寫的功能，用它會把「早就存在、只是近期用量稀疏」
+  // 的舊品項誤判成新品項，反而把日均用量算得過高。
+  const firstReceived = (jinhuo || [])
+    .filter(r => r.productId === productId && !r.isVoided && r.receivedAt)
+    .reduce((min, r) => (!min || r.receivedAt < min) ? r.receivedAt : min, null);
+  const ageDays = firstReceived
+    ? Math.floor((now - new Date(firstReceived).getTime()) / 86400000)
+    : 30;
+  const effectiveDays = Math.max(1, Math.min(30, ageDays));
+
+  function sumWithinDays(days) {
+    const cutoff = now - days * 86400000;
+    let usage = 0, loss = 0;
+    (changelog || []).forEach(log => {
+      if (log.productId !== productId || log.source !== 'beipan') return;
+      const t = getLogTime(log);
+      if (!t) return;
+      const ts = new Date(t).getTime();
+      if (Number.isNaN(ts) || ts < cutoff) return;
+      if (CONSUME_ACTIONS.includes(log.action)) {
+        usage += Math.abs(log.bottlesOpened ?? log.qtyDelta ?? 0);
+      } else if (LOSS_ACTIONS.includes(log.action)) {
+        loss += Math.abs(log.qtyDelta ?? 0);
+      }
+    });
+    // 加總有浮點數誤差（如 0.1+0.2 不等於 0.3），回傳前修剪到小數 1 位
+    return { usage: parseFloat(usage.toFixed(1)), loss: parseFloat(loss.toFixed(1)) };
+  }
+
+  let { usage, loss } = sumWithinDays(effectiveDays);
+  let days = effectiveDays;
+  let label = ageDays < 30 ? `近 ${effectiveDays} 天（新品項）` : '近 30 天';
+
+  // 零用量防呆：主要區間用量為 0（例如低用量品項剛好整月沒用），往回撈 90 天取平均
+  if (usage === 0) {
+    const r90 = sumWithinDays(90);
+    if (r90.usage > 0) {
+      usage = r90.usage;
+      loss = r90.loss;
+      days = 90;
+      label = '近 90 天（低用量，取平均）';
+    } else {
+      label = '— 極低用量';
+    }
+  }
+
+  const dailyUsage = (usage > 0 && days > 0) ? usage / days : 0;
+  const monthlyUsage = dailyUsage > 0 ? parseFloat((dailyUsage * 30).toFixed(1)) : 0;
+
+  return { usage, loss, days, dailyUsage, monthlyUsage, label };
+}
+
+// ── 非備盤試劑/耗材的月用量：多期盤點平均（上限 90 天）──
+// 這些品項（PVP、Cumulase、Top tips、Geri dish……）不走 beipan.html 的每日備盤流程，
+// changelog 完全沒有它們的消耗紀錄，只能靠盤點快照（pandian_snapshots）的差值推算。
+// 只看最近兩次盤點差值會被單次盤點的間隔長短、或當次進退貨誤差放大波動；
+// 改成把近 90 天內的多次盤點區間都加總（用量加總 ÷ 天數加總），再換算回 30 天等效用量，更穩定。
+// ZY 確認盤點頻率約 30–45 天一次，90 天上限通常涵蓋 2–3 次盤點，不會被更久遠的資料干擾。
+function calcPandianDeltaUsage(product, pandianHistory, jinhuo) {
+  const normDate = d => (d || '').replace(/\//g, '-');
+  const sorted = [...(pandianHistory || [])]
+    .sort((a, b) => normDate(a.date).localeCompare(normDate(b.date)));
+  if (sorted.length < 2) return { usage: null, label: '—' };
+
+  // 比對盤點快照要用 product.gupanId，不能用 productId 或寫死 m- 前綴——
+  // pandian.allValues[].id 存的是 gupanId，培養液是 m- 開頭，試劑/耗材是 f-/s-/c1-/c2-/c3-/r-/b- 等，
+  // 這正是本函數主要要覆蓋的族群，寫死 m- 前綴會讓非培養液品項永遠比對不到。
+  if (!product.gupanId) return { usage: null, label: '—' };
+
+  let totalUsage = 0;
+  let totalDays = 0;
+
+  // 從最新一次盤點往回推，累積到 90 天為止
+  for (let i = sorted.length - 1; i >= 1; i--) {
+    const curr = sorted[i];
+    const prev = sorted[i - 1];
+    const currItem = (curr.allValues || []).find(v => v.id === product.gupanId);
+    const prevItem = (prev.allValues || []).find(v => v.id === product.gupanId);
+    if (!currItem || !prevItem) continue;
+
+    const currDate = normDate(curr.date);
+    const prevDate = normDate(prev.date);
+    const days = Math.round((new Date(currDate) - new Date(prevDate)) / 86400000);
+    if (days <= 0) continue;
+
+    const purchases = (jinhuo || [])
+      .filter(r => r.productId === product.id && !r.isVoided
+                && (r.receivedAt || '') > prevDate && (r.receivedAt || '') <= currDate)
+      .reduce((s, r) => s + (r.receivedQty || 0), 0);
+
+    // 鉗制單一區間用量，避免補登進貨或前次盤點誤差算出負消耗，污染加總
+    const delta = Math.max(0, prevItem.actual + purchases - currItem.actual);
+
+    totalUsage += delta;
+    totalDays += days;
+    if (totalDays >= 90) break;
+  }
+
+  if (totalDays === 0) return { usage: null, label: '—' };
+
+  const monthlyUsage = parseFloat((totalUsage / totalDays * 30).toFixed(1));
+  return { usage: monthlyUsage, monthlyUsage, dailyUsage: totalUsage / totalDays, label: '盤點推算（多期平均）' };
+}
+
+// ── 月用量組合函數：優先用 changelog 逐日消耗（精確），沒有才退到盤點快照多期平均（估）──
+// data = { changelog, jinhuo, pandianHistory }
+function calcMonthlyUsage(product, data) {
+  const rolling = calcRolling30dUsage(product.id, data.changelog, data.jinhuo);
+  if (rolling.monthlyUsage > 0) return rolling;
+  const pandianAvg = calcPandianDeltaUsage(product, data.pandianHistory, data.jinhuo);
+  if (pandianAvg.usage !== null) return pandianAvg;
+  return { usage: null, monthlyUsage: 0, dailyUsage: 0, label: '—' };
+}
+
+function daysBetween(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((d - now) / 86400000);
+}
+
+function fmtNum(n) {
+  if (n === null || n === undefined) return '--';
+  return Number.isInteger(n) ? String(n) : parseFloat(n.toFixed(2)).toString();
+}
+
+// ════════════════════════════════
+// PRODUCT INFO CALCULATION（純函數：庫存數／批號明細／效期狀態）
+// 原本只存在於 kucun.html，現搬來共用檔讓 order.html 也能算出一致的庫存與批號資料，
+// 不用在 order.html 重新刻一份。介面固定吃 (product, { jinhuo, pandian, beipan, order, orderHistory, changelog })，
+// 只依賴傳入參數與 shared.js 的 PRODUCTS，不讀寫任何頁面全域狀態。
+// ════════════════════════════════
+// 效期與庫存警示門檻的全域預設值。頁面若讀到 Firestore global_settings，
+// 呼叫 applyGlobalSettings() 覆寫，讀不到就維持這組程式內建預設（跟原本寫死的行為一致）
+let GLOBAL_SETTINGS = { orangeDays: 3, redDays: 1, stockWarnRatio: 1.0, stockCritRatio: 0.5 };
+function applyGlobalSettings(overrides) {
+  if (overrides) Object.assign(GLOBAL_SETTINGS, overrides);
+}
+
+// 院所名稱：LINE 訊息、CSV 檔名等會用到，新竹院所部署時只要改這一行（或未來搬進 global_settings）
+let CLINIC_NAME = '台北胚胎室';
+
+// Oil／HEPES 公式的預設係數：gupan.html（估盤計算）與 admin.html（後臺設定畫面的保底值）共用同一份，避免各自維護
+const DEFAULT_OIL_FORMULA   = { szuDenom:3, szuCoef:7, spCoef:5, bxCoef:5, stdCoef:10, baseAddCans:1, perCanDivisor:50 };
+const DEFAULT_HEPES_FORMULA = { lt5Coef:0.5, s69Coef:1, ge10Coef:2, ljkCoef:1, baseAdd:1, minCans:8 };
+
+function calcProductInfo(product, data) {
+  const { jinhuo, pandian, beipan, order, changelog } = data;
+  const th = beipan?.threshold || {};
+  const orangeDays = product.expiryWarnDays ?? GLOBAL_SETTINGS.orangeDays ?? (th.orange_days ?? 3);
+  const redDays    = GLOBAL_SETTINGS.redDays ?? (th.red_days ?? 1);
+  const stockWarnRatio = GLOBAL_SETTINGS.stockWarnRatio ?? 1.0;
+  const stockCritRatio = GLOBAL_SETTINGS.stockCritRatio ?? 0.5;
+
+  // ── Stock ──
+  let stockDisplay = null;
+  let stockNum     = null;
+  let stockSource  = null;
+  const beipanBatches = (beipan?.batches || []).filter(b => b.reagentId === product.id);
+  const beipanBatch   = beipanBatches[0] || null; // for the if (beipanBatch) check
+  const pandianItem  = product.gupanId
+    ? pandian?.allValues?.find(v => v.id === product.gupanId)
+    : null;
+
+  // 統一日期格式為 YYYY-MM-DD（gupan.html 存 YYYY/MM/DD，beipan/jinhuo 存 YYYY-MM-DD）
+  const beipanDate   = (beipan?.date  || '').replace(/\//g, '-');
+  const pandianDate  = (pandian?.date || '').replace(/\//g, '-');
+
+  // 盤點精確截止時間（防止盤點當天早上的手動異動被重複扣除）
+  // pandian.completedAt = "HH:MM" 台灣時間，需轉為 UTC ISOString 才能和 log.tsRaw 公平字串比較
+  let pandianCutoff = pandianDate;
+  if (pandianDate && pandian?.completedAt) {
+    try {
+      pandianCutoff = new Date(`${pandianDate}T${pandian.completedAt}:00+08:00`).toISOString();
+    } catch(e) {
+      pandianCutoff = pandianDate;
+    }
+  }
+
+  // 計算指定時間點後的手動異動合計（qtyDelta 通常為負數）
+  const calcManualDelta = (isoCutoff) => (changelog || [])
+    .filter(log => {
+      const logTime = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
+      return log.productId === product.id
+          && log.source === 'manual'
+          && ['use','discard','adjust','lend','return'].includes(log.action)
+          && logTime > isoCutoff;
+    })
+    .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
+
+  if (beipanBatch) {
+    // 跨批次加總：只計算全新未開封瓶數（正在使用中的殘液不佔庫存名額）
+    const unopened    = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
+    if (pandianItem && pandianDate > beipanDate) {
+      // 有更新的盤點覆蓋備盤：以盤點為基準，加上盤點後進貨與手動異動
+      const newIncoming = jinhuo
+        .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > pandianDate)
+        .reduce((s, r) => s + (r.receivedQty||0), 0);
+      const manualDelta = calcManualDelta(pandianCutoff);
+      stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta);
+      stockDisplay = `${fmtNum(stockNum)} ${pandianItem.unit || product.unit}`;
+      stockSource  = 'pandian';
+    } else {
+      // 正常備盤路線：備盤快照 + 備盤後進貨 + 備盤後手動異動
+      // 用 >= beipanDate 且排除已在備盤內的批號，避免備盤同日手動還入的新批號被漏算
+      const beipanLotSet = new Set(beipanBatches.map(bb => bb.selectedLot).filter(Boolean));
+      const newIncoming = jinhuo
+        .filter(r => r.productId === product.id && !r.isVoided
+                  && !beipanLotSet.has(r.lotNumber)
+                  && (r.receivedAt||'') >= beipanDate)
+        .reduce((s, r) => s + (r.receivedQty||0), 0);
+      const beipanCutoff = beipan?.submittedAt || beipanDate;
+      const manualDelta  = calcManualDelta(beipanCutoff);
+      const baseBottles  = unopened; // 只計算全新未開封瓶
+      stockNum    = Math.max(0, baseBottles + newIncoming + manualDelta);
+      stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
+      stockSource  = 'beipan';
+    }
+  } else if (pandianItem) {
+    // 非備盤品項（602、110 等試劑類）：盤點基準 + 盤點後進貨 + 手動異動
+    const newIncoming = jinhuo
+      .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > pandianDate)
+      .reduce((s, r) => s + (r.receivedQty||0), 0);
+    const manualDelta = calcManualDelta(pandianCutoff);
+    stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta);
+    stockDisplay = `${fmtNum(stockNum)} ${pandianItem.unit || product.unit}`;
+    stockSource  = 'pandian';
+  } else {
+    // 從未盤點的品項：以全部進貨紀錄為基準
+    const totalJinhuo = jinhuo
+      .filter(r => r.productId === product.id && !r.isVoided)
+      .reduce((s, r) => s + (r.receivedQty||0), 0);
+    if (totalJinhuo > 0) {
+      const manualDelta = calcManualDelta(''); // 無快照基準，計算全部歷史
+      stockNum     = Math.max(0, totalJinhuo + manualDelta);
+      stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
+      stockSource  = 'jinhuo';
+    }
+    // 若連進貨紀錄都沒有，stockNum 維持 null（顯示 —）
+  }
+
+  // ── Target（優先用 PRODUCTS 的最新設定，fallback 到盤點快照的舊值）──
+  const target = PRODUCTS.find(p => p.id === product.id)?.target ?? pandianItem?.target ?? null;
+
+  // ── Pending delivery ──
+  let pending = 0;
+  if (product.gupanId) {
+    const orderHistory = data.orderHistory || [];
+    orderHistory.forEach(ord => {
+      if (!['pending', 'partial'].includes(ord.status)) return;
+      (ord.orders || []).forEach(oi => {
+        if (oi.orderId === product.gupanId) {
+          pending += Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
+        }
+      });
+    });
+    // fallback：若 orderHistory 為空但舊 order-result 存在
+    if (pending === 0 && data.order?.orders) {
+      const oi = data.order.orders.find(o => o.itemId === product.gupanId);
+      if (oi) pending = Math.max(0, (oi.orderQty || 0) - (oi.receivedQty || 0) - (oi.cancelledQty || 0));
+    }
+  }
+
+  // ── Active lots (from jinhuo, group by lot#) ──
+  const lotMap = {};
+  jinhuo
+    .filter(r => r.productId === product.id && !r.isVoided && r.lotNumber)
+    .sort((a,b) => (a.receivedAt||'').localeCompare(b.receivedAt||''))
+    .forEach(r => {
+      const k = r.lotNumber;
+      if (!lotMap[k]) lotMap[k] = { lot:k, expiry:r.expiryDate||'', qty:0 };
+      lotMap[k].qty += r.receivedQty||0;
+    });
+  const lots = Object.values(lotMap).sort((a,b) => a.expiry.localeCompare(b.expiry));
+
+  // ── A1：對非備盤批號逐批套用 manual changelog 扣減 ──
+  const beipanSelectedLots = new Set(
+    beipanBatches.map(bb => bb.selectedLot).filter(Boolean)
+  );
+  lots.forEach(lot => {
+    if (beipanSelectedLots.has(lot.lot)) return; // 備盤批號由下方 beipan block 處理
+    const netDelta = (changelog || [])
+      .filter(log => {
+        return log.productId === product.id
+            && log.lotNumber === lot.lot
+            && log.source === 'manual'
+            && ['use','discard','lend','return','adjust'].includes(log.action);
+      })
+      .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
+    lot.qty = Math.max(0, lot.qty + netDelta);
+  });
+
+  // ── 修正備盤批號的庫存數（永遠依最新一筆備盤快照校正，跟「總數用哪個來源計算」脫鉤）──
+  // 原本只在 stockSource === 'beipan' 時執行，導致盤點成為最新來源時這段整段跳過，
+  // 已經在正常備盤流程中用掉/過期的批號金額會卡住不動，直到下次備盤才被重新校正。
+  if (beipanBatches.length > 0) {
+    const bpCutoff = beipan?.submittedAt || beipanDate;
+    beipanBatches.forEach(bb => {
+      if (!bb.selectedLot) return;
+      const currLot = lots.find(l => l.lot === bb.selectedLot);
+      if (!currLot) return;
+      const snapQty     = bb.unopened ?? 0;
+      const lotIncoming = jinhuo
+        .filter(r => r.productId === product.id && r.lotNumber === bb.selectedLot
+                  && !r.isVoided && (r.receivedAt||'') > beipanDate)
+        .reduce((s, r) => s + (r.receivedQty||0), 0);
+      const lotDelta = (changelog || [])
+        .filter(log => {
+          const t = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
+          return log.productId === product.id && log.lotNumber === bb.selectedLot
+              && log.source === 'manual' && ['use','discard','adjust','lend','return'].includes(log.action)
+              && t > bpCutoff;
+        })
+        .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
+      currLot.qty = Math.max(0, snapQty + lotIncoming + lotDelta);
+    });
+  }
+
+  // ── Status（維持原邏輯，供舊呼叫端相容，混合了庫存量與批號效期兩件事）──
+  let status = (stockSource || lots.length>0) ? 'ok' : 'none';
+  if (status !== 'none') {
+    lots.forEach(lot => {
+      if (lot.qty <= 0) return; // A2：耗盡批號不觸發效期警告
+      const d = daysBetween(lot.expiry);
+      if (d !== null) {
+        if (d <= redDays) {
+          // 今明到期：不論備貨量，需今日用完或丟棄 → 危急
+          status = 'crit';
+        } else if (d <= orangeDays && status !== 'crit') {
+          // 效期預警：只有在該批號到期後剩餘庫存低於安全量時才標注意
+          // 若有足夠備用批號撐到下次補貨，不需打擾管理者
+          if (target !== null) {
+            const remainAfterExpiry = (stockNum ?? 0) - lot.qty;
+            if (remainAfterExpiry < target) status = 'warn';
+          }
+        }
+      }
+    });
+    if (target !== null && stockNum !== null) {
+      if (stockNum < target * stockCritRatio && status !== 'crit') status = 'crit';
+      else if (stockNum < target * stockWarnRatio && status === 'ok') status = 'warn';
+    }
+  }
+
+  // ── stockStatus：純粹「庫存量 vs 安全庫存」，供訂貨／庫存頁叫貨判斷，跟批號效期完全脫鉤 ──
+  let stockStatus = stockNum !== null ? 'ok' : 'none';
+  if (stockStatus === 'ok' && target !== null) {
+    if (stockNum < target * stockCritRatio) stockStatus = 'crit';
+    else if (stockNum < target * stockWarnRatio) stockStatus = 'warn';
+  }
+
+  // ── expiryStatus：純粹「單一批號到期倒數」，供備盤頁鎖定／報廢判斷，不受庫存量影響 ──
+  let expiryStatus = lots.length > 0 ? 'ok' : 'none';
+  lots.forEach(lot => {
+    if (lot.qty <= 0) return;
+    const d = daysBetween(lot.expiry);
+    if (d === null) return;
+    if (d <= redDays) expiryStatus = 'crit';
+    else if (d <= orangeDays && expiryStatus !== 'crit') expiryStatus = 'warn';
+  });
+
+  return { stockDisplay, stockSource, stockNum, pending, lots, status, stockStatus, expiryStatus, target, orangeDays, redDays };
+}
 
 // 共用的寫入異動日誌函數
 function appendKucunLog(entries) {

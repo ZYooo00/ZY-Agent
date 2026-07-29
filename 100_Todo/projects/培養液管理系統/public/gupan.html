@@ -15,9 +15,9 @@
 <script src="design.js" defer></script>
 <!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords } from './firebase-service.js?v=11';
+  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords, getDishConfig, getBulkFormulaConfig, getStaffConfig } from './firebase-service.js?v=20';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
-  window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords };
+  window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords, getDishConfig, getBulkFormulaConfig, getStaffConfig };
   window.__fbDone = true;
   window.dispatchEvent(new CustomEvent('fb-ready'));
 </script>
@@ -205,7 +205,7 @@
     庫存總覽
   </div>
   <div class="mt-auto pt-4 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -239,7 +239,7 @@
     庫存總覽
   </div>
   <div class="mt-auto pt-3 border-t border-slate-100">
-    <div class="sidebar-link text-slate-400 cursor-default">
+    <div class="sidebar-link" onclick="location.href='admin.html'">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       後台設定
     </div>
@@ -294,7 +294,7 @@
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
     </svg>
-    <span id="banner-qc-text">⚠️ 102 有新批號待 QC，請多估一盤 TE 盤</span>
+    <span id="banner-qc-text">⚠️ 有新批號待 QC，請多估一盤 TE 盤</span>
   </div>
   <div id="banner-c" class="banner banner-green hidden" style="position:sticky; top:56px; z-index:20;">
     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,19 +492,22 @@
 </div><!-- /flex flex-col min-h-screen pt-14 -->
 
 <!-- ════════════════ SCRIPT ════════════════ -->
-<script src="shared.js"></script>
+<script src="shared.js?v=20"></script>
 <script>
 
 // ── 測試開發面板（讓 shared.js 注入日期選擇器）──
-window.runDevReset = function() {
+window.runDevReset = async function() {
   if (!confirm('【測試專用】確定要清除今日估盤草稿嗎？')) return;
   localStorage.removeItem('gupan-draft');
   localStorage.removeItem('gupan-confirmed');
+  // 只清本機還不夠——Firestore 上的雲端草稿沒清掉的話，重新整理後 loadFromCloud() 會把舊資料整包拉回來
+  try { await window._fb?.saveGupanDraft?.(todayStr(), { date: todayStr(), _cleared: true }); } catch(e) {}
   location.reload();
 };
-window.runNuclearWipe = function() {
+window.runNuclearWipe = async function() {
   if (!confirm('💥 終極清理：將清除今日估盤所有暫存，確定？')) return;
   ['gupan-draft','gupan-confirmed'].forEach(k => localStorage.removeItem(k));
+  try { await window._fb?.saveGupanDraft?.(todayStr(), { date: todayStr(), _cleared: true }); } catch(e) {}
   location.reload();
 };
 window.dispatchEvent(new CustomEvent('devpanel-ready'));
@@ -519,8 +522,8 @@ const taiFields = [
   { id: 'tbx', label: 'TBx' },
 ];
 
-// ── 資料：GIVF 盤子 ──
-const givfDishes = [
+// ── 資料：GIVF 盤子（程式內建預設，Firestore dish_config 讀不到時的 fallback）──
+const DEFAULT_GIVF_DISHES = [
   { key:'opu',     name:'OPU',      unit:'盤', suggest: t => t.opu },
   { key:'de',      name:'De',       unit:'盤', suggest: t => t.opu },
   { key:'te',      name:'TE',       unit:'盤', suggest: t => t.te  },
@@ -532,8 +535,9 @@ const givfDishes = [
   { key:'givf_x',  name:'多配',     unit:'mL', suggest: t => 2, note:'評估受精與 STD 台數' },
 ];
 
-// ── 資料：胚胎矩陣 ──
-const matrixDishes = [
+// ── 資料：胚胎矩陣（程式內建預設）──
+// 這份保底陣列的品項/順序需跟 beipan.html 的 DEFAULT_MATRIX_DISHES 保持一致，避免兩頁同時連不上 dish_config 時矩陣列數對不上
+const DEFAULT_MATRIX_DISHES = [
   { key:'geri_szu', name:'Geri-受精', tooltip:'先以每個受精客戶皆為雙線培養建議', h5: t => t.szu, gx: t => t.szu },
   { key:'d0',       name:'D0',        tooltip:'Geri 空位不夠時選備', h5: t => 0, gx: t => 0 },
   { key:'bx',       name:'Bx Keep',   tooltip:'不 PGS 者 ≥5# 要備', h5: t => t.tbx, gx: t => 0 },
@@ -544,14 +548,67 @@ const matrixDishes = [
   { key:'multi',    name:'多配',      h5: t => 2,     gx: t => 2,     isMl: true  },
 ];
 
-// ── 填充人員選單 ──
-(function() {
-  const opts = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []).map(n => `<option>${n}</option>`).join('');
+// dish_config 只存盤子的「身份資料」（key/名稱/單位/manual 等），估盤建議公式仍是程式碼
+// 後台若新增一個程式碼裡沒有對應公式的新盤子，預設 suggest 恆為 0（等同純手動輸入）
+let givfDishes = DEFAULT_GIVF_DISHES;
+let matrixDishes = DEFAULT_MATRIX_DISHES;
+
+async function resolveDishLists() {
+  try {
+    const rows = await window._fb?.getDishConfig?.();
+    if (!rows || !rows.length) return; // 空集合／讀取失敗：維持程式內建預設
+    const givfRows = rows.filter(r => r.category === 'givf' && r.active !== false);
+    const matrixRows = rows.filter(r => r.category === 'matrix' && r.active !== false);
+    if (givfRows.length) {
+      givfDishes = givfRows.map(r => {
+        const def = DEFAULT_GIVF_DISHES.find(d => d.key === r.id);
+        // 優先用後臺設定的公式係數（data-driven），沒有才退回程式內建的公式函式
+        const suggest = r.formula ? (t => evalFormula(r.formula, t)) : (def?.suggest || (() => 0));
+        return { key: r.id, name: r.name, unit: r.unit, note: r.note || undefined,
+                 manual: !!r.manual, suggest };
+      });
+    }
+    if (matrixRows.length) {
+      matrixDishes = matrixRows.map(r => {
+        const def = DEFAULT_MATRIX_DISHES.find(d => d.key === r.id);
+        const h5 = r.h5Formula ? (t => evalFormula(r.h5Formula, t)) : (def?.h5 || (() => 0));
+        const gx = r.gxFormula ? (t => evalFormula(r.gxFormula, t)) : (def?.gx || (() => 0));
+        return { key: r.id, name: r.name, tooltip: r.tooltip || undefined, isMl: r.unit === 'mL',
+                 manual: !!r.manual, h5, gx };
+      });
+    }
+  } catch (e) {
+    console.warn('[resolveDishLists] 讀取 dish_config 失敗，使用程式內建預設', e);
+  }
+}
+
+// ── 填充人員選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）──
+let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
+function renderStaffOptions() {
+  const opts = EFFECTIVE_STAFF_LIST.map(n => `<option>${n}</option>`).join('');
   ['staff-a','staff-b'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = '<option value="">（選擇）</option>' + opts;
+    if (el) {
+      const prev = el.value;
+      el.innerHTML = '<option value="">（選擇）</option>' + opts;
+      if (prev && EFFECTIVE_STAFF_LIST.includes(prev)) el.value = prev;
+    }
   });
-})();
+}
+renderStaffOptions();
+
+async function resolveStaffList() {
+  try {
+    const rows = await window._fb?.getStaffConfig?.();
+    if (!rows || !rows.length) return; // 讀不到／空集合：維持 shared.js 內建預設
+    EFFECTIVE_STAFF_LIST = rows.filter(r => r.active !== false)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map(r => r.name);
+    renderStaffOptions();
+  } catch (e) {
+    console.warn('[resolveStaffList] 讀取 staff_config 失敗，使用程式內建預設', e);
+  }
+}
 
 // ── 全局狀態 ──
 let currentState = 'A';
@@ -630,6 +687,12 @@ function checkGivfDiff(key, input) {
   const isDiff = !isNaN(val) && val !== sug;
   row.classList.toggle('row-overridden', isDiff);
   input.classList.toggle('overridden', isDiff);
+}
+
+// 清空所有輸入格時要一併清掉「與建議值不同」的高亮標記，否則畫面會殘留舊的黃色提示
+function clearAllDiffHighlights() {
+  document.querySelectorAll('#page-gupan .row-overridden').forEach(el => el.classList.remove('row-overridden'));
+  document.querySelectorAll('#page-gupan .overridden').forEach(el => el.classList.remove('overridden'));
 }
 
 // ══════════════════════════════════════════
@@ -713,6 +776,24 @@ function updateAllSuggestions() {
   if (spindleSug) spindleSug.textContent = taiVals.opu || '—';
 }
 
+// dish_config／reagent_formula_config 同一套 fallback 精神：讀不到 bulk_formula_config 就用這組內建預設，公式結構仍在程式碼裡
+// DEFAULT_OIL_FORMULA／DEFAULT_HEPES_FORMULA 已搬到 shared.js 集中管理（admin.html 也讀同一份）
+let OIL_FORMULA = DEFAULT_OIL_FORMULA;
+let HEPES_FORMULA = DEFAULT_HEPES_FORMULA;
+
+async function resolveBulkFormulas() {
+  try {
+    const rows = await window._fb?.getBulkFormulaConfig?.();
+    if (!rows || !rows.length) return;
+    const oil = rows.find(r => r.id === 'oil');
+    const hepes = rows.find(r => r.id === 'hepes');
+    if (oil) OIL_FORMULA = { ...DEFAULT_OIL_FORMULA, ...oil };
+    if (hepes) HEPES_FORMULA = { ...DEFAULT_HEPES_FORMULA, ...hepes };
+  } catch (e) {
+    console.warn('[resolveBulkFormulas] 讀取 bulk_formula_config 失敗，使用程式內建預設', e);
+  }
+}
+
 // ══════════════════════════════════════════
 // CALC: 油
 // ══════════════════════════════════════════
@@ -721,8 +802,9 @@ function calcOil() {
   const std     = parseFloat(document.getElementById('oil-std').value)     || 0;
   const spindle = parseFloat(document.getElementById('oil-spindle').value) || 0;
   const bx      = parseFloat(document.getElementById('oil-bx').value)      || 0;
-  const raw = ((szu / 3) * 7 + (spindle + bx) * 5 + std * 10 + 50) / 50;
-  const result = Math.ceil(raw);
+  const f = OIL_FORMULA;
+  const mlTotal = (szu / f.szuDenom) * f.szuCoef + spindle * f.spCoef + bx * f.bxCoef + std * f.stdCoef;
+  const result = Math.ceil(mlTotal / f.perCanDivisor) + f.baseAddCans;
   const el = document.getElementById('oil-result');
   el.textContent = (szu || std || spindle || bx) ? result : '—';
 }
@@ -735,8 +817,9 @@ function calcHepes() {
   const s69  = parseFloat(document.getElementById('he-69').value)   || 0;
   const ge10 = parseFloat(document.getElementById('he-ge10').value) || 0;
   const ljk  = parseFloat(document.getElementById('he-ljk').value)  || 0;
-  const raw = lt5 * 0.5 + s69 * 1 + ge10 * 2 + ljk * 1 + 1;
-  const result = Math.max(8, Math.ceil(raw));
+  const hf = HEPES_FORMULA;
+  const raw = lt5 * hf.lt5Coef + s69 * hf.s69Coef + ge10 * hf.ge10Coef + ljk * hf.ljkCoef + hf.baseAdd;
+  const result = Math.max(hf.minCans, Math.ceil(raw));
   document.getElementById('he-result').textContent = result;
 }
 
@@ -831,6 +914,7 @@ function applyDraftData(data) {
     console.log('[gupan] 收到 _cleared 訊號，強制重置本地畫面');
     taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
     document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => { el.value = ''; });
+    clearAllDiffHighlights();
     switchState('A');
     updateAllSuggestions();
     calcOil();
@@ -895,6 +979,7 @@ async function resetToday() {
   try { await window._fb.saveGupanDraft(todayStr(), { date: todayStr(), _cleared: true }); } catch(e) {}
   taiVals = { opu:0, te:0, szu:0, fbt:0, bt:0, tbx:0 };
   document.querySelectorAll('#page-gupan input, #page-gupan select, #page-gupan textarea').forEach(el => { el.value = ''; });
+  clearAllDiffHighlights();
   switchState('A');
   updateAllSuggestions();
   calcOil();
@@ -1105,13 +1190,14 @@ async function checkQcBanner() {
   try {
     const jin = await (window._fb?.getJinhuoRecords?.() ||
       Promise.resolve(JSON.parse(localStorage.getItem('jinhuo-records') || '[]')));
-    const hasLeibai = jin.some(r => r.productId === '102'    && !r.isVoided && r.qcStatus === 'pending');
-    const hasMingmei = jin.some(r => r.productId === '102-mm' && !r.isVoided && r.qcStatus === 'pending');
-    const hasPending = hasLeibai || hasMingmei;
+    // 哪些品項需要 QC 由品項主檔的 needQC 欄位決定（REQUIRE_QC_ITEMS 衍生自此），不寫死代號或品項名稱
+    const pendingIds = REQUIRE_QC_ITEMS.filter(id => jin.some(r => r.productId === id && !r.isVoided && r.qcStatus === 'pending'));
+    const pendingVendors = [...new Set(pendingIds.map(id => PRODUCT_MAP[id]?.vendor).filter(Boolean))];
+    const pendingNames = [...new Set(pendingIds.map(id => PRODUCT_MAP[id]?.name).filter(Boolean))];
+    const hasPending = pendingIds.length > 0;
     if (hasPending) {
-      const vendor = hasLeibai && hasMingmei ? '磊柏 / 明美' : hasLeibai ? '磊柏' : '明美';
       const textEl = document.getElementById('banner-qc-text');
-      if (textEl) textEl.textContent = `⚠️ ${vendor} 的 102 有新批號待 QC，請多估一盤 TE 盤`;
+      if (textEl) textEl.textContent = `⚠️ ${pendingVendors.join(' / ')} 的 ${pendingNames.join('、')} 有新批號待 QC，請多估一盤 TE 盤`;
     }
     document.getElementById('banner-qc')?.classList.toggle('hidden', !hasPending);
   } catch(e) { console.warn('[gupan] QC banner check failed', e); }
@@ -1121,15 +1207,17 @@ async function checkQcBanner() {
 // ══════════════════════════════════════════
 (async function init() {
   buildTaiGrid();
-  buildGivfTable();
-  buildMatrixTable();
-  switchState('A');
 
-  // 等 Firebase bridge（module script）設定完 window._fb 再繼續
+  // 等 Firebase bridge（module script）設定完 window._fb，才能嘗試讀 dish_config
   await new Promise(r => {
     if (window._fb?.subscribeGupanDraft) { r(); return; }
     window.addEventListener('fb-ready', r, { once: true });
   });
+
+  await Promise.all([resolveDishLists(), resolveBulkFormulas(), resolveStaffList()]);
+  buildGivfTable();
+  buildMatrixTable();
+  switchState('A');
 
   try {
     await loadFromCloud();

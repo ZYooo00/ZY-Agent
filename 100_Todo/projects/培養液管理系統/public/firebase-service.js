@@ -16,7 +16,8 @@ import {
   serverTimestamp, Timestamp, arrayUnion, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
-  getAuth, signInAnonymously
+  getAuth, signInAnonymously, signOut, onAuthStateChanged,
+  GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // ─── Firebase Config（從 Console 複製貼上）─────────────────────
@@ -45,17 +46,29 @@ const COLLECTIONS = {
   gupan_snapshots: DB_PREFIX + 'gupan_snapshots',
   gupan_drafts:    DB_PREFIX + 'gupan_drafts',
   beipan_lock:     DB_PREFIX + 'beipan_lock',
+  staff_config:    DB_PREFIX + 'staff_config',
+  products_config: DB_PREFIX + 'products_config',
+  pandian_groups:  DB_PREFIX + 'pandian_groups',
+  dish_config:     DB_PREFIX + 'dish_config',
+  reagent_formula_config: DB_PREFIX + 'reagent_formula_config',
+  bulk_formula_config: DB_PREFIX + 'bulk_formula_config',
+  global_settings: DB_PREFIX + 'global_settings',
+  vendors_config: DB_PREFIX + 'vendors_config',
+  // admins 不分正式/測試站，帳號權限與環境無關
+  admins:          'admins',
 };
 window._isTestEnv = !IS_PROD;
 
 // ─── 初始化 ────────────────────────────────────────────────────
 let _db = null;
 let _fsReady = false;
+let _authApp = null;
 
 export async function initFirebaseApp() {
   try {
     const app = initializeApp(FIREBASE_CONFIG);
     _db = getFirestore(app);
+    _authApp = app;
     const auth = getAuth(app);
     await signInAnonymously(auth);  // 確保 auth token 就位後才開放 Firestore 讀寫
     _fsReady = true;
@@ -494,4 +507,152 @@ export function subscribeBeipanLock(dateStr, callback) {
     (snap) => callback(snap.exists() ? snap.data() : null),
     (err) => console.warn("[subscribeBeipanLock] 訂閱失敗", err)
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 後台設定（Phase 1）：管理員登入 + 人員／品項／盤點群組 CRUD
+// 沒有 Cloud Functions 可設定 custom claims，改用 admins/{uid} 文件是否存在
+// 來判斷管理員身份，Firestore Security Rules 需比照這個邏輯收緊寫入權限。
+// ═══════════════════════════════════════════════════════════════
+
+export async function adminSignIn() {
+  if (!_authApp) throw new Error("Firebase 尚未初始化");
+  const provider = new GoogleAuthProvider();
+  const cred = await signInWithPopup(getAuth(_authApp), provider);
+  return cred.user;
+}
+
+export async function adminSignOut() {
+  if (!_authApp) return;
+  await signOut(getAuth(_authApp));
+}
+
+// callback({ uid, email, isAdmin }) — 未登入時傳 null
+export function watchAdminAuth(callback) {
+  if (!_authApp) return () => {};
+  return onAuthStateChanged(getAuth(_authApp), async (user) => {
+    if (!user || user.isAnonymous) { callback(null); return; }
+    let isAdmin = false;
+    try {
+      const snap = await getDoc(doc(_db, COLLECTIONS.admins, user.uid));
+      isAdmin = snap.exists();
+    } catch (e) { console.warn("[watchAdminAuth] admins 清單讀取失敗", e); }
+    callback({ uid: user.uid, email: user.email, isAdmin });
+  });
+}
+
+// ── staff_config ──
+export async function getStaffConfig() {
+  const snap = await getDocs(query(collection(_db, COLLECTIONS.staff_config), orderBy("sortOrder", "asc")));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertStaffMember(staffObj) {
+  await setDoc(doc(_db, COLLECTIONS.staff_config, staffObj.id), {
+    ...staffObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deleteStaffMember(id) {
+  await deleteDoc(doc(_db, COLLECTIONS.staff_config, id));
+}
+
+// ── products_config ──
+export async function getProductsConfig() {
+  const snap = await getDocs(collection(_db, COLLECTIONS.products_config));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertProduct(productObj) {
+  await setDoc(doc(_db, COLLECTIONS.products_config, productObj.id), {
+    ...productObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deleteProduct(id) {
+  await deleteDoc(doc(_db, COLLECTIONS.products_config, id));
+}
+
+// ── pandian_groups（盤點群組設定）──
+export async function getPandianGroups() {
+  const snap = await getDocs(query(collection(_db, COLLECTIONS.pandian_groups), orderBy("sortOrder", "asc")));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertPandianGroup(groupObj) {
+  await setDoc(doc(_db, COLLECTIONS.pandian_groups, groupObj.id), {
+    ...groupObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deletePandianGroup(id) {
+  await deleteDoc(doc(_db, COLLECTIONS.pandian_groups, id));
+}
+
+// ── dish_config（盤子清單，估盤/備盤共用；讀取失敗或空集合由呼叫端 fallback 至程式內建預設）──
+export async function getDishConfig() {
+  const snap = await getDocs(query(collection(_db, COLLECTIONS.dish_config), orderBy("sortOrder", "asc")));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertDish(dishObj) {
+  await setDoc(doc(_db, COLLECTIONS.dish_config, dishObj.id), {
+    ...dishObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deleteDish(id) {
+  await deleteDoc(doc(_db, COLLECTIONS.dish_config, id));
+}
+
+// ── reagent_formula_config（備盤「盤數→mL」消耗公式，文件 id = 試劑代號如 givf/h5gt/gxtl/glue）──
+export async function getReagentFormulaConfig() {
+  const snap = await getDocs(collection(_db, COLLECTIONS.reagent_formula_config));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertReagentFormula(formulaObj) {
+  await setDoc(doc(_db, COLLECTIONS.reagent_formula_config, formulaObj.id), {
+    ...formulaObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+// ── bulk_formula_config（Oil／HEPES 分裝公式係數，文件 id = 'oil' / 'hepes'）──
+export async function getBulkFormulaConfig() {
+  const snap = await getDocs(collection(_db, COLLECTIONS.bulk_formula_config));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertBulkFormula(formulaObj) {
+  await setDoc(doc(_db, COLLECTIONS.bulk_formula_config, formulaObj.id), {
+    ...formulaObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+// ── global_settings（效期與庫存警示門檻，單一文件 id='default'）──
+export async function getGlobalSettings() {
+  const snap = await getDoc(doc(_db, COLLECTIONS.global_settings, 'default'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function upsertGlobalSettings(settingsObj) {
+  await setDoc(doc(_db, COLLECTIONS.global_settings, 'default'), {
+    ...settingsObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+// ── vendors_config（廠商聯絡主檔，文件 id = 廠商名稱）──
+export async function getVendorsConfig() {
+  const snap = await getDocs(query(collection(_db, COLLECTIONS.vendors_config), orderBy("id", "asc")));
+  return snap.docs.map(d => d.data());
+}
+
+export async function upsertVendor(vendorObj) {
+  await setDoc(doc(_db, COLLECTIONS.vendors_config, vendorObj.id), {
+    ...vendorObj, updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deleteVendor(id) {
+  await deleteDoc(doc(_db, COLLECTIONS.vendors_config, id));
 }

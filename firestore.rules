@@ -1,10 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ⚠️ 開發期暫用全開，Phase 9b 上線前必須收緊
-    // TODO: 改為 Firebase App Check 或 Auth Token 驗證
-    match /{document=**} {
-      allow read, write: if true;
+    // admins/{uid} 文件存在 = 該登入帳號是後台管理員（無 Cloud Functions，暫不用 custom claims）
+    function isAdmin() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // 後台設定類 collection：讀取任何人皆可（前臺免登入頁面要能讀取），寫入限管理員
+    function isConfigCollection(col) {
+      return col in [
+        'staff_config', 'test_staff_config',
+        'products_config', 'test_products_config',
+        'pandian_groups', 'test_pandian_groups',
+        'dish_config', 'test_dish_config',
+        'reagent_formula_config', 'test_reagent_formula_config',
+        'bulk_formula_config', 'test_bulk_formula_config',
+        'global_settings', 'test_global_settings',
+        'vendors_config', 'test_vendors_config'
+      ];
+    }
+
+    // 現場作業類 collection：前臺六大作業頁匿名免登入，讀寫全開
+    function isOperationalCollection(col) {
+      return col in [
+        'kucun_changelog', 'test_kucun_changelog',
+        'jinhuo_records', 'test_jinhuo_records',
+        'orders', 'test_orders',
+        'pandian_snapshots', 'test_pandian_snapshots',
+        'beipan_snapshots', 'test_beipan_snapshots',
+        'gupan_snapshots', 'test_gupan_snapshots',
+        'gupan_drafts', 'test_gupan_drafts',
+        'beipan_lock', 'test_beipan_lock'
+      ];
+    }
+
+    // admins 清單本身：任何已登入者可讀（前端要檢查自己是不是 admin），只有 admin 能寫入
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /{col}/{doc} {
+      allow read: if isConfigCollection(col) || isOperationalCollection(col);
+      allow write: if (isConfigCollection(col) && isAdmin()) || isOperationalCollection(col);
     }
   }
 }
