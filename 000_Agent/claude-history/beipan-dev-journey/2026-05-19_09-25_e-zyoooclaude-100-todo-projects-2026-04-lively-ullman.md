@@ -2,7 +2,7 @@
 
 **台北時間**：2026-05-19 09:25  
 **Session ID**：19725ea3-4c76-4f99-b047-9faf647c8435  
-**訊息總數**：178  
+**訊息總數**：200  
 **開頭摘要**：繼續培養液管理系統開發。請先讀取以下檔案：  e:\ZYoooClaude\100_Todo\projects\培養液管理系統\2026-04-29_系統需求規…  
 
 ---
@@ -2915,5 +2915,873 @@ If you need specific details from before compaction (like exact code snippets, e
 **ZY**（2026-05-19 13:43）：
 
 <local-command-stdout>Compacted </local-command-stdout>
+
+---
+
+**ZY**（2026-05-20 21:46）：
+
+<ide_selection>The user selected the lines 1 to 80 from e:\ZYoooClaude\000_Agent\claude-history\beipan-dev-journey\000_INDEX.md:
+# beipan 開發歷程 — 對話視窗索引
+
+**產生時間**：2026-05-19 22:47（台北時間）  
+**對話視窗總數**：21  
+**中文標題更新**：2026-05-19  
+
+---
+
+| # | 台北時間 | 中文標題 | 訊息數 | 檔案 |
+|---|---|---|---|---|
+| 01 | 2026-04-29 01:52 | Gemini 對話整理，系統初期規劃回顧 | 45 | [連結](2026-04-29_01-52_encapsulated-stirring-wand.md) |
+| 02 | 2026-04-29 07:41 | 進貨補貨流程規劃 | 53 | [連結](2026-04-29_07-41_google-app-rosy-lemon.md) |
+| 03 | 2026-04-29 10:08 | 開封使用流程設計（含盤點細節） | 92 | [連結](2026-04-29_10-08_15-v1-whimsical-balloon.md) |
+| 04 | 2026-04-29 14:46 | UI/UX 介面設計規劃，流程閉環確認 | 58 | [連結](2026-04-29_14-46_cozy-watching-elephant.md) |
+| 05 | 2026-04-29 15:53 | Session 1 Phase 1：電腦版備盤頁線框圖設計 | 113 | [連結](2026-04-29_15-53_session-1-phase-serene-goose.md) |
+| 06 | 2026-04-30 01:01 | Token 耗盡危機：執行中斷緊急記錄 | 6 | [連結](2026-04-30_01-01_714d8849.md) |
+| 07 | 2026-04-30 01:04 | 切換 VS Code，beipan.html 初期開發 | 24 | [連結](2026-04-30_01-04_86182e1f.md) |
+| 08 | 2026-04-30 10:17 | Session 2：手機版估盤頁骨架與視覺稿 | 127 | [連結](2026-04-30_10-17_session-2-phase-1-2-refactored-gadget.md) |
+| 09 | 2026-04-30 19:36 | gupan.html 庫存盤點頁 Tab 開發 | 196 | [連結](2026-04-30_19-36_gupan-html-tab-elegant-cray.md) |
+| 10 | 2026-05-05 06:59 | 系統重啟（PRD 3.3），大規模功能開發 ⭐ 1048 則 | 1048 | [連結](2026-05-05_06-59_prd-prd-3-3-shimmying-church.md) |
+| 11 | 2026-05-05 08:08 | 詢問歷史對話回溯方法 | 9 | [連結](2026-05-05_08-08_f15e300d.md) |
+| 12 | 2026-05-05 17:52 | 查詢 Ultrareview 文件（短暫視窗） | 4 | [連結](2026-05-05_17-52_899cce66.md) |
+| 13 | 2026-05-06 12:42 | 多頁面整合開發（beipan / gupan / order / jinhuo） ⭐ 1454 則 | 1454 | [連結](2026-05-06_12-42_prd-beipan-html-gupan-html-order-html-j-vectorized-pancake.md) |
+| 14 | 2026-05-10 17:51 | kucun.html 庫存頁面開發 | 51 | [連結](2026-05-10_17-51_2026-04-29-prd-md-parsed-acorn.md) |
+| 15 | 2026-05-14 20:26 | 六頁面 UI 統一設計（shared.js 重構） | 172 | [連結](2026-05-14_20-26_prd-luminous-eclipse.md) |
+| 16 | 2026-05-15 21:26 | Phase 9a：Firebase 雙軌遷移啟動 | 186 | [連結](2026-05-15_21-26_phase-9a-firebase-robust-island.md) |
+| 17 | 2026-05-16 09:02 | Phase 9 Firebase 驗證與後續功能開發 ⭐ 583 則 | 583 | [連結](2026-05-16_09-02_phase-9-firebase-zazzy-parnas.md) |
+| 18 | 2026-05-17 16:26 | 系統後期功能開發（Phase 10 以後） | 241 | [連結](2026-05-17_16-26_e-zyoooclaude-100-todo-projects-2026-04-stateless-dahl.md) |
+| 19 | 2026-05-19 09:25 | 今日開發（Phase 14 功能完善） | 178 | [連結](2026-05-19_09-25_e-zyoooclaude-100-todo-projects-2026-04-lively-ullman.md) |
+| 20 | 2026-05-19 17:37 | 新計畫：實驗室點料與請購流程 | 48 | [連結](2026-05-19_17-37_1-lovely-dolphin.md) |
+| 21 | 2026-05-19 21:20 | 對話歷程記錄計畫（本視窗） | 35 | [連結](2026-05-19_21-20_1-abstract-bachman.md) |
+
+---
+
+## 開發時間軸摘要
+
+```
+2026-04-29  系統規劃期（4 個視窗）
+              ├ 01 Gemini 初期整理
+              ├ 02 進貨流程規劃
+              ├ 03 開封使用流程
+              └ 04 UI/UX 介面規劃
+
+            設計期（2 個視窗）
+              ├ 05 Session 1：電腦版備盤線框圖
+              └ (跨夜)
+
+2026-04-30  開發期開始（4 個視窗）
+              ├ 06 Token 危機中斷
+              ├ 07 切換 VS Code，beipan.html 啟動
+              ├ 08 Session 2：手機版估盤頁
+              └ 09 gupan.html 庫存盤點頁
+
+2026-05-05  系統重啟期（3 個視窗）
+              ├ 10 PRD 3.3 大規模功能開發 ★
+              ├ 11 歷史對話回溯研究
+              └ 12 Ultrareview 查詢
+
+2026-05-06  多頁面整合期
+              └ 13 beipan/gupan/order/jinhuo 整合 ★★
+
+2026-05-10  庫存頁
+              └ 14 kucun.html 開發
+
+2026-05-14  UI 統一期
+              └ 15 shared.js + 六頁面設計統一
+
+2026-05-15  Firebase 期（2 個視窗）
+              ├ 16 Phase 9a Firebase 遷移啟動
+              └ 17 Phase 9 驗證與後續 ★
+
+2026-05-17  後期功能
+              └ 18 Phase 10+ 功能開發
+
+2026-05-19  最終期（3 個視窗）
+              ├ 19 Phase 14 功能完善
+              ├ 20 新計畫：點料請購
+              └ 21 本視窗（歷程記錄）
+```
+
+
+This may or may not be related to the current task.</ide_selection>
+今天嘗試使用了相機的功能，但是結果令人遺憾，還是沒有辦法。我希望我們還是可以調整，安卓手機是有辦法去做掃描或者是拍照辨別這個動作的。
+
+畫面中是我拍照的這兩個訊息，我們已經確定它是拍實體物體，因此沒有電腦螢幕的幹擾。所以理論上它應該是可以拍照了解的出來的，你可以再幫我確認一下發生什麼事情嗎？
+
+另外我還是蠻希望可以透過手機掃描的方式進行呈現。我另外有去了解了幾個方面跟方向，你可以比較一下我們先前做過的嘗試，有沒有哪個方向可以去做嘗試呢？
+
+我目前比較想做的是切換手機鏡頭的嘗試，是不是可以透過調整成微距的鏡頭來去增加它可以辨認的狀況，並且再增加些微的手動輔助對焦，來去完善整個規劃？還是希望是有機會可以達成的，謝謝。
+
+**以下分別是 Gemini 跟 GPT 給我的建議。我希望你先不要有先入立場，幫我詳細比較一下每每一種方式，然後我們可能需要逐一做測試或排除，但可以先做測試的排序。
+
+這樣子，謝謝。*
+
+這的確是網頁開發中非常經典且令人頭痛的問題。在不同作業系統和手機品牌之間，Web API 對相機硬體的支援度落差很大。Android 手機（尤其是擁有多顆鏡頭的三星手機）在網頁版相機呼叫時，經常會因為瀏覽器預設抓到不適合近拍的主鏡頭或超廣角鏡頭，導致 QR Code 模糊無法對焦，而 iOS Safari 在這方面的底層處理通常比較統一。
+
+雖然網頁版（透過 HTML5 和 JavaScript 的 WebRTC API / MediaDevices API）能控制的深度不如原生 App，但你絕對還是有調整空間的。以下針對你的三個問題，詳細列出在網頁前端可以嘗試控制的 Android 相機項目：
+
+1. 我可以選擇鏡頭嗎？
+可以，而且這是解決模糊問題最有效的方法。
+
+基本切換 (前後鏡頭)： 最基礎的做法是透過 facingMode: "environment" 來強制使用後鏡頭。但這對多鏡頭的三星手機來說不夠，因為系統可能會隨機挑一顆（通常是主鏡頭），而主鏡頭的最近對焦距離可能無法適應 QR Code 的近拍需求。
+
+精確選擇特定鏡頭 (Device ID)： 你可以透過 navigator.mediaDevices.enumerateDevices() 這個 API 抓取手機上「所有的」影音輸入設備。
+
+在擁有多鏡頭的 Android 手機上，這個 API 會回傳多個後置鏡頭（例如：主鏡頭、廣角鏡頭、微距鏡頭）。
+
+你可以取得這些鏡頭專屬的 deviceId，然後在程式碼中透過 deviceId: { exact: "你的設備ID" } 來強制指定開啟哪一顆鏡頭。
+
+實務建議： 在網頁上做一個「切換鏡頭」的按鈕或下拉選單，讓使用者如果發現畫面模糊，可以手動切換到另一顆支援近拍的鏡頭（例如微距鏡頭）。
+
+2. 我可以選擇自動對焦，還是手動對焦呢？
+可以透過 API 嘗試設定，但極度依賴手機廠牌與瀏覽器的支援度。
+
+在取得相機的影音串流（MediaStream）後，可以透過 MediaStreamTrack.applyConstraints() 來調整進階參數：
+
+自動對焦 (Continuous Auto-Focus)： 你可以傳入 { advanced: [{ focusMode: "continuous" }] }。這會告訴相機持續嘗試對焦。大部分 Android 上的 Chrome 預設應該要是連續對焦，但有時需要顯式地再次呼叫這個參數來「喚醒」對焦功能。
+
+手動對焦 (Manual Focus) 與單次對焦 (Single)： 你也可以設定 focusMode: "manual"。如果設為手動，你就必須搭配下面提到的「對焦距離」來控制。
+
+注意： 三星手機的瀏覽器（包含 Chrome 或 Samsung Internet）有時候會忽略網頁端傳來的 focusMode 指令。這不是你的程式碼寫錯，而是硬體抽象層（HAL）沒有把這個權限完整開放給瀏覽器。
+
+3. 焦距會落在哪裡？我可以有怎樣的調整空間？
+你可以透過 API 獲取硬體的極限值，並在範圍內調整「焦距 (Focus Distance)」與「數位變焦 (Zoom)」。
+
+要進行這些調整，你必須先呼叫 track.getCapabilities()。這個指令會回傳這顆鏡頭「允許網頁控制的參數範圍」。
+
+對焦距離 (Focus Distance)： * 如果該手機支援網頁控制對焦距離，getCapabilities() 會回傳 focusDistance 的最小值（最短對焦距離）、最大值與每次調整的間距（step）。
+
+你可以配合前面提到的 focusMode: "manual"，用 applyConstraints({ advanced: [{ focusDistance: 0.2 }] }) 這種方式來強制鎖定焦距。這對固定距離掃描 QR Code 非常有用。
+
+數位變焦 (Zoom)：
+
+這是解決 QR Code 掃描的另一個常見解法。與其讓手機靠得很近導致無法對焦，不如讓手機拿遠一點（確保在對焦範圍內），然後透過網頁程式把畫面放大 (Zoom in)。
+
+同樣透過 getCapabilities().zoom 可以知道這顆鏡頭支援的變焦範圍（例如 1x 到 4x）。然後透過 applyConstraints({ advanced: [{ zoom: 2.0 }] }) 將畫面放大 2 倍，這樣既清楚又能掃到 QR Code。
+
+總結給你的開發策略建議：
+
+實作鏡頭列舉與切換功能： 不要只依賴預設的後置鏡頭，把選擇權留給程式邏輯（尋找名稱中帶有特定關鍵字的鏡頭）或使用者。
+
+善用 Zoom 繞過對焦限制： 如果近拍就是會模糊，利用 API 把畫面 Zoom In 1.5 倍到 2 倍，要求使用者把手機拿遠一點掃描。
+
+加入手動重新對焦機制： 在畫面上做一個「點擊對焦」的功能，點擊時觸發 API 重新套用一次 focusMode: "continuous"。
+
+既然你準備要收集這些可能性去進行後續討論，我想請問：你們目前的網頁掃描方案，是使用開源的套件（例如 html5-qrcode, zxing-js），還是你們團隊自己從頭刻的 WebRTC 串流控制呢？ 這會影響你們實作上述進階設定的難易度。
+
+
+***************************
+
+可以，但要先分清楚兩件事：
+
+你是在「網頁（Web）」裡控制相機
+還是用「Android 原生 App」
+
+你現在講的是「網頁版 + QR 掃描」，那你能控制的是：
+
+Browser 提供的 Camera API（WebRTC / MediaDevices）
+Android 瀏覽器願意開放的能力
+手機硬體本身支援的能力
+
+這三層一起決定。
+
+而 Android 最大的問題其實是：
+
+不同品牌 + 不同瀏覽器 + 不同鏡頭模組 + 不同 Android 版本，能力差異非常大。
+
+尤其 Samsung 又有自己一套 Camera Pipeline，所以會比 iPhone 更容易出現：
+
+對焦慢
+預覽模糊
+近距離失焦
+自動切錯鏡頭
+廣角鏡頭被誤選
+預覽解析度過低
+曝光亂跳
+
+這些都是真的。
+
+先講結論：Web 上你「理論上」能調整哪些？
+
+Android Chrome（以及部分 Samsung Internet）中，透過：
+
+navigator.mediaDevices.getUserMedia
+MediaStreamTrack.getCapabilities()
+applyConstraints()
+
+你能「有機會」控制：
+
+一、鏡頭選擇（最重要）
+
+這是目前 Web QR 掃描最有用的控制。
+
+你可以：
+
+前鏡頭 / 後鏡頭
+指定某個 camera deviceId
+嘗試切換超廣角 / 廣角 / 長焦
+1. 基本切後鏡頭
+const stream = await navigator.mediaDevices.getUserMedia({
+  video: {
+    facingMode: { ideal: "environment" }
+  }
+});
+
+但：
+
+Android 不一定真的給你主鏡頭。
+
+Samsung 很常：
+
+給超廣角
+給固定焦距鏡頭
+給低品質 preview camera
+
+這就是 QR 模糊來源之一。
+
+2. 枚舉所有鏡頭（推薦）
+
+你應該做：
+
+const devices = await navigator.mediaDevices.enumerateDevices();
+
+然後找：
+
+videoinput
+
+例如：
+
+[
+  "Back Camera",
+  "Front Camera",
+  "Ultra Wide",
+  "Telephoto"
+]
+
+再指定：
+
+deviceId
+3. 真正實務建議
+
+Samsung 上：
+
+不要只用：
+facingMode: environment
+
+而是：
+
+列出所有 camera
+讓使用者切換
+或自動測試哪個最清楚
+
+很多 Android QR 掃描器其實都這樣做。
+
+二、對焦（Autofocus / Manual Focus）
+
+這部分是：
+
+Android Web 支援最混亂的地方。
+
+但「部分手機」真的可以。
+
+可以查 capability
+const track = stream.getVideoTracks()[0];
+
+const capabilities = track.getCapabilities();
+
+console.log(capabilities);
+
+你可能看到：
+
+{
+  focusMode: ["manual", "single-shot", "continuous"],
+  focusDistance: {
+    min: 0,
+    max: 10,
+    step: 0.1
+  }
+}
+
+但：
+
+很多 Android 根本不會回傳。
+
+Samsung 某些機型會支援。
+
+三、設定 autofocus
+
+如果支援：
+
+await track.applyConstraints({
+  advanced: [
+    { focusMode: "continuous" }
+  ]
+});
+
+可能的模式：
+
+continuous
+single-shot
+manual
+四、手動對焦（最有價值）
+
+這才是真正能改善 QR 的地方。
+
+例如：
+
+await track.applyConstraints({
+  advanced: [
+    {
+      focusMode: "manual",
+      focusDistance: 0.1
+    }
+  ]
+});
+
+但問題來了：
+
+Web 的 focusDistance 沒有統一標準
+
+不同 Android：
+
+有的是公尺
+有的是 Diopter
+有的是抽象值
+有的完全反著算
+
+所以：
+
+幾乎沒辦法跨機種穩定。
+
+這也是很多人最後放棄 Web QR 的原因。
+
+五、解析度（非常重要）
+
+很多 Android 模糊其實不是對焦：
+
+而是：
+
+Browser 偷偷給你低解析度 preview。
+
+例如：
+
+640x480
+720p
+
+QR 就糊掉。
+
+你應該強制：
+video: {
+  width: { ideal: 1920 },
+  height: { ideal: 1080 }
+}
+
+甚至：
+
+{
+  width: { min: 1280 },
+  height: { min: 720 }
+}
+六、Frame Rate
+
+有些 Android：
+
+FPS 過高
+會降低曝光時間
+造成噪點
+
+可以試：
+
+frameRate: {
+  ideal: 30,
+  max: 30
+}
+
+有時比 60fps 更清楚。
+
+七、Zoom（其實很有用）
+
+部分 Android 支援：
+
+capabilities.zoom
+
+然後：
+
+await track.applyConstraints({
+  advanced: [{ zoom: 2 }]
+});
+
+這很重要。
+
+因為：
+
+很多 Android 的「近距離 QR 模糊」其實是鏡頭太廣。
+
+放大 1.5x～2x：
+
+會切到主鏡頭
+或使用 sensor crop
+清晰度會大幅提升
+
+Samsung 很常有效。
+
+八、Torch（補光）
+
+很多 Android 支援：
+
+torch: true
+await track.applyConstraints({
+  advanced: [{ torch: true }]
+});
+
+能改善：
+
+對焦
+快門速度
+QR 辨識率
+九、曝光（通常沒救）
+
+理論上：
+
+exposureMode
+exposureTime
+brightness
+contrast
+whiteBalanceMode
+
+可能存在。
+
+但 Web 上：
+
+支援率超低
+Samsung 常不開放
+Chrome 常封掉
+
+實務上很難依賴。
+
+十、你真正需要知道的核心現實
+iPhone 為什麼比較穩？
+
+因為：
+
+Safari + iPhone：
+
+機型少
+Apple 統一 camera pipeline
+自動 macro 切換
+autofocus tuning 非常成熟
+
+所以：
+
+Web QR 在 iPhone 幾乎像原生 App。
+
+Android 為什麼麻煩？
+
+Android Web Camera：
+
+實際上是：
+
+Browser
+→ Camera HAL
+→ Samsung Camera API
+→ ISP
+→ 多鏡頭策略
+→ 瀏覽器限制
+
+中間任何一層都可能：
+
+降解析度
+鎖定焦距
+禁止控制
+切錯鏡頭
+十一、現在業界實際解法
+
+真正成熟的 Web QR 系統通常會：
+
+方案 1（最常見）
+不控制 focus
+
+而是：
+
+強制高解析度
+提供 zoom
+提供切鏡頭
+提示使用者距離
+
+這是最穩的。
+
+方案 2
+
+自動測試多鏡頭：
+
+開 camera A
+掃描成功率低 → 切 camera B
+
+很多銀行 App 都這樣。
+
+方案 3（高端）
+
+直接做：
+
+PWA + Native Bridge
+
+例如：
+
+Capacitor
+Cordova
+TWA
+
+然後調 Android Camera2 API。
+
+這時你才能真正控制：
+
+AF region
+Macro
+Lens distance
+Continuous focus
+Exposure
+ISO
+Sensor mode
+十二、你現在最應該做的事情
+
+我會建議你先建立：
+
+「能力探測頁」
+
+列出：
+
+track.getCapabilities()
+track.getSettings()
+
+把每台 Android 的：
+
+focusMode
+zoom
+torch
+width
+height
+facingMode
+
+全部印出來。
+
+你會立刻知道：
+
+哪些 Samsung 型號真的能調。
+
+這是第一步。
+
+十三、你目前最值得優先嘗試的改善順序
+
+Samsung Web QR：
+
+第一優先
+指定高解析度
+1920x1080
+第二優先
+提供 zoom
+
+1.5x ～ 2x 很有效。
+
+第三優先
+允許切鏡頭
+
+不要只用 environment。
+
+第四優先
+continuous autofocus
+
+如果 capability 有支援。
+
+第五優先
+提示最佳掃描距離
+
+很多 Android：
+
+最佳距離不是貼近。
+
+而是：
+
+15～25cm。
+
+十四、你可以深入研究的 Web API 關鍵字
+
+你之後查資料時，可以研究：
+
+MediaDevices API
+ImageCapture API
+MediaStreamTrack
+getCapabilities()
+applyConstraints()
+Camera2 API（原生）
+WebRTC camera constraints
+BarcodeDetector API
+十五、最後一個很重要的現實
+
+很多 Android 手機：
+
+「預覽畫面模糊」
+不代表
+「實際 sensor 不清楚」
+
+所以：
+
+QR library 很可能其實能解碼。
+
+只是你看到 preview 很糊。
+
+因此：
+
+不要只靠肉眼判斷
+
+要真的測：
+
+decode success rate
+decode latency
+decode distance
+
+---
+
+**ZY**（2026-05-20 21:46）：
+
+[Image: original 1080x2340, displayed at 923x2000. Multiply coordinates by 1.17 to map to original image.]
+[Image: original 1080x2340, displayed at 923x2000. Multiply coordinates by 1.17 to map to original image.]
+
+---
+
+**YOHOHO**（2026-05-20 21:47）：
+
+看到截圖了。先確認發生了什麼，再比較兩個 AI 的建議，最後給出測試排序。
+
+---
+
+## 照片掃描為什麼失敗？
+
+看第一張照片：DataMatrix 的格狀區域確實有點模糊（比旁邊的文字更糊）。原生相機的自動對焦鎖在標籤的文字區，而不是 DataMatrix 的小格線上。
+
+但更根本的問題是：**`Html5Qrcode.scanFile()` 對 DataMatrix 的支援很弱**。這個 library 設計重心是 QR Code，DataMatrix 是後來補上的，解碼能力遠不如 QR Code。
+
+---
+
+## Gemini vs GPT 建議比較
+
+| 方法 | Gemini | GPT | 難度 | 預期效果 |
+|------|:---:|:---:|:---:|:---:|
+| 換解碼器（BarcodeDetector 直接解）| ✗ 未提 | ✗ 未提 | 低 | **高** |
+| 鏡頭枚舉 + 微距切換 | ✓ | ✓ | 中 | **高** |
+| Zoom 放大 1.5–2× | ✓ | ✓ | 低 | 中–高（Samsung 有效） |
+| 高解析度設定（1920×1080）| ✓ | ✓ | 低 | 中 |
+| 連續自動對焦 | ✓ | ✓ | 低 | 低–中（支援不穩） |
+| 幀率鎖 30fps | ✗ | ✓ | 低 | 低 |
+| 手動焦距 focusDistance | ✗ | ✓ | 高 | **極不穩**，每台裝置單位不同 |
+| 補光 torch | ✗ | ✓ | 低 | 中（室內有幫助） |
+
+兩個 AI 都沒提到最關鍵的一點：**解碼器本身的問題**。
+
+---
+
+## 建議測試排序
+
+**第一優先（最快做）：換照片解碼器**
+
+目前用 `Html5Qrcode.scanFile()` → 改用瀏覽器原生 `BarcodeDetector` API，明確指定 `formats: ['data_matrix']`。Android Chrome 100+ 內建支援，這個 API 對 DataMatrix 的解碼成功率遠高於 html5-qrcode。
+
+**第二優先（最有效）：鏡頭枚舉 + 微距切換按鈕**
+
+在掃碼視窗啟動時呼叫 `enumerateDevices()`，把後置鏡頭列出來，加一個「切換鏡頭」按鈕。你的手機有微距鏡頭（最短對焦距離 ≈ 5cm），切到那顆就能近距清晰掃。
+
+**第三優先（容易測）：解析度提升 + 2× Zoom**
+
+強制要求 1920×1080，同時套用 zoom: 2，讓 DataMatrix 在畫面中佔更多像素。Samsung 的 zoom constraint 支援率比 focus constraint 高很多。
+
+**不建議做：手動 focusDistance**
+
+GPT 提的這個，在跨機種環境太不穩定，單位標準不一（有的是公尺、有的是 diopter、有的是抽象值），投入產出比很差。
+
+---
+
+## 我建議的下一步
+
+先改第一優先（換解碼器），這個改動最小、風險最低，而且直接解決「拍了清楚照片但還是解碼失敗」的根本問題。如果換了 BarcodeDetector 還是失敗，再進到第二優先（鏡頭枚舉）。
+
+你要我先動手改照片解碼的部分嗎？
+
+---
+
+**ZY**（2026-05-20 21:50）：
+
+好，沒問題。那我們就從進貨這個頁面，去更改你推薦的第一步。
+
+---
+
+**YOHOHO**（2026-05-20 21:50）：
+
+先讀 jinhuo.html 找到 `onPhotoScanFile` 的現有實作。
+
+---
+
+**YOHOHO**（2026-05-20 21:51）：
+
+找到了，在 line 1176。現在要把 `Html5Qrcode.scanFile()` 換成優先使用 `BarcodeDetector`，失敗才降回原來的方式。
+
+修改計畫：
+1. 新增 `decodeImageFile(file)` 輔助函式，先試 BarcodeDetector（DataMatrix 支援好），不行再用 Html5Qrcode 備援
+2. `onPhotoScanFile` 裡的那一行 `scanFile` 換成呼叫新函式
+
+寫入 jinhuo.html：
+
+---
+
+**YOHOHO**（2026-05-20 21:51）：
+
+現在在 `onPhotoScanFile` 上方插入新的解碼函式：
+
+---
+
+**YOHOHO**（2026-05-20 21:51）：
+
+確認修改正確：
+
+---
+
+**YOHOHO**（2026-05-20 21:51）：
+
+好，現在 deploy 到 Firebase 讓你可以在手機上測試：
+
+---
+
+**YOHOHO**（2026-05-20 21:51）：
+
+Deploy 完成。
+
+**這次改動的邏輯：**
+- 拍完照後，先試 `BarcodeDetector`（Android Chrome 100+ 原生支援，DataMatrix 解碼能力比 html5-qrcode 強很多）
+- 如果 BarcodeDetector 不支援或解不出來，才降回原來的 `Html5Qrcode.scanFile()`
+- Console 會印出是哪條路徑成功，方便我們知道是哪個解碼器有效
+
+**測試步驟：**
+1. 打開 jinhuo.html → 掃碼按鈕 → 點「改用拍照掃碼」
+2. 拍同一張 102 的標籤（真實包裝）
+3. 看看是否這次能解碼成功
+4. 如果失敗，也麻煩打開 Chrome DevTools Console（網址列輸入 `chrome://inspect`）看 log 訊息是走哪條路
+
+---
+
+**ZY**（2026-05-20 21:53）：
+
+你會建議我同步去做這個鏡頭的切換按鈕嗎？
+
+因為假設我可以透過這個切換按鈕，直接以掃描的方式處理，是不是也可以解決呢？
+
+如果你建議的話，我還是切換鏡頭就好，還是必須走到「拍照相機」這一步呢？我想跟您確認一下，如果是有機會可以走掃描的話，那我就會希望可以去做第二步，也開始同步執行。
+
+你覺得如何呢？
+
+---
+
+**YOHOHO**（2026-05-20 21:53）：
+
+這個問題問得很好。我的建議：**值得同步做，而且成功的話，掃描體驗會比拍照好很多。**
+
+---
+
+## 分析：兩條路的差別
+
+| 比較項目 | 切換鏡頭（直播掃描）| 拍照掃碼 |
+|---------|:--:|:--:|
+| 使用者步驟 | 點「切換鏡頭」→ 對準 → 自動解碼 | 點按鈕 → 拍照 → 等解析 |
+| 即時反饋 | ✓ 畫面上直接看到解碼結果 | ✗ 需要等照片處理 |
+| 成功關鍵 | 微距鏡頭能對焦 + zxing 解 DataMatrix | BarcodeDetector 能解 DataMatrix |
+| 適合場景 | 日常收貨（主要流程）| 直播掃描失敗時的備援 |
+
+**結論：如果微距鏡頭能讓直播掃描成功，那就是最好的結果 —— 不需要拍照，對準就能掃。**
+
+---
+
+## 技術可行性
+
+你手機的後置鏡頭（三星）通常會有 3–4 顆，`enumerateDevices()` 多半能枚舉出來，但 label 名稱因機型不同（有的叫 `Macro`，有的只是 `camera2 2 front`）。所以我會做成「循環切換」的按鈕，讓你自己找到那顆對焦距離最近的鏡頭，之後就固定用那顆。
+
+---
+
+## 我的建議
+
+同步做第二步。兩步一起上線之後：
+- **平常**：切換到微距鏡頭，直接直播掃描
+- **萬一失敗**：才走拍照掃碼路線（已有 BarcodeDetector 加持）
+
+這樣等於雙重保險。你要我現在就動手嗎？
+
+---
+
+**ZY**（2026-05-20 21:54）：
+
+好，那就開始執行吧
+
+---
+
+**YOHOHO**（2026-05-20 21:54）：
+
+先讀掃碼 Modal 的 HTML 結構和相機啟動的程式碼：
+
+---
+
+**YOHOHO**（2026-05-20 21:54）：
+
+情況掌握清楚了。現在開始動手，分三步：
+
+1. 加「切換鏡頭」按鈕 HTML
+2. 加狀態變數 + `switchCamera()` 函式
+3. 修改 `startScan()` 在啟動後枚舉鏡頭
+
+---
+
+**YOHOHO**（2026-05-20 21:55）：
+
+**Step 1：加狀態變數**
+
+---
+
+**YOHOHO**（2026-05-20 21:55）：
+
+**Step 2：加切換鏡頭按鈕 HTML**（放在 zoom-wrap 和 scan-status 之間）
+
+---
+
+**YOHOHO**（2026-05-20 21:55）：
+
+**Step 3：修改 `startScan()` 的 `.then()` 區塊 — 枚舉鏡頭並顯示按鈕**
+
+---
+
+**YOHOHO**（2026-05-20 21:55）：
+
+**Step 4：加入枚舉函式 `_enumerateAndShowCameraSwitch()` 和 `switchCamera()`**，放在 `startScan()` 上方：
+
+---
+
+**YOHOHO**（2026-05-20 21:55）：
+
+**Step 5：`stopScan()` 時隱藏切換按鈕、清空鏡頭清單**
+
+---
+
+**YOHOHO**（2026-05-20 21:56）：
+
+Deploy：
+
+---
+
+**YOHOHO**（2026-05-20 21:56）：
+
+Deploy 完成。
+
+**測試步驟：**
+
+1. 手機開 jinhuo.html → 掃碼按鈕
+2. 相機啟動後，看 zoom 滑桿下方有沒有出現「🔄 切換鏡頭」這一排
+3. 如果有出現，左邊會顯示「1/N 鏡頭名稱」（N 是你手機上偵測到的後置鏡頭數量）
+4. 點「切換鏡頭」逐一切換，找到能清晰近拍的那顆（通常是微距，名稱可能含 Macro 或數字編號）
+5. 找到之後，試對著真實包裝直接掃描，看是否能成功解碼
+
+如果手機只有一顆後置鏡頭被枚舉到，按鈕不會出現（正常，這台機不需要切換）。
 
 ---
