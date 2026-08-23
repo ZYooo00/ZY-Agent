@@ -364,10 +364,15 @@ export async function getLatestBeipan() {
           collection(_db, COLLECTIONS.beipan),
           where("date", "<=", todayStr),
           orderBy("date", "desc"),
-          limit(1)
+          limit(5)
         ));
         if (!snap.empty) {
-          const data = snap.docs[0].data();
+          const docs = snap.docs.map(d => d.data());
+          // 防呆：跳過 batches 空陣列/異常的快照，改用最近一筆「有效」快照當基準
+          // 避免單一次寫入異常（例如頁面沒讀到資料就送出）讓整批批號狀態被打回未開封
+          const valid = docs.find(d => Array.isArray(d.batches) && d.batches.length > 0);
+          const data = valid || docs[0];
+          if (!valid) console.warn("[getLatestBeipan] 近 5 筆快照都沒有有效 batches，fallback 用最新一筆（可能是空的）：", data?.date);
           // Firebase 讀取成功時修復 localStorage，確保格式始終正確
           try { localStorage.setItem("beipan-result", JSON.stringify(data)); } catch(e) {}
           return data;

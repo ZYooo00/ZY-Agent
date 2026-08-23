@@ -2899,6 +2899,23 @@ async function submitBeipan() {
     });
   });
 
+  // Fix B：送出前異常筆數防呆——避免頁面資料沒讀取完整就送出，寫進一筆空白/異常快照
+  // 覆蓋掉正常歷史（8/22 事故成因）。只在「批號規模夠大、又掉超過一半」時示警，避免低基數誤判
+  {
+    const expectedCount = [...reagentConfig, gm508Config]
+      .reduce((sum, c) => sum + (c.batches || []).filter(b => !b.blocked).length, 0);
+    const actualCount = updatedBatches.length;
+    const anomalous = actualCount === 0 || (expectedCount > 3 && actualCount < expectedCount * 0.5);
+    if (anomalous) {
+      const proceed = confirm(
+        `⚠️ 系統讀取到的批號資料異常偏少（現有 ${actualCount} 筆，預期約 ${expectedCount} 筆），` +
+        `可能是頁面沒有正確載入完成，建議按「取消」後重新整理頁面再試。\n\n` +
+        `若你已經確認資料無誤，仍要照這樣送出，請按「確定」強制送出。`
+      );
+      if (!proceed) return;
+    }
+  }
+
   const userNote = document.getElementById('beipan-note-input')?.value.trim() || '';
   // 存入當時的盤數快照，讓隔天重載時能完整還原 State B
   const givfSnap = givfDishes.map((d, i) => {

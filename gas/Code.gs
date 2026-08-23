@@ -95,7 +95,8 @@ function fsDocToObj(doc) {
 }
 
 // runQuery：不限制個別 collection 的查詢
-function firestoreQuery(collectionId, orderBy, limitCount) {
+// whereFilter（可選）：Firestore structuredQuery.where 格式的物件，例如 buildTsRangeFilter() 產生的 compositeFilter
+function firestoreQuery(collectionId, orderBy, limitCount, whereFilter) {
   var token = ScriptApp.getOAuthToken();
   var query = {
     structuredQuery: {
@@ -104,6 +105,7 @@ function firestoreQuery(collectionId, orderBy, limitCount) {
   };
   if (orderBy) query.structuredQuery.orderBy = orderBy;
   if (limitCount) query.structuredQuery.limit = limitCount;
+  if (whereFilter) query.structuredQuery.where = whereFilter;
 
   var res = UrlFetchApp.fetch(FIRESTORE_BASE + ':runQuery', {
     method: 'POST',
@@ -123,13 +125,45 @@ function firestoreQuery(collectionId, orderBy, limitCount) {
   return rows.filter(function(r) { return r.document; }).map(function(r) { return fsDocToObj(r.document); });
 }
 
+// 組出「tsRaw 介於 fromIso ～ toIso」的 compositeFilter（AND）。
+// 用 tsRaw（寫入時存的原始 ISO 字串）而非 ts（Firestore Timestamp 型別），
+// 避免要在 GAS 端組 timestampValue 的麻煩，字串型 ISO 8601 本身可直接用字典序比較。
+function buildTsRangeFilter(fromIso, toIso) {
+  return {
+    compositeFilter: {
+      op: 'AND',
+      filters: [
+        { fieldFilter: { field: { fieldPath: 'tsRaw' }, op: 'GREATER_THAN_OR_EQUAL', value: { stringValue: fromIso } } },
+        { fieldFilter: { field: { fieldPath: 'tsRaw' }, op: 'LESS_THAN_OR_EQUAL',    value: { stringValue: toIso } } }
+      ]
+    }
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════
 // 資料讀取函數
 // ════════════════════════════════════════════════════════════════════
 
+// Fix A：抓「最新一筆有效快照」而非單純「最新一筆」，避免某天寫進空 batches
+// 的異常快照時，calcAllStock() 直接把異常內容當基準用（8/22 事故的根本原因）。
+// 往前抓 5 筆，挑第一筆 batches 非空的；5 筆內都異常時 fallback 回最新一筆（不拋錯）。
 function getLatestBeipan() {
   var rows = firestoreQuery('beipan_snapshots',
-    [{ field: { fieldPath: 'date' }, direction: 'DESCENDING' }], 1);
+    [{ field: { fieldPath: 'date' }, direction: 'DESCENDING' }], 5);
+  if (rows.length === 0) return null;
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].batches && rows[i].batches.length > 0) return rows[i];
+  }
+  Logger.log('[getLatestBeipan] 近 5 筆快照都沒有有效 batches，fallback 用最新一筆（可能是空的）：' + rows[0].date);
+  return rows[0];
+}
+
+// Fix C：checkBeipanSubmitted() 專用的精確查詢，不套用 getLatestBeipan() 的「跳過空快照」
+// 邏輯，才能分辨「今天完全沒有文件」跟「今天有文件但內容異常空白」這兩種不同情況。
+function getBeipanByDate(dateStr) {
+  var rows = firestoreQuery('beipan_snapshots', null, 1, {
+    fieldFilter: { field: { fieldPath: 'date' }, op: 'EQUAL', value: { stringValue: dateStr } }
+  });
   return rows[0] || null;
 }
 
@@ -148,6 +182,14 @@ function getJinhuoRecords() {
 function getKucunChangelog() {
   // 最多抓 1000 筆手動異動
   return firestoreQuery('kucun_changelog', null, 1000);
+}
+
+// 依時間區間查詢 changelog（伺服器端過濾，不整包撈回再用 JS 篩選）
+function getKucunChangelogByRange(fromIso, toIso) {
+  return firestoreQuery('kucun_changelog',
+    [{ field: { fieldPath: 'tsRaw' }, direction: 'ASCENDING' }],
+    2000,
+    buildTsRangeFilter(fromIso, toIso));
 }
 
 function getOrders() {
@@ -341,12 +383,22 @@ function checkPendingDelay(orders, todayStr) {
   return alerts.sort(function(a, b) { return b.daysElapsed - a.daysElapsed; });
 }
 
-function checkDisposal(jinhuo, changelog, todayStr) {
+function checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap) {
   var todayMs = new Date(todayStr).getTime();
   var PRODUCT_MAP = {};
   PRODUCTS.forEach(function(p) { PRODUCT_MAP[p.id] = p; });
 
-  // 從進貨紀錄建立每個批號的基礎數量
+  // 建立備盤批號 Map（key = productId|lotNumber）
+  var beipanLotMap = {};
+  var beipanDate   = beipan ? (beipan.date || '').replace(/\//g, '-') : '';
+  var beipanCutoff = beipan ? (beipan.submittedAt || beipanDate) : '';
+  (beipan && beipan.batches ? beipan.batches : []).forEach(function(bb) {
+    if (!bb.selectedLot || !bb.reagentId) return;
+    var k = bb.reagentId + '|' + bb.selectedLot;
+    beipanLotMap[k] = { unopened: Number(bb.unopened || 0), cutoff: beipanCutoff };
+  });
+
+  // 從進貨紀錄建立每個批號的基礎數量（路線 B 基準）
   var lotMap = {};
   (jinhuo || []).forEach(function(r) {
     if (r.isVoided || !r.expiryDate || !r.receivedQty) return;
@@ -359,19 +411,40 @@ function checkDisposal(jinhuo, changelog, todayStr) {
         qty:        0,
       };
     }
-    lotMap[key].qty += r.receivedQty;
+    lotMap[key].qty += Number(r.receivedQty || 0);
   });
 
-  // 套用手動異動（use / discard / adjust / lend / return）
+  // 路線 B：套用全部歷史 manual 異動（不設 cutoff）
   var MANUAL_ACTIONS = ['use', 'discard', 'adjust', 'lend', 'return'];
   (changelog || []).forEach(function(log) {
     if (log.source !== 'manual' || MANUAL_ACTIONS.indexOf(log.action) === -1) return;
     var key = (log.productId || '') + '|' + (log.lotNumber || '');
     if (!lotMap[key]) return;
-    lotMap[key].qty += (log.qtyDelta !== undefined ? log.qtyDelta : 0);
+    lotMap[key].qty += Number(log.qtyDelta !== undefined ? log.qtyDelta : 0);
   });
 
-  // 篩選：已過期（daysOverdue > 0）且現有庫存 > 0
+  // 路線 A：備盤 selectedLot → 覆蓋為 unopened + 備盤後進貨 + 備盤後 manual 異動
+  Object.keys(beipanLotMap).forEach(function(k) {
+    if (!lotMap[k]) return;
+    var bpEntry = beipanLotMap[k];
+    var parts = k.split('|');
+    var pid = parts[0], lot = parts[1];
+    var lotIncoming = (jinhuo || []).reduce(function(s, r) {
+      if (r.productId !== pid || r.lotNumber !== lot || r.isVoided) return s;
+      if ((r.receivedAt || '') <= beipanDate) return s;
+      return s + Number(r.receivedQty || 0);
+    }, 0);
+    var lotDelta = (changelog || []).reduce(function(s, log) {
+      if (log.productId !== pid || log.lotNumber !== lot) return s;
+      if (log.source !== 'manual' || MANUAL_ACTIONS.indexOf(log.action) === -1) return s;
+      var t = log.tsRaw || '';
+      if (t <= bpEntry.cutoff) return s;
+      return s + Number(log.qtyDelta !== undefined ? log.qtyDelta : 0);
+    }, 0);
+    lotMap[k].qty = Math.max(0, bpEntry.unopened + lotIncoming + lotDelta);
+  });
+
+  // 篩選：已過期且應丟棄數量 > 0
   var alerts = [];
   Object.keys(lotMap).forEach(function(key) {
     var lot = lotMap[key];
@@ -388,10 +461,10 @@ function checkDisposal(jinhuo, changelog, todayStr) {
       expiryDate:  lot.expiryDate,
       daysOverdue: daysOverdue,
       qty:         qty,
+      totalStock:  Number((stockMap && stockMap[lot.productId]) || 0),
     });
   });
 
-  // 逾期最久的排最前面
   return alerts.sort(function(a, b) { return b.daysOverdue - a.daysOverdue; });
 }
 
@@ -526,7 +599,8 @@ function buildEmail(critical, expiry, pendingDelay, qcOverdue, disposal, todaySt
       + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">批號</th>'
       + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">到期日</th>'
       + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">已逾期</th>'
-      + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">現有庫存</th>'
+      + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">應丟棄瓶數</th>'
+      + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">應剩餘瓶數</th>'
       + '</tr>';
     items.forEach(function(a, i) {
       var rowBg = i % 2 === 0 ? '#fff' : '#fafafa';
@@ -536,6 +610,7 @@ function buildEmail(critical, expiry, pendingDelay, qcOverdue, disposal, todaySt
         + '<td style="text-align:center;border-bottom:1px solid #eee;color:#555;">' + a.expiryDate + '</td>'
         + '<td style="text-align:center;border-bottom:1px solid #eee;color:#7f1d1d;font-weight:700;">已過期 ' + a.daysOverdue + ' 天</td>'
         + '<td style="text-align:center;border-bottom:1px solid #eee;color:#7f1d1d;font-weight:700;">' + a.qty + ' ' + a.unit + '</td>'
+        + '<td style="text-align:center;border-bottom:1px solid #eee;color:#555;">' + a.totalStock + ' ' + a.unit + '</td>'
         + '</tr>';
     });
     html += '</table>';
@@ -651,7 +726,7 @@ function sendDailyAlert() {
     // 3. 各項警示
     var stockAlerts    = checkLowStock(stockMap);
     var expiryAlerts   = checkExpiry(jinhuo, todayStr);
-    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr);
+    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
     var delayAlerts    = checkPendingDelay(orders, todayStr);
     var qcAlerts       = checkQcOverdue(jinhuo, todayStr);
 
@@ -740,7 +815,7 @@ function forceAlert() {
     var stockMap      = calcAllStock(beipan, pandian, jinhuo, changelog);
     var critical      = checkLowStock(stockMap).critical;
     var expiryAlerts  = checkExpiry(jinhuo, todayStr);
-    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr);
+    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
     var delayAlerts   = checkPendingDelay(orders, todayStr);
     var qcAlerts      = checkQcOverdue(jinhuo, todayStr);
     var total = critical.length + expiryAlerts.length + disposalAlerts.length + delayAlerts.length + qcAlerts.length;
@@ -753,20 +828,252 @@ function forceAlert() {
   }
 }
 
-// 設定每日觸發器（只需執行一次）
+// ════════════════════════════════════════════════════════════════════
+// 備盤未送出提醒（每天 21:00 Asia/Taipei 檢查，收件人動態讀取後臺人員名單的 gmail 欄位）
+// ════════════════════════════════════════════════════════════════════
+
+// 讀 staff_config，篩選 active 且已在後臺（人員名單管理）填寫 gmail 的人員
+function getStaffEmails() {
+  var rows = firestoreQuery('staff_config', null, 100);
+  return rows
+    .filter(function(s) { return s.active !== false && s.gmail; })
+    .map(function(s) { return s.gmail; });
+}
+
+function checkBeipanSubmitted() {
+  var tz       = 'Asia/Taipei';
+  var todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+
+  try {
+    // Fix C：用精確查詢（不透過 getLatestBeipan() 的跳過空快照邏輯），才能分辨
+    // 「今天完全沒送」跟「今天有送、但內容異常空白」這兩種不同情況，各自發不同措辭的信
+    var todayBeipan = getBeipanByDate(todayStr);
+    var hasEmptyBatches = !!(todayBeipan && (!todayBeipan.batches || todayBeipan.batches.length === 0));
+    var submittedToday = !!(todayBeipan && !hasEmptyBatches);
+
+    if (submittedToday) {
+      Logger.log('[' + todayStr + '] 今日備盤已送出（' + (todayBeipan.operator || '未記錄操作者') + '），不發提醒信');
+      return;
+    }
+
+    var recipients = getStaffEmails();
+    if (recipients.length === 0) {
+      Logger.log('[' + todayStr + '] 今日備盤尚未有效送出，但後臺人員名單目前沒有任何已填 gmail 的人員，無法發信。請到 admin.html 人員名單管理分頁補上 email。');
+      return;
+    }
+
+    var subject, warningLine;
+    if (hasEmptyBatches) {
+      subject = '【培養液系統】今日（' + todayStr.replace(/-/g, '/') + '）備盤紀錄異常空白提醒';
+      warningLine = '⚠️ 偵測到今日有一筆備盤紀錄，但內容異常空白，系統已判定為尚未有效送出，請盡速前往系統重新確認並送出正確的備盤資料。';
+    } else {
+      subject = '【培養液系統】今日（' + todayStr.replace(/-/g, '/') + '）備盤尚未送出提醒';
+      warningLine = '⚠️ 晚上 9 點檢查：今日備盤尚未送出';
+    }
+    var htmlBody = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:20px 16px;color:#1a1a1a;font-size:15px;line-height:1.6;">'
+      + '<p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#c0392b;">' + warningLine + '</p>'
+      + '<p style="margin:0 0 16px;">因為備盤送出與庫存扣除連動，若確實已經備盤完成，請盡快到系統送出，避免影響明日庫存判斷。</p>'
+      + '<p style="margin:0;"><a href="https://stork11-embryo-lab.web.app/beipan.html" style="color:#1a6496;">前往備盤頁面 →</a></p>'
+      + '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e0e0e0;font-size:13px;color:#777;">此信件由系統自動發送，請勿直接回覆</div>'
+      + '</div>';
+
+    GmailApp.sendEmail(recipients.join(','), subject, '', { htmlBody: htmlBody, name: 'Stork11 培養液系統' });
+    Logger.log('[' + todayStr + '] 今日備盤未有效送出（' + (hasEmptyBatches ? '內容異常空白' : '完全沒有紀錄') + '），已發提醒信給：' + recipients.join(', '));
+
+  } catch (e) {
+    Logger.log('[' + todayStr + '] checkBeipanSubmitted 錯誤：' + e.message + '\n' + e.stack);
+  }
+}
+
+// 測試用：不管今天備盤送出與否，一律把提醒信範本寄給 gordon08250209@gmail.com，方便 ZY 確認信件外觀
+function testSendToGordon() {
+  var tz       = 'Asia/Taipei';
+  var todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  var subject  = '【培養液系統】今日（' + todayStr.replace(/-/g, '/') + '）備盤尚未送出提醒';
+  var htmlBody = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:20px 16px;color:#1a1a1a;font-size:15px;line-height:1.6;">'
+    + '<p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#c0392b;">⚠️ 晚上 9 點檢查：今日備盤尚未送出</p>'
+    + '<p style="margin:0 0 16px;">因為備盤送出與庫存扣除連動，若確實已經備盤完成，請盡快到系統送出，避免影響明日庫存判斷。</p>'
+    + '<p style="margin:0;"><a href="https://stork11-embryo-lab.web.app/beipan.html" style="color:#1a6496;">前往備盤頁面 →</a></p>'
+    + '<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e0e0e0;font-size:13px;color:#777;">此信件由系統自動發送，請勿直接回覆（測試信，實際觸發條件為每日 21:00 檢查備盤是否送出）</div>'
+    + '</div>';
+  GmailApp.sendEmail('gordon08250209@gmail.com', subject, '', { htmlBody: htmlBody, name: 'Stork11 培養液系統' });
+  Logger.log('測試信已寄給 gordon08250209@gmail.com');
+}
+
+// 一次性設定：建立每天 21:00 Asia/Taipei 執行 checkBeipanSubmitted 的時間觸發器
+// 在 Apps Script 編輯器裡手動執行這個函式一次即可（重複執行會先清掉舊的同名觸發器，不會建立重複）
+function createBeipanCheckTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'checkBeipanSubmitted') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('checkBeipanSubmitted')
+    .timeBased()
+    .everyDays(1)
+    .atHour(21)
+    .create();
+  Logger.log('已建立每日 21:00 (Asia/Taipei) 觸發器，執行 checkBeipanSubmitted');
+}
+
+// 手動測試（忽略時間，立即檢查一次今天的狀態並視情況發信）
+function testCheckBeipanSubmitted() {
+  checkBeipanSubmitted();
+}
+
+// 測試待報廢通報邏輯（不發信，只印 Log）
+function testDisposalAlerts() {
+  var tz       = 'Asia/Taipei';
+  var todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  var beipan    = getLatestBeipan();
+  var pandian   = getLatestPandian();
+  var jinhuo    = getJinhuoRecords();
+  var changelog = getKucunChangelog();
+  var stockMap  = calcAllStock(beipan, pandian, jinhuo, changelog);
+  var disposal  = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
+  Logger.log('[testDisposalAlerts] 待報廢批號：' + disposal.length + ' 個');
+  disposal.forEach(function(d) {
+    Logger.log('  ' + d.name + ' | 批號：' + d.lotNumber + ' | 應丟棄：' + d.qty + ' ' + d.unit + ' | 品項庫存：' + d.totalStock + ' ' + d.unit);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 每月近三個月用量報表（每月 1 號 08:00 Asia/Taipei 自動執行 sendMonthlyUsageReport()）
+// 嚴格依日曆月份加總（不是往回減 90 天平均切三份），並用 tsRaw 做伺服器端範圍查詢
+// ════════════════════════════════════════════════════════════════════
+
+var MONTHLY_CONSUME_ACTIONS = ['beipan', 'beipan_addon'];
+var MONTHLY_LOSS_ACTIONS    = ['discard', 'void'];
+
+// 取得「距今 monthsAgo 個月前」那個完整日曆月的邊界（Asia/Taipei）
+// monthsAgo=1 → 上個月 1 號 00:00 ～ 上個月最後一天 23:59:59
+function getCalendarMonthBoundary(monthsAgo) {
+  var tz  = 'Asia/Taipei';
+  var now = new Date();
+  var y   = now.getFullYear();
+  var m   = now.getMonth(); // 0-based，本月
+  var from = new Date(y, m - monthsAgo, 1, 0, 0, 0);
+  var to   = new Date(y, m - monthsAgo + 1, 0, 23, 59, 59); // 該月最後一天
+  return {
+    fromIso: Utilities.formatDate(from, tz, "yyyy-MM-dd'T'HH:mm:ss"),
+    toIso:   Utilities.formatDate(to,   tz, "yyyy-MM-dd'T'HH:mm:ss"),
+    label:   Utilities.formatDate(from, tz, 'yyyy/MM')
+  };
+}
+
+// 加總單一日曆月區間內、指定 productId 的正常消耗與異常損耗
+function aggregateMonthlyUsageForProduct(changelog, productId) {
+  var usage = 0, loss = 0;
+  (changelog || []).forEach(function(log) {
+    if (log.productId !== productId || log.source !== 'beipan') return;
+    if (MONTHLY_CONSUME_ACTIONS.indexOf(log.action) !== -1) {
+      usage += Math.abs(log.bottlesOpened !== undefined ? log.bottlesOpened : (log.qtyDelta || 0));
+    } else if (MONTHLY_LOSS_ACTIONS.indexOf(log.action) !== -1) {
+      loss += Math.abs(log.qtyDelta || 0);
+    }
+  });
+  return { usage: Math.round(usage * 10) / 10, loss: Math.round(loss * 10) / 10 };
+}
+
+function buildMonthlyReportEmail(monthBoundaries, monthChangelogs, todayStr) {
+  var dateLabel = todayStr.replace(/-/g, '/');
+  var subject = '【培養液系統】近三個月用量報表 (' + dateLabel + '）';
+  var mediaProducts = PRODUCTS.filter(function(p) { return p.gupanId; });
+
+  function badge(text, bg, fg) {
+    return '<span style="background:' + bg + ';color:' + fg + ';font-weight:700;padding:2px 8px;border-radius:3px;font-size:13px;">' + text + '</span>';
+  }
+
+  var monthLabels = monthBoundaries.map(function(b) { return b.label; }); // 舊 → 新
+
+  var usageTable = '<table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-bottom:4px;">'
+    + '<tr style="background:#f5f5f5;color:#555;">'
+    + '<th style="text-align:left;font-weight:600;border-bottom:1px solid #ddd;">品項</th>'
+    + monthLabels.map(function(l) { return '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">' + l + ' 消耗</th>'; }).join('')
+    + '<th style="text-align:center;font-weight:600;border-bottom:1px solid #ddd;">異常損耗（近三月合計）</th>'
+    + '</tr>';
+
+  var rowIdx = 0;
+  mediaProducts.forEach(function(p) {
+    var monthResults = monthChangelogs.map(function(cl) { return aggregateMonthlyUsageForProduct(cl, p.id); });
+    var totalUsage = monthResults.reduce(function(s, r) { return s + r.usage; }, 0);
+    var totalLoss  = monthResults.reduce(function(s, r) { return s + r.loss;  }, 0);
+    if (totalUsage === 0 && totalLoss === 0) return; // 三個月都沒資料的品項不列出，避免報表過長
+    var rowBg = rowIdx % 2 === 0 ? '#fff' : '#fafafa';
+    rowIdx++;
+    usageTable += '<tr style="background:' + rowBg + ';">'
+      + '<td style="border-bottom:1px solid #eee;font-weight:600;">' + p.name + '</td>'
+      + monthResults.map(function(r) {
+          return '<td style="text-align:center;border-bottom:1px solid #eee;color:#555;">' + r.usage + ' ' + p.unit + '</td>';
+        }).join('')
+      + '<td style="text-align:center;border-bottom:1px solid #eee;color:' + (totalLoss > 0 ? '#c0392b' : '#999') + ';font-weight:' + (totalLoss > 0 ? '700' : '400') + ';">'
+      + (totalLoss > 0 ? totalLoss + ' mL' : '—') + '</td>'
+      + '</tr>';
+  });
+  usageTable += '</table>';
+
+  var htmlBody = '<div style="font-family:Arial,\'Noto Sans TC\',sans-serif;color:#333;max-width:640px;">'
+    + '<div style="font-size:18px;font-weight:700;margin-bottom:4px;">' + badge('月報表', '#6b5ce6', '#fff') + '&nbsp;&nbsp;近三個月用量統計</div>'
+    + '<div style="color:#777;font-size:13px;margin-bottom:16px;">統計區間：' + monthLabels[0] + ' ～ ' + monthLabels[monthLabels.length - 1] + '（依日曆月加總，非往回推算天數）</div>'
+    + usageTable
+    + '<div style="color:#999;font-size:12px;margin-top:16px;">「消耗」= 正常備盤使用量（單位：品項庫存單位）；「異常損耗」= 報廢/作廢的殘液量（單位：mL），兩者分開列出，不互相抵銷。</div>'
+    + '<div style="color:#999;font-size:12px;margin-top:8px;">報表產生時間：' + dateLabel + '　查看即時庫存：<a href="' + CONFIG.kucunUrl + '">' + CONFIG.kucunUrl + '</a></div>'
+    + '</div>';
+
+  return { subject: subject, htmlBody: htmlBody };
+}
+
+function sendMonthlyUsageReport() {
+  var tz       = 'Asia/Taipei';
+  var todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  try {
+    // 近三個完整日曆月：上個月、上上個月、上上上個月（monthsAgo = 1, 2, 3），排序為舊 → 新
+    var boundaries = [3, 2, 1].map(getCalendarMonthBoundary);
+    var overallFrom = boundaries[0].fromIso;
+    var overallTo   = boundaries[boundaries.length - 1].toIso;
+    var allChangelog = getKucunChangelogByRange(overallFrom, overallTo);
+
+    // 依月份區間切分（單次查詢後在 JS 端分桶，避免對同一 collection 查 3 次）
+    var monthChangelogs = boundaries.map(function(b) {
+      return allChangelog.filter(function(log) {
+        var t = log.tsRaw || '';
+        return t >= b.fromIso && t <= b.toIso;
+      });
+    });
+
+    var email = buildMonthlyReportEmail(boundaries, monthChangelogs, todayStr);
+    GmailApp.sendEmail(CONFIG.recipients.join(','), email.subject, '', { htmlBody: email.htmlBody, name: 'Stork11 培養液系統' });
+    Logger.log('[' + todayStr + '] 月報表發送完成，統計區間：' + boundaries[0].label + ' ～ ' + boundaries[2].label + '，收件人：' + CONFIG.recipients.join(', '));
+  } catch (e) {
+    Logger.log('[' + todayStr + '] sendMonthlyUsageReport 錯誤：' + e.message + '\n' + e.stack);
+  }
+}
+
+// 手動測試（立即發送，不用等每月 1 號）
+function testMonthlyUsageReport() {
+  sendMonthlyUsageReport();
+}
+
+// 設定每日 + 每月觸發器（只需執行一次）
 function setupTrigger() {
   // 先刪除已存在的同名觸發器，防止重複
   ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === 'sendDailyAlert') {
+    var fn = t.getHandlerFunction();
+    if (fn === 'sendDailyAlert' || fn === 'sendMonthlyUsageReport') {
       ScriptApp.deleteTrigger(t);
     }
   });
-  // 建立每天 08:00–09:00 Asia/Taipei 觸發器
+  // 建立每天 07:00 Asia/Taipei 觸發器
   ScriptApp.newTrigger('sendDailyAlert')
     .timeBased()
-    .atHour(8)
+    .atHour(7)
     .everyDays(1)
     .inTimezone('Asia/Taipei')
     .create();
-  Logger.log('觸發器已設定：每天 08:00 Asia/Taipei 執行 sendDailyAlert');
+  // 建立每月 1 號 08:00 Asia/Taipei 觸發器
+  ScriptApp.newTrigger('sendMonthlyUsageReport')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(8)
+    .inTimezone('Asia/Taipei')
+    .create();
+  Logger.log('觸發器已設定：每天 07:00 執行 sendDailyAlert，每月 1 號 08:00 執行 sendMonthlyUsageReport（Asia/Taipei）');
 }

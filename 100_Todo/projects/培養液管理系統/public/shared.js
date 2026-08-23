@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.07.27'; // 格式：YY.MM.DD
+const APP_VERSION = '26.08.23'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.08.23',
+    date: '2026-08-23',
+    changes: [
+      '【修正】備盤送出時，若系統偵測到批號資料讀取異常（筆數明顯偏少），會跳出警告視窗，避免誤送出不完整的資料',
+    ],
+  },
   {
     version: '26.07.27',
     date: '2026-07-27',
