@@ -2523,7 +2523,7 @@ function buildBulkCard(cfg) {
     <div class="grid grid-cols-2 gap-3 mb-3">
       <div class="bg-slate-50 rounded-lg px-3 py-2.5">
         <div class="text-xs text-slate-400 mb-1">待分裝（估盤）</div>
-        <div class="text-xl font-bold tabular text-slate-700">
+        <div class="text-xl font-bold tabular text-slate-700" id="bulk-planbig-${cfg.id}">
           ${cfg.planBig} <span class="text-sm font-normal text-slate-400">${cfg.bigUnit}</span>
         </div>
       </div>
@@ -2550,6 +2550,17 @@ function buildAllBulkCards() {
   if (!container) return;
   container.innerHTML = '';
   bulkReagents.forEach(cfg => container.insertAdjacentHTML('beforeend', buildBulkCard(cfg)));
+}
+
+// 只更新「待分裝（估盤）」顯示數字，不重建卡片、不觸碰使用者已輸入的
+// 「今日開封」「今日批號」欄位——呼應 givf 表格刷新時「不觸碰使用者輸入」的作法。
+// 修正：切換瀏覽器分頁再切回來時（visibilitychange → refreshGupanData），
+// 原本呼叫 buildAllBulkCards() 會整卡重建，把使用者剛輸入的 Oil / HEPES 今日開封數量洗掉。
+function updateBulkPlanDisplay() {
+  bulkReagents.forEach(cfg => {
+    const el = document.getElementById('bulk-planbig-' + cfg.id);
+    if (el) el.innerHTML = `${cfg.planBig} <span class="text-sm font-normal text-slate-400">${cfg.bigUnit}</span>`;
+  });
 }
 
 // ── 今日需用：依盤數 × 每盤用量全算 ──
@@ -3339,7 +3350,7 @@ async function refreshGupanData() {
       if (planTd) planTd.innerHTML = (d.calc ? '<span class="text-xs text-slate-300 mr-0.5">(估)</span>' : '') +
         (d.unit === 'mL' ? d.plan.toFixed(1) + ' mL' : String(d.plan));
     });
-    buildAllBulkCards();
+    updateBulkPlanDisplay();
     recalcAllNeeded();
     return;
   }

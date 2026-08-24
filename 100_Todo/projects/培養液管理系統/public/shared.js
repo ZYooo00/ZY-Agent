@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.08.23'; // 格式：YY.MM.DD
+const APP_VERSION = '26.08.24'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.08.24',
+    date: '2026-08-24',
+    changes: [
+      '【修正】備盤頁面切換分頁再切回來時，Oil / HEPES 今日開封數量不會再被清空',
+    ],
+  },
   {
     version: '26.08.23',
     date: '2026-08-23',
