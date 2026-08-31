@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.08.24'; // 格式：YY.MM.DD
+const APP_VERSION = '26.08.31'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.08.31',
+    date: '2026-08-31',
+    changes: [
+      '【修正】Oil／HEPES 的庫存數字，確實反映每天備盤扣除量',
+    ],
+  },
   {
     version: '26.08.24',
     date: '2026-08-24',
@@ -513,6 +520,21 @@ function calcProductInfo(product, data) {
     })
     .reduce((s, log) => s + (log.qtyDelta ?? log.qty ?? 0), 0);
 
+  // HEPES／Oil 這類 Bulk 分裝試劑不在 reagentConfig 裡，永遠不會有 beipanBatch，只能走 pandianItem／
+  // 從未盤點分支算庫存；但備盤頁「今日開封」扣除寫入 changelog 時 source 是 'beipan' 不是 'manual'，
+  // 不會被 calcManualDelta 篩到，導致庫存卡在盤點當下不動（月使用量看得到消耗，庫存卻扣不動）。
+  // 這裡另外加總這類扣除，篩選條件比照 calcRolling30dUsage 的 CONSUME_ACTIONS，用 bottlesOpened
+  // （開封瓶數，跟庫存單位「瓶」對得起來）而非 qtyDelta。
+  const calcBeipanBulkDelta = (isoCutoff) => (changelog || [])
+    .filter(log => {
+      const logTime = log.tsRaw || (typeof log.ts === 'string' ? log.ts : log.ts?.toDate?.().toISOString()) || '';
+      return log.productId === product.id
+          && log.source === 'beipan'
+          && ['beipan', 'beipan_addon'].includes(log.action)
+          && logTime > isoCutoff;
+    })
+    .reduce((s, log) => s - Math.abs(log.bottlesOpened ?? log.qtyDelta ?? 0), 0);
+
   if (beipanBatch) {
     // 跨批次加總：只計算全新未開封瓶數（正在使用中的殘液不佔庫存名額）
     const unopened    = beipanBatches.reduce((s, b) => s + (b.unopened ?? 0), 0);
@@ -542,12 +564,14 @@ function calcProductInfo(product, data) {
       stockSource  = 'beipan';
     }
   } else if (pandianItem) {
-    // 非備盤品項（602、110 等試劑類）：盤點基準 + 盤點後進貨 + 手動異動
+    // 非備盤品項（602、110 等試劑類，以及 HEPES／Oil 這類 Bulk 分裝試劑）：
+    // 盤點基準 + 盤點後進貨 + 手動異動 + 備盤 Bulk 分裝扣除
     const newIncoming = jinhuo
       .filter(r => r.productId === product.id && !r.isVoided && (r.receivedAt||'') > pandianDate)
       .reduce((s, r) => s + (r.receivedQty||0), 0);
     const manualDelta = calcManualDelta(pandianCutoff);
-    stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta);
+    const beipanBulkDelta = calcBeipanBulkDelta(pandianCutoff);
+    stockNum     = Math.max(0, pandianItem.actual + newIncoming + manualDelta + beipanBulkDelta);
     stockDisplay = `${fmtNum(stockNum)} ${pandianItem.unit || product.unit}`;
     stockSource  = 'pandian';
   } else {
@@ -557,7 +581,8 @@ function calcProductInfo(product, data) {
       .reduce((s, r) => s + (r.receivedQty||0), 0);
     if (totalJinhuo > 0) {
       const manualDelta = calcManualDelta(''); // 無快照基準，計算全部歷史
-      stockNum     = Math.max(0, totalJinhuo + manualDelta);
+      const beipanBulkDelta = calcBeipanBulkDelta('');
+      stockNum     = Math.max(0, totalJinhuo + manualDelta + beipanBulkDelta);
       stockDisplay = `${fmtNum(stockNum)} ${product.unit}`;
       stockSource  = 'jinhuo';
     }
