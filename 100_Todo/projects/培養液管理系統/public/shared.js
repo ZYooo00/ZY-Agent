@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.08.31'; // 格式：YY.MM.DD
+const APP_VERSION = '26.08.31b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.08.31b',
+    date: '2026-08-31',
+    changes: [
+      '【新功能】訂貨管理的月使用量，非備盤品項（101、102、Top tips、Geri dish 等）現在也能看到近三次盤點的用量趨勢，不再只有單一數字',
+    ],
+  },
   {
     version: '26.08.31',
     date: '2026-08-31',
@@ -382,27 +389,19 @@ function calcRolling30dUsage(productId, changelog, jinhuo) {
   return { usage, loss, days, dailyUsage, monthlyUsage, label };
 }
 
-// ── 非備盤試劑/耗材的月用量：多期盤點平均（上限 90 天）──
-// 這些品項（PVP、Cumulase、Top tips、Geri dish……）不走 beipan.html 的每日備盤流程，
-// changelog 完全沒有它們的消耗紀錄，只能靠盤點快照（pandian_snapshots）的差值推算。
-// 只看最近兩次盤點差值會被單次盤點的間隔長短、或當次進退貨誤差放大波動；
-// 改成把近 90 天內的多次盤點區間都加總（用量加總 ÷ 天數加總），再換算回 30 天等效用量，更穩定。
-// ZY 確認盤點頻率約 30–45 天一次，90 天上限通常涵蓋 2–3 次盤點，不會被更久遠的資料干擾。
-function calcPandianDeltaUsage(product, pandianHistory, jinhuo) {
+// ── 非備盤試劑/耗材：把盤點快照拆成一段段相鄰區間，各自算出消耗量與天數 ──
+// 供 calcPandianDeltaUsage（多期平均）與 calcPandianDeltaBuckets（近幾次盤點趨勢）共用，
+// 避免兩處各自維護一份「比對 gupanId、扣掉進貨、鉗制負值」的邏輯。回傳由近到遠排列。
+function calcPandianIntervals(product, pandianHistory, jinhuo) {
   const normDate = d => (d || '').replace(/\//g, '-');
   const sorted = [...(pandianHistory || [])]
     .sort((a, b) => normDate(a.date).localeCompare(normDate(b.date)));
-  if (sorted.length < 2) return { usage: null, label: '—' };
-
   // 比對盤點快照要用 product.gupanId，不能用 productId 或寫死 m- 前綴——
   // pandian.allValues[].id 存的是 gupanId，培養液是 m- 開頭，試劑/耗材是 f-/s-/c1-/c2-/c3-/r-/b- 等，
   // 這正是本函數主要要覆蓋的族群，寫死 m- 前綴會讓非培養液品項永遠比對不到。
-  if (!product.gupanId) return { usage: null, label: '—' };
+  if (sorted.length < 2 || !product.gupanId) return [];
 
-  let totalUsage = 0;
-  let totalDays = 0;
-
-  // 從最新一次盤點往回推，累積到 90 天為止
+  const intervals = [];
   for (let i = sorted.length - 1; i >= 1; i--) {
     const curr = sorted[i];
     const prev = sorted[i - 1];
@@ -422,9 +421,26 @@ function calcPandianDeltaUsage(product, pandianHistory, jinhuo) {
 
     // 鉗制單一區間用量，避免補登進貨或前次盤點誤差算出負消耗，污染加總
     const delta = Math.max(0, prevItem.actual + purchases - currItem.actual);
+    intervals.push({ delta, days, prevDate, currDate });
+  }
+  return intervals;
+}
 
-    totalUsage += delta;
-    totalDays += days;
+// ── 非備盤試劑/耗材的月用量：多期盤點平均（上限 90 天）──
+// 這些品項（PVP、Cumulase、Top tips、Geri dish……）不走 beipan.html 的每日備盤流程，
+// changelog 完全沒有它們的消耗紀錄，只能靠盤點快照（pandian_snapshots）的差值推算。
+// 只看最近兩次盤點差值會被單次盤點的間隔長短、或當次進退貨誤差放大波動；
+// 改成把近 90 天內的多次盤點區間都加總（用量加總 ÷ 天數加總），再換算回 30 天等效用量，更穩定。
+// ZY 確認盤點頻率約 30–45 天一次，90 天上限通常涵蓋 2–3 次盤點，不會被更久遠的資料干擾。
+function calcPandianDeltaUsage(product, pandianHistory, jinhuo) {
+  const intervals = calcPandianIntervals(product, pandianHistory, jinhuo);
+  if (intervals.length === 0) return { usage: null, label: '—' };
+
+  let totalUsage = 0;
+  let totalDays = 0;
+  for (const it of intervals) {
+    totalUsage += it.delta;
+    totalDays += it.days;
     if (totalDays >= 90) break;
   }
 
@@ -432,6 +448,21 @@ function calcPandianDeltaUsage(product, pandianHistory, jinhuo) {
 
   const monthlyUsage = parseFloat((totalUsage / totalDays * 30).toFixed(1));
   return { usage: monthlyUsage, monthlyUsage, dailyUsage: totalUsage / totalDays, label: '盤點推算（多期平均）' };
+}
+
+// ── 非備盤試劑/耗材的「近幾次盤點」用量趨勢 ──
+// 沒有逐日消耗紀錄的品項，沒辦法像備盤品項那樣拆出「近 30/31-60/61-90 天」三個固定天數區間；
+// 改成直接把最近幾次（預設 3 次）相鄰盤點區間，各自換算成「等效月用量」列出來，
+// 由近到遠排列，讓 ZY 能看出「最近是不是用得比較兇/比較少」的趨勢，區間長短不固定（取決於實際盤點間隔），
+// 不是精確的 30 天一段，只是聊勝於無的近似值。供 order.html 顯示用。
+function calcPandianDeltaBuckets(product, pandianHistory, jinhuo, maxBuckets = 3) {
+  const intervals = calcPandianIntervals(product, pandianHistory, jinhuo).slice(0, maxBuckets);
+  return intervals.map(it => ({
+    monthlyUsage: parseFloat((it.delta / it.days * 30).toFixed(1)),
+    days: it.days,
+    from: it.prevDate,
+    to: it.currDate,
+  }));
 }
 
 // ── 月用量組合函數：優先用 changelog 逐日消耗（精確），沒有才退到盤點快照多期平均（估）──

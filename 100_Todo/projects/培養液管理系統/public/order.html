@@ -327,7 +327,7 @@
     </main>
   </div>
 
-  <script src="shared.js?v=21"></script>
+  <script src="shared.js?v=22"></script>
   <script>
   // ═══════════════════════════════════════════════════════════════
   // MEDIUM_CONFIG — 培養液批次訂購（LifeGlobal / Vitrolife）
@@ -492,6 +492,13 @@
 
   function buildBucketsHtml(buckets) {
     return buckets.map(v => Math.ceil(v)).join(' / ');
+  }
+
+  // 非備盤品項：把 shared.js calcPandianDeltaBuckets() 回傳的近幾次盤點區間換算月用量列出來，
+  // 跟 buildBucketsHtml 同樣「由近到遠 / 分隔」的呈現方式（ZY 確認不用特別標註區分）。
+  function buildPandianBucketsHtml(buckets) {
+    if (!buckets || buckets.length === 0) return '';
+    return buckets.map(b => Math.ceil(b.monthlyUsage)).join(' / ');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -733,10 +740,11 @@
       const r = calcMonthlyUsage(product, { changelog: usageChangelog, jinhuo: usageJinhuo, pandianHistory: usagePandianHistory });
       if (r.monthlyUsage > 0) {
         // 走備盤流程、changelog 有逐日消耗紀錄的品項 → 顯示近 30/31-60/61-90 天三個數值（不做箭頭）
-        // 非備盤試劑/耗材（盤點多期平均推算）沒有這個粒度，不顯示任何字樣——沒有三個數值就代表是盤點推算的，不用每筆都重複標示
-        const subHtml = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan')
+        // 非備盤試劑/耗材沒有逐日紀錄，改顯示近幾次盤點區間換算的月用量（見 buildPandianBucketsHtml）
+        const isBeipanTracked = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan');
+        const subHtml = isBeipanTracked
           ? buildBucketsHtml(calcThreeMonthBuckets(product.id, usageChangelog))
-          : '';
+          : buildPandianBucketsHtml(calcPandianDeltaBuckets(product, usagePandianHistory, usageJinhuo));
         usageHtml = `<div class="font-medium text-slate-700 text-sm">${Math.ceil(r.monthlyUsage)} ${item.unit}</div>`
           + (subHtml ? `<div class="text-xs text-slate-400 mt-0.5" style="white-space:nowrap">${subHtml}</div>` : '');
       }
@@ -891,9 +899,10 @@
     if (product) {
       const r = calcMonthlyUsage(product, { changelog: usageChangelog, jinhuo: usageJinhuo, pandianHistory: usagePandianHistory });
       if (r.monthlyUsage > 0) {
-        const subHtml = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan')
+        const isBeipanTracked = usageChangelog.some(l => l.productId === product.id && l.source === 'beipan');
+        const subHtml = isBeipanTracked
           ? buildBucketsHtml(calcThreeMonthBuckets(product.id, usageChangelog))
-          : '';
+          : buildPandianBucketsHtml(calcPandianDeltaBuckets(product, usagePandianHistory, usageJinhuo));
         usageHtml = `<div class="font-medium text-slate-700 text-sm">${Math.ceil(r.monthlyUsage)} ${item.unit}</div>`
           + (subHtml ? `<div class="text-xs text-slate-400 mt-0.5" style="white-space:nowrap">${subHtml}</div>` : '');
       }
