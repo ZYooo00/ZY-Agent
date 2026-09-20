@@ -15,7 +15,7 @@
 <script src="design.js" defer></script>
 <!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=20';
+  import { initFirebaseApp, getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, appendKucunLog as fsLog, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=21';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { getJinhuoRecords, saveJinhuoRecord, voidJinhuoRecord, saveOrder, getOrders, fsLog, getStaffConfig, getProductsConfig, getVendorsConfig };
   try {

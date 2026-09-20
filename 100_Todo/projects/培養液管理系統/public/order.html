@@ -15,7 +15,7 @@
   <script src="design.js" defer></script>
   <!-- Firebase bridge -->
   <script type="module">
-    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getKucunChangelogByRange, getPandianHistory, getGlobalSettings, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=20';
+    import { initFirebaseApp, getOrders, saveOrder, getLatestPandian, updateOrderStatus, appendKucunLog as fsLog, getJinhuoRecords, getLatestBeipan, getKucunChangelogByRange, getPandianHistory, getGlobalSettings, getStaffConfig, getProductsConfig, getVendorsConfig } from './firebase-service.js?v=21';
     try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
     window._fb = { getOrders, saveOrder, getLatestPandian, updateOrderStatus, fsLog, getJinhuoRecords, getLatestBeipan, getKucunChangelogByRange, getPandianHistory, getGlobalSettings, getStaffConfig, getProductsConfig, getVendorsConfig };
     try {

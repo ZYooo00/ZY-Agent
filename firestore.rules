@@ -31,7 +31,8 @@ service cloud.firestore {
         'beipan_snapshots', 'test_beipan_snapshots',
         'gupan_snapshots', 'test_gupan_snapshots',
         'gupan_drafts', 'test_gupan_drafts',
-        'beipan_lock', 'test_beipan_lock'
+        'beipan_lock', 'test_beipan_lock',
+        'beipan_drafts', 'test_beipan_drafts'
       ];
     }
 

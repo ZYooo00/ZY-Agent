@@ -15,7 +15,7 @@
 <script src="design.js" defer></script>
 <!-- Firebase bridge -->
 <script type="module">
-  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords, getDishConfig, getBulkFormulaConfig, getStaffConfig } from './firebase-service.js?v=20';
+  import { initFirebaseApp, saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords, getDishConfig, getBulkFormulaConfig, getStaffConfig } from './firebase-service.js?v=21';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveGupanSnapshot, saveGupanDraft, getGupanDraft, subscribeGupanDraft, getJinhuoRecords, getDishConfig, getBulkFormulaConfig, getStaffConfig };
   window.__fbDone = true;

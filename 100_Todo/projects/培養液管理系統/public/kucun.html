@@ -17,7 +17,7 @@
 <script type="module">
   import { initFirebaseApp, saveJinhuoRecord, appendKucunLog as appendLog,
            getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,
-           getLatestBeipan, getOrders, getGlobalSettings, getStaffConfig, getProductsConfig } from './firebase-service.js?v=20';
+           getLatestBeipan, getOrders, getGlobalSettings, getStaffConfig, getProductsConfig } from './firebase-service.js?v=21';
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveJinhuoRecord, appendLog,
                  getJinhuoRecords, getKucunChangelog, getKucunChangelogByRange, getLatestPandian, getPandianHistory,

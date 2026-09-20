@@ -17,12 +17,14 @@
 <script type="module">
   import { initFirebaseApp, saveBeipanSnapshot, appendKucunLog as fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
            acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
-           getManualKucunLogsAfter, getDishConfig, getReagentFormulaConfig, getStaffConfig, getProductsConfig } from './firebase-service.js?v=20';
+           saveBeipanDraft, getBeipanDraft,
+           getManualKucunLogsAfter, getDishConfig, getReagentFormulaConfig, getStaffConfig, getProductsConfig } from './firebase-service.js?v=21';
   import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   try { await initFirebaseApp(); } catch(e) { console.error('[Firebase] 初始化失敗', e); }
   window._fb = { saveBeipanSnapshot, fsLog, getJinhuoRecords, saveJinhuoRecord, getLatestBeipan, getBeipanHistory, getLatestGupan,
                  acquireBeipanLock, heartbeatBeipanLock, releaseBeipanLock, subscribeBeipanLock,
+                 saveBeipanDraft, getBeipanDraft,
                  getManualKucunLogsAfter, getDishConfig, getReagentFormulaConfig, getStaffConfig, getProductsConfig };
   try {
     const rows = await getProductsConfig();
@@ -264,6 +266,10 @@
           <div id="gupan-sync-indicator" class="hidden flex items-center gap-1.5 text-xs text-slate-400">
             <svg class="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
             估盤 <span id="gupan-sync-time">—</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <svg class="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span id="beipan-autosave-label">尚無雲端進度</span>
           </div>
           <button onclick="refreshGupanData()" class="flex items-center gap-1 text-xs text-slate-500 hover:text-primary border border-slate-200 hover:border-primary rounded-lg px-2.5 py-1.5 transition-colors" title="重新載入估盤資料">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -887,6 +893,9 @@ async function lockStateB(snapshot) {
   window._beipanLocked = true;  // 必須在任何重繪（recalcAllNeeded）之前設定，否則按鈕會被重繪出來
   // 鎖定時清除草稿（不論是自己送出還是被他人強制鎖定）
   localStorage.removeItem(getDraftKey());
+  // 同步清雲端草稿，避免殘留到明天；不 await，備盤送出主流程不因此被卡住
+  window._fb?.saveBeipanDraft?.(getDraftDateStr(), { _cleared: true })
+    .catch(e => console.warn('[beipan] 清除雲端草稿失敗', e));
 
   // 1. 還原 givf 盤數
   if (snapshot.givf) {
@@ -1461,13 +1470,28 @@ function getCardState(id) {
 
 // ── 自動儲存草稿 ──
 let _draftTimer = null;
+let _isDraftSaving = false;
 
-function getDraftKey() {
+function getDraftDateStr() {
   const d = new Date();
-  return `beipan-draft-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function saveDraft() {
+function getDraftKey() {
+  return `beipan-draft-${getDraftDateStr()}`;
+}
+
+// 自動儲存狀態燈號，比照 gupan.html 的 setAutosaveBadge()/setFetchBadge()
+function setDraftAutosaveBadge(text) {
+  const el = document.getElementById('beipan-autosave-label');
+  if (el) el.textContent = text;
+}
+function hhmmNow() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+async function saveDraft() {
   const allIds = reagentConfig.map(c => c.id).concat(['aoa-508']);
   const cards = {};
   allIds.forEach(id => { cards[id] = getCardState(id); });
@@ -1507,18 +1531,36 @@ function saveDraft() {
     }));
   });
 
-  localStorage.setItem(getDraftKey(), JSON.stringify({
+  const payload = {
     note: document.getElementById('beipan-note-input')?.value || '',
     glue: document.getElementById('glue-plan-input')?.value || '',
     givf, matrix, bulkSmall, bulkLot, cards, batchData,
     gupanConfirmedToken: window._gupanConfirmedToken || null,
-  }));
+  };
+  localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+
+  // 網路慢時避免堆疊出多個重疊的雲端寫入請求
+  if (_isDraftSaving) return;
+  _isDraftSaving = true;
+  try {
+    await window._fb?.saveBeipanDraft?.(getDraftDateStr(), payload);
+    setDraftAutosaveBadge(`自動儲存 ${hhmmNow()}`);
+  } catch (e) {
+    console.warn('[beipan] 雲端草稿寫入失敗', e);
+    showToast('雲端儲存失敗，資料僅存本機', 'warn');
+  } finally {
+    _isDraftSaving = false;
+  }
 }
 
-function loadDraft() {
-  let draft;
-  try { draft = JSON.parse(localStorage.getItem(getDraftKey()) || 'null'); } catch(e) {}
-  if (!draft) return;
+async function loadDraft() {
+  let draft = null;
+  try { draft = await window._fb?.getBeipanDraft?.(getDraftDateStr()); } catch(e) { console.warn('[beipan] 雲端草稿讀取失敗', e); }
+  if (!draft) {
+    try { draft = JSON.parse(localStorage.getItem(getDraftKey()) || 'null'); } catch(e) {}
+  }
+  if (!draft || draft._cleared) return;
+  if (draft.savedAt) setDraftAutosaveBadge(`雲端進度 ${hhmmNow()}`);
 
   // 草稿如果是對應「舊」估盤存的（估盤後來被重新確認過、數字可能已經不同），
   // 盤子數量／矩陣／Glue 這幾個會直接覆蓋畫面預填值的欄位就不套用，避免用舊草稿蓋掉剛載入的新估盤數字。
@@ -3215,6 +3257,8 @@ async function onStaffSelect() {
   const result = await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName);
   if (result && result.success) {
     _lockCurrentStaff = staffName;
+    // 拿到雲端最新草稿前先維持鎖定狀態，避免使用者搶在雲端資料到位前開始打字結果被蓋掉
+    await loadDraft();
     setBeipanFormDisabled(false);
     hideLockBanner();
     startHeartbeat();
@@ -3235,6 +3279,8 @@ async function forceBeipanTakeover() {
   }
   await window._fb?.acquireBeipanLock?.(_lockTodayStr, staffName, true);
   _lockCurrentStaff = staffName;
+  // 同上：先確保接手的是最新雲端草稿，才解除表單鎖定
+  await loadDraft();
   setBeipanFormDisabled(false);
   hideLockBanner();
   startHeartbeat();
@@ -3336,7 +3382,7 @@ onReady(async function() {
     await initBatchesFromFirebase();
   }
   buildAllBatchCards();
-  loadDraft();
+  await loadDraft();
   initDraftListeners();
   initRadioToggle();
 

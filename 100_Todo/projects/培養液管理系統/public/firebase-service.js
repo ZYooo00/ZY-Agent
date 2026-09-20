@@ -46,6 +46,7 @@ const COLLECTIONS = {
   gupan_snapshots: DB_PREFIX + 'gupan_snapshots',
   gupan_drafts:    DB_PREFIX + 'gupan_drafts',
   beipan_lock:     DB_PREFIX + 'beipan_lock',
+  beipan_drafts:   DB_PREFIX + 'beipan_drafts',
   staff_config:    DB_PREFIX + 'staff_config',
   products_config: DB_PREFIX + 'products_config',
   pandian_groups:  DB_PREFIX + 'pandian_groups',
@@ -512,6 +513,35 @@ export function subscribeBeipanLock(dateStr, callback) {
     (snap) => callback(snap.exists() ? snap.data() : null),
     (err) => console.warn("[subscribeBeipanLock] 訂閱失敗", err)
   );
+}
+
+// ─── beipan_drafts（跨裝置草稿同步）───────────────────────────
+// 比照 gupan_drafts 的做法：localStorage 立即寫一份，同時寫 Firestore；
+// 讀取優先讀 Firestore，讀不到才退回 localStorage。刻意不做即時訂閱——
+// 備盤本來就靠 beipan_lock 擋成一次只有一人能編輯，不是多人同時共編，
+// 不需要處理即時合併衝突的複雜度。
+export async function saveBeipanDraft(dateStr, payload) {
+  try {
+    localStorage.setItem("beipan-draft-" + dateStr, JSON.stringify(payload));
+  } catch(e) {}
+  if (isFirestoreAvailable()) {
+    // 不 catch：讓 Firestore 錯誤傳回給呼叫方，才能顯示正確的 UI 反饋
+    await setDoc(doc(_db, COLLECTIONS.beipan_drafts, dateStr), {
+      ...payload,
+      savedAt: new Date().toISOString(),
+    });
+  }
+}
+
+export async function getBeipanDraft(dateStr) {
+  if (isFirestoreAvailable()) {
+    try {
+      const snap = await getDoc(doc(_db, COLLECTIONS.beipan_drafts, dateStr));
+      if (snap.exists()) return snap.data();
+    } catch(e) { console.warn("[getBeipanDraft] Firestore 失敗", e); }
+  }
+  const local = JSON.parse(localStorage.getItem("beipan-draft-" + dateStr) || "null");
+  return local;
 }
 
 // ═══════════════════════════════════════════════════════════════
