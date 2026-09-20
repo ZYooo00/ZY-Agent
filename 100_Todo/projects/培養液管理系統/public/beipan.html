@@ -439,7 +439,7 @@
       <!-- 備盤備註 -->
       <div class="bg-white rounded-xl border border-slate-200 px-5 py-4">
         <label class="block text-sm font-medium text-slate-700 mb-2">備盤備註（選填）</label>
-        <textarea id="beipan-note-input" rows="2" placeholder="例：OPU 多備 1 盤（醫師臨時加作）；G-IVF 53189 瓶底有沉澱，提前開新瓶"
+        <textarea id="beipan-note-input" rows="2" placeholder="例：OPU 多備 1 盤（醫師臨時加作）；Gx-IVF 53189 瓶底有沉澱，提前開新瓶"
           class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary placeholder-slate-300"></textarea>
       </div>
 
@@ -1204,7 +1204,7 @@ const reagentConfig = [
  *   { lot:'TEST-A-今天到期', expiry:todayStr, remaining:30, unopened:0, blocked:false },
  *   // 🔴 B：明天到期 → days=1 → 可選，顯示「🔴 明天到期（今日最後）」
  *   { lot:'TEST-B-明天到期', expiry:tomorrowStr, remaining:30, unopened:0, blocked:false },
- *   // ❌ C：開封 8 天前（G-IVF 開封期 7 天）→ openExpiry 昨天 → 應鎖死
+ *   // ❌ C：開封 8 天前（Gx-IVF 開封期 7 天）→ openExpiry 昨天 → 應鎖死
  *   { lot:'TEST-C-開封過期', expiry:farFutureStr,
  *     openDate:_fmt(_addDays(_today,-8)), openExpiry:_fmt(_addDays(_today,-1)),
  *     remaining:45, unopened:0, blocked:false },
@@ -2362,7 +2362,7 @@ const DEFAULT_GIVF_DISHES = [
   { key:'aoa508',  name:'AOA 508',   plan:0,   unit:'盤' },
   { key:'coc',     name:'COC',       plan:0,   unit:'盤' },
   { key:'sperm',   name:'精蟲',      plan:0,   unit:'台' },
-  { key:'givf_ph', name:'G-IVF pH', plan:0,   unit:'盤' },
+  { key:'givf_ph', name:'Gx-IVF pH', plan:0,   unit:'盤' },
   { key:'givf_x',  name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
 ];
 let givfDishes = DEFAULT_GIVF_DISHES;
@@ -2626,7 +2626,7 @@ function recalcAllNeeded() {
     return sum;
   }
 
-  // ── G-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + G-IVF pH×1 + 多配mL ──
+  // ── Gx-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + Gx-IVF pH×1 + 多配mL ──
   const givfFormula = REAGENT_FORMULAS['givf'] || { fixed: 0, coefs: {
     opu: 3, de: 0.6, te: 0.6, aoa_ci: 0.6, aoa508: 0.6, coc: 0.6, sperm: 0.7, givf_ph: 1, givf_x: 1,
   }};

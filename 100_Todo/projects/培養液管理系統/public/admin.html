@@ -216,16 +216,16 @@
     <div class="admin-panel" id="panel-dishes">
       <div class="mb-3">
         <h2 class="heading font-semibold text-slate-800 text-lg">盤子清單與估盤公式設定</h2>
-        <p class="section-note mt-1">解決 gupan.html／beipan.html 各自定義、以陣列順序脆弱對應的技術債，兩邊現在都改讀這份清單並用 key 對應。「體積係數」是備盤頁換算試劑用量的係數（盤數 × 體積係數 = mL，實際相乘的是備盤當天手動填的盤數，不是估盤建議值）。點「公式」可另外展開設定「台數→盤數」的估盤建議公式（六個台數欄位各一格係數 + 一個固定值）。若要新增一個全新的試劑類別直行（目前只有 G-IVF／胚胎矩陣兩類），仍需工程師調整版面。</p>
+        <p class="section-note mt-1">解決 gupan.html／beipan.html 各自定義、以陣列順序脆弱對應的技術債，兩邊現在都改讀這份清單並用 key 對應。「體積係數」是備盤頁換算試劑用量的係數（盤數 × 體積係數 = mL，實際相乘的是備盤當天手動填的盤數，不是估盤建議值）。點「公式」可另外展開設定「台數→盤數」的估盤建議公式（六個台數欄位各一格係數 + 一個固定值）。若要新增一個全新的試劑類別直行（目前只有 Gx-IVF／胚胎矩陣兩類），仍需工程師調整版面。</p>
       </div>
 
       <div class="card mb-4">
-        <div class="card-title">G-IVF 盤子清單</div>
+        <div class="card-title">Gx-IVF 盤子清單</div>
         <table class="admin-table">
-          <thead><tr><th>盤子代號</th><th>盤子名稱</th><th>單位</th><th>體積係數<br><span class="text-slate-400 normal-case font-normal">（換算 G-IVF mL）</span></th><th>AOA 試劑係數<br><span class="text-slate-400 normal-case font-normal">（僅 AOA 盤適用）</span></th><th>手動輸入（無自動建議）</th><th>啟用</th><th style="width:50px"></th><th style="width:60px"></th></tr></thead>
+          <thead><tr><th>盤子代號</th><th>盤子名稱</th><th>單位</th><th>體積係數<br><span class="text-slate-400 normal-case font-normal">（換算 Gx-IVF mL）</span></th><th>AOA 試劑係數<br><span class="text-slate-400 normal-case font-normal">（僅 AOA 盤適用）</span></th><th>手動輸入（無自動建議）</th><th>啟用</th><th style="width:50px"></th><th style="width:60px"></th></tr></thead>
           <tbody id="givf-dish-tbody"></tbody>
         </table>
-        <button class="btn-secondary mt-3" style="width:auto" id="add-givf-dish-btn">+ 新增 G-IVF 盤子</button>
+        <button class="btn-secondary mt-3" style="width:auto" id="add-givf-dish-btn">+ 新增 Gx-IVF 盤子</button>
         <p class="section-note mt-3">⚠️ 「AOA 試劑係數」這欄需要工程師協助調整。因為未來若要新增其他像 AOA 弘優／AOA 明美 508 這種「一個盤子同時扣兩瓶試劑」的品項，牽涉到整個專案的連動、品項的連動、以及品項本身的新增，不是單純填係數就能完成。現在把這欄開放在這裡，只是方便對既有的 AOA 弘優、AOA 明美 508 做數值上的調整，不代表這個機制可以自由擴充給其他品項使用。</p>
       </div>
 
@@ -471,7 +471,7 @@ function renderBulkFormulas() {
 
 // 哪個盤子的「體積係數」要寫進哪個試劑的 coefs，這層關係寫在程式碼裡（跟 beipan.html 的 recalcAllNeeded 對應），
 // 後臺只開放「係數數值」可調，不開放「這個試劑要不要吃某個盤子」
-const REAGENT_NAMES = { givf:'G-IVF', 'aoa-ci':'AOA 弘優 CI', 'aoa-508':'AOA 明美 GM508', h5gt:'H5GT', gxtl:'GxTL', glue:'EmbryoGlue' };
+const REAGENT_NAMES = { givf:'Gx-IVF', 'aoa-ci':'AOA 弘優 CI', 'aoa-508':'AOA 明美 GM508', h5gt:'H5GT', gxtl:'GxTL', glue:'EmbryoGlue' };
 
 function getReagentCoef(reagentId, dishKey) {
   return reagentFormulaList.find(r => r.id === reagentId)?.coefs?.[dishKey] ?? 0;

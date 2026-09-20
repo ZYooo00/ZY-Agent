@@ -20,7 +20,7 @@ var FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/' + CONFIG.pr
 // ── 品項主檔（跳過 hidden / paused，只保留需要監控的品項）───────────
 var PRODUCTS = [
   // 培養液（8 項）
-  { id:'givf',     name:'G-IVF',              vendor:'亞樸', unit:'瓶', gupanId:'m-givf',   target:2, reorderQty:10,  expiryWarnDays:null, needQC:false },
+  { id:'givf',     name:'Gx-IVF',             vendor:'亞樸', unit:'瓶', gupanId:'m-givf',   target:2, reorderQty:10,  expiryWarnDays:null, needQC:false },
   { id:'gxtl',     name:'GxTL',               vendor:'亞樸', unit:'瓶', gupanId:'m-gxtl',   target:2, reorderQty:8,   expiryWarnDays:null, needQC:false },
   { id:'glue',     name:'EmbryoGlue',          vendor:'亞樸', unit:'瓶', gupanId:'m-glue',   target:2, reorderQty:10,  expiryWarnDays:null, needQC:false },
   { id:'h5gt',     name:'H5GT',               vendor:'弘優', unit:'瓶', gupanId:'m-h5gt',   target:2, reorderQty:8,   expiryWarnDays:null, needQC:false },

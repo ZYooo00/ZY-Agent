@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.09.20b'; // 格式：YY.MM.DD
+const APP_VERSION = '26.09.20c'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.09.20c',
+    date: '2026-09-20',
+    changes: [
+      '【修正】Gx-IVF 改名後，補上系統中殘留的「G-IVF」舊名稱顯示文字（後台盤子清單、估盤/備盤盤子名稱等）',
+    ],
+  },
   {
     version: '26.09.20b',
     date: '2026-09-20',
@@ -206,7 +213,7 @@ const STAFF_LIST = [
 
 const PRODUCTS = [
   // ── 培養液（8 項）──
-  { id:'givf',     name:'G-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910550', brand:'Vitrolife',  gupanId:'m-givf',   target:2, reorderQty:10,  bottleVol:60,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:1 },
+  { id:'givf',     name:'Gx-IVF',               vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910604', brand:'Vitrolife',  gupanId:'m-givf',   target:2, reorderQty:10,  bottleVol:60,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:1 },
   { id:'gxtl',     name:'GxTL',                vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910611', brand:'Vitrolife',  gupanId:'m-gxtl',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:2 },
   { id:'glue',     name:'EmbryoGlue',           vendor:'亞樸', unit:'瓶', group:'培養液', gtin:'07350025910048', brand:'Vitrolife',  gupanId:'m-glue',   target:2, reorderQty:10,   bottleVol:10,   openExpiryDays:14,   needQC:false, location:'培養箱', orderNote:null, sortOrder:3 },
   { id:'h5gt',     name:'H5GT',                vendor:'弘優', unit:'瓶', group:'培養液', gtin:'00888937029147', brand:'LifeGlobal',    gupanId:'m-h5gt',   target:2, reorderQty:8,   bottleVol:30,   openExpiryDays:7,    needQC:false, location:'培養箱', orderNote:null, sortOrder:1 },
