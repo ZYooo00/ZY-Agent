@@ -1276,14 +1276,31 @@ async function initBatchesFromFirebase() {
       }
     });
 
+    // voidedAfterSnap：快照之後才被作廢的入庫量（用 updatedAt 判斷作廢動作發生的時間點）。
+    // 原本用 Math.min(..., totalReceived) 把 unopened 硬夾在「有效總入庫量」以下，
+    // 如果作廢發生在這批已經開過幾瓶之後，這個夾法會把已經真實開封的瓶數也一併「還」回來，
+    // 等於平白多出幾瓶——實際案例：GIVF 514331 這批因為重複登打入庫，作廢時已經開了 5 瓶，
+    // 用 min() 夾住直接把這 5 瓶開封紀錄抹掉，變成庫存一直多算 5 瓶。改成直接扣除作廢量，
+    // 不會動到已經真實開封的部分。
+    const voidedAfterSnap = {};
+    (jinhuoRecords || []).forEach(r => {
+      if (!r.isVoided || !r.productId || !r.lotNumber) return;
+      const voidedAt = r.updatedAt || '';
+      if (snapDate && voidedAt && voidedAt > (kucunCutoff || snapDate)) {
+        const key = r.productId + '_' + r.lotNumber;
+        voidedAfterSnap[key] = (voidedAfterSnap[key] || 0) + (r.receivedQty || 0);
+      }
+    });
+
     // 注入各 config（beipan 快照有資料時，以快照的 remaining/unopened 為準；再疊加 kucun 手動異動）
     [...reagentConfig, gm508Config].forEach(cfg => {
       const lots = Object.values(lotMap).filter(l => l.productId === cfg.id);
       cfg.batches = lots.map(l => {
         const snap  = beipanMap[cfg.id + '_' + l.lot];
         const delta = kucunDeltaMap[cfg.id + '_' + l.lot] || { unopenedDelta: 0 };
+        const voidedQty = voidedAfterSnap[cfg.id + '_' + l.lot] || 0;
         const baseUnopened = snap != null
-          ? Math.min(snap.unopened + l.receivedAfterSnap, l.totalReceived)
+          ? Math.max(0, snap.unopened + l.receivedAfterSnap - voidedQty)
           : l.totalReceived;
         return {
           lot: l.lot,
