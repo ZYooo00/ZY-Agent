@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.09.20'; // 格式：YY.MM.DD
+const APP_VERSION = '26.09.20b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.09.20b',
+    date: '2026-09-20',
+    changes: [
+      '【新功能】G-IVF 更名為 Gx-IVF（廠商已停產舊品，全面改用新款培養液）',
+    ],
+  },
   {
     version: '26.09.20',
     date: '2026-09-20',
