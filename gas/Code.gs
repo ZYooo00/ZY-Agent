@@ -383,20 +383,35 @@ function checkPendingDelay(orders, todayStr) {
   return alerts.sort(function(a, b) { return b.daysElapsed - a.daysElapsed; });
 }
 
-function checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap) {
+// 掃過整個備盤快照歷史（不是只看最新一天），對每個「品項|批號」記錄它最後一次
+// 出現在備盤時的 unopened 數量與時間點。
+// 原本 checkDisposal 只吃「最新一筆」備盤快照：一個批號一旦用罄、不再被選為使用中批號，
+// 就會從最新快照消失，於是 Route B（見下方）完全看不到這個批號在備盤流程裡的任何扣減紀錄
+// （備盤寫入 changelog 用 source:'beipan'，Route B 只認 source:'manual'），
+// 導致系統誤判「這批還有一堆沒報廢」而持續發信催促——這正是報廢提醒信誤報的根因。
+function getBeipanLotHistory() {
+  var rows = firestoreQuery('beipan_snapshots',
+    [{ field: { fieldPath: 'date' }, direction: 'ASCENDING' }], 300);
+  var history = {};
+  rows.forEach(function(snap) {
+    var cutoff = snap.submittedAt || (snap.date || '').replace(/\//g, '-');
+    (snap.batches || []).forEach(function(bb) {
+      if (!bb.selectedLot || !bb.reagentId) return;
+      var k = bb.reagentId + '|' + bb.selectedLot;
+      history[k] = { unopened: Number(bb.unopened || 0), cutoff: cutoff };
+    });
+  });
+  return history;
+}
+
+function checkDisposal(jinhuo, changelog, todayStr, beipanLotHistory, stockMap) {
   var todayMs = new Date(todayStr).getTime();
   var PRODUCT_MAP = {};
   PRODUCTS.forEach(function(p) { PRODUCT_MAP[p.id] = p; });
 
-  // 建立備盤批號 Map（key = productId|lotNumber）
-  var beipanLotMap = {};
-  var beipanDate   = beipan ? (beipan.date || '').replace(/\//g, '-') : '';
-  var beipanCutoff = beipan ? (beipan.submittedAt || beipanDate) : '';
-  (beipan && beipan.batches ? beipan.batches : []).forEach(function(bb) {
-    if (!bb.selectedLot || !bb.reagentId) return;
-    var k = bb.reagentId + '|' + bb.selectedLot;
-    beipanLotMap[k] = { unopened: Number(bb.unopened || 0), cutoff: beipanCutoff };
-  });
+  // 備盤批號 Map（key = productId|lotNumber）：改用整個備盤歷史裡「該批號最後一次」的紀錄，
+  // 而不是只看最新一天的快照，這樣批號用罄後也還查得到它最後的正確狀態。
+  var beipanLotMap = beipanLotHistory || {};
 
   // 從進貨紀錄建立每個批號的基礎數量（路線 B 基準）
   var lotMap = {};
@@ -431,7 +446,7 @@ function checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap) {
     var pid = parts[0], lot = parts[1];
     var lotIncoming = (jinhuo || []).reduce(function(s, r) {
       if (r.productId !== pid || r.lotNumber !== lot || r.isVoided) return s;
-      if ((r.receivedAt || '') <= beipanDate) return s;
+      if ((r.receivedAt || '') <= bpEntry.cutoff) return s;
       return s + Number(r.receivedQty || 0);
     }, 0);
     var lotDelta = (changelog || []).reduce(function(s, log) {
@@ -726,7 +741,7 @@ function sendDailyAlert() {
     // 3. 各項警示
     var stockAlerts    = checkLowStock(stockMap);
     var expiryAlerts   = checkExpiry(jinhuo, todayStr);
-    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
+    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, getBeipanLotHistory(), stockMap);
     var delayAlerts    = checkPendingDelay(orders, todayStr);
     var qcAlerts       = checkQcOverdue(jinhuo, todayStr);
 
@@ -815,7 +830,7 @@ function forceAlert() {
     var stockMap      = calcAllStock(beipan, pandian, jinhuo, changelog);
     var critical      = checkLowStock(stockMap).critical;
     var expiryAlerts  = checkExpiry(jinhuo, todayStr);
-    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
+    var disposalAlerts = checkDisposal(jinhuo, changelog, todayStr, getBeipanLotHistory(), stockMap);
     var delayAlerts   = checkPendingDelay(orders, todayStr);
     var qcAlerts      = checkQcOverdue(jinhuo, todayStr);
     var total = critical.length + expiryAlerts.length + disposalAlerts.length + delayAlerts.length + qcAlerts.length;
@@ -928,7 +943,7 @@ function testDisposalAlerts() {
   var jinhuo    = getJinhuoRecords();
   var changelog = getKucunChangelog();
   var stockMap  = calcAllStock(beipan, pandian, jinhuo, changelog);
-  var disposal  = checkDisposal(jinhuo, changelog, todayStr, beipan, stockMap);
+  var disposal  = checkDisposal(jinhuo, changelog, todayStr, getBeipanLotHistory(), stockMap);
   Logger.log('[testDisposalAlerts] 待報廢批號：' + disposal.length + ' 個');
   disposal.forEach(function(d) {
     Logger.log('  ' + d.name + ' | 批號：' + d.lotNumber + ' | 應丟棄：' + d.qty + ' ' + d.unit + ' | 品項庫存：' + d.totalStock + ' ' + d.unit);

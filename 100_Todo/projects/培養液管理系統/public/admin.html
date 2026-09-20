@@ -656,6 +656,9 @@ function renderProducts() {
             const n = Number(el.value);
             item[field] = el.value === '' ? null : (Number.isFinite(n) ? n : item[field]);
           }
+          // brand 空字串跟 null 在 order.html 的分類邏輯裡意義不同（null 才會分到廠商分組），
+          // 空白輸入必須存回 null，不能讓它變成 ""，否則品項會同時被兩邊過濾掉而消失
+          else if (field === 'brand') item[field] = el.value === '' ? null : el.value;
           else item[field] = el.value;
         });
         try { await upsertProduct(item); }

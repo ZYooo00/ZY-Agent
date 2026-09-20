@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.08.31b'; // 格式：YY.MM.DD
+const APP_VERSION = '26.09.20'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.09.20',
+    date: '2026-09-20',
+    changes: [
+      '【修正】後台修改品項「品牌」欄位時，若清空存檔會正確存回未設定狀態，避免品項在訂貨管理頁面消失不見',
+    ],
+  },
   {
     version: '26.08.31b',
     date: '2026-08-31',
