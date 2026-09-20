@@ -1537,13 +1537,17 @@ async function saveDraft() {
     givf, matrix, bulkSmall, bulkLot, cards, batchData,
     gupanConfirmedToken: window._gupanConfirmedToken || null,
   };
-  localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+  const payloadJson = JSON.stringify(payload);
+  localStorage.setItem(getDraftKey(), payloadJson);
 
   // 網路慢時避免堆疊出多個重疊的雲端寫入請求
   if (_isDraftSaving) return;
   _isDraftSaving = true;
   try {
-    await window._fb?.saveBeipanDraft?.(getDraftDateStr(), payload);
+    // batchData 裡有些欄位（例如 _calibratedFrom 沒設定時）會是 undefined，
+    // JSON.stringify 會自動略過 undefined 欄位，Firestore setDoc 則會直接報錯拒絕整份寫入，
+    // 用同一份已經序列化過的 JSON 字串重新 parse 回來，確保送進 Firestore 的物件裡不會有 undefined
+    await window._fb?.saveBeipanDraft?.(getDraftDateStr(), JSON.parse(payloadJson));
     setDraftAutosaveBadge(`自動儲存 ${hhmmNow()}`);
   } catch (e) {
     console.warn('[beipan] 雲端草稿寫入失敗', e);
