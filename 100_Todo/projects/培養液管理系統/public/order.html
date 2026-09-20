@@ -370,6 +370,7 @@
         target:     p.target    || 0,
         reorderQty: p.reorderQty,
         note:       p.orderNote || '',
+        noForecast: !!p.noForecast,
       });
     });
     return Object.values(brandMap);
@@ -394,6 +395,7 @@
         target:     p.target    || 0,
         reorderQty: p.reorderQty,
         note:       p.orderNote || '',
+        noForecast: !!p.noForecast,
       });
     });
     return Object.entries(vendorMap).map(([vendor, items]) => ({
@@ -698,16 +700,19 @@
     const a = actualMap[item.itemId];
     const transit = intransitMap[item.orderId];
 
-    // 行底色
+    // 行底色（彈性供應商放最前面直接截斷，不受後面 a.actual===0 這種無視 target 的判斷影響）
     let rowClass;
-    if (!a) rowClass = 'row-unscanned';
+    if (item.noForecast) rowClass = 'row-ok';
+    else if (!a) rowClass = 'row-unscanned';
     else if (a.actual === 0) rowClass = 'row-crit';
     else if (item.target != null && a.actual < item.target) rowClass = 'row-warn';
     else rowClass = 'row-ok';
 
     // 安全警戒線 + ⚠️
     let safetyHtml;
-    if (!a) {
+    if (item.noForecast) {
+      safetyHtml = `<span class="text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">彈性進貨</span>`;
+    } else if (!a) {
       safetyHtml = `<span class="text-slate-500 font-medium">${item.target ?? '—'}</span><span class="ml-1.5 text-xs text-slate-300">—</span>`;
     } else if (item.target != null && a.actual < item.target) {
       safetyHtml = `<span class="text-slate-500 font-medium">${item.target}</span><span class="ml-1.5 text-xs font-semibold text-orange-500 bg-orange-50 rounded-full px-1.5 py-0.5">⚠️ 警示</span>`;
@@ -826,9 +831,11 @@
     const transit = intransitMap[item.orderId];
     const transitQty = transit ? transit.orderQty : 0;
 
-    // 行底色：由 actual vs target 決定
+    // 行底色：由 actual vs target 決定（彈性供應商放最前面直接截斷，不受 a.actual===0 這種無視 target 的判斷影響）
     let rowClass;
-    if (!a) {
+    if (item.noForecast) {
+      rowClass = 'row-ok';
+    } else if (!a) {
       rowClass = 'row-unscanned';
     } else if (a.actual === 0) {
       rowClass = 'row-crit';
@@ -840,7 +847,9 @@
 
     // 安全警戒線 + 狀態徽章
     let safetyHtml;
-    if (!a) {
+    if (item.noForecast) {
+      safetyHtml = `<span class="text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">彈性進貨</span>`;
+    } else if (!a) {
       safetyHtml = `<span class="text-slate-500 font-medium">${item.target}</span>
         <span class="ml-1.5 text-xs text-slate-300">—</span>`;
     } else if (a.actual < item.target) {

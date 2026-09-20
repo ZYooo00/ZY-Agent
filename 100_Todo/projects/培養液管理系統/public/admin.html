@@ -601,7 +601,7 @@ function renderProducts() {
       </select></td>
       <td><input type="number" class="field-input" style="width:70px" data-field="sortOrder" value="${p.sortOrder ?? ''}"></td>
       <td><input class="field-input" data-field="unit" value="${p.unit || ''}"></td>
-      <td><input class="field-input" data-field="target" value="${p.target ?? ''}"></td>
+      <td><input class="field-input" data-field="target" value="${p.target ?? ''}" ${p.noForecast ? 'disabled' : ''}></td>
       <td><select class="field-input product-status-select ${statusColorClass(productStatus(p))}" data-field="status">
         <option value="active" ${productStatus(p)==='active'?'selected':''}>正常使用</option>
         <option value="paused" ${productStatus(p)==='paused'?'selected':''}>暫停叫貨</option>
@@ -617,11 +617,12 @@ function renderProducts() {
           <div><label class="field-label">GTIN 條碼</label><input class="field-input" data-detail-field="gtin" value="${p.gtin || ''}"></div>
           <div><label class="field-label">品牌</label><input class="field-input" data-detail-field="brand" value="${p.brand || ''}"></div>
           <div><label class="field-label">需要 QC</label><label class="toggle"><input type="checkbox" data-detail-field="needQC" ${p.needQC ? 'checked' : ''}><span class="toggle-track"></span></label></div>
+          <div><label class="field-label">彈性供應商<br><span class="text-slate-400 normal-case font-normal">（不參與用量預估／低庫存警示）</span></label><label class="toggle"><input type="checkbox" class="no-forecast-toggle" data-detail-field="noForecast" ${p.noForecast ? 'checked' : ''}><span class="toggle-track"></span></label></div>
           ${(p.gupanId && p.gupanId !== p.id) ? `<div><label class="field-label">系統底層關聯碼</label><span class="lm-lot">${p.gupanId}</span><span class="locked-tag">鎖定</span></div>` : ''}
         </div>
         <div class="text-xs font-semibold text-slate-500 mb-2">採購與效期設定（效期留空即使用系統預設）</div>
         <div class="flex flex-wrap gap-3">
-          <div style="width:110px"><label class="field-label">建議訂購量</label><input type="number" class="field-input" data-detail-field="reorderQty" value="${p.reorderQty ?? ''}"></div>
+          <div style="width:110px"><label class="field-label">建議訂購量</label><input type="number" class="field-input" data-detail-field="reorderQty" value="${p.reorderQty ?? ''}" ${p.noForecast ? 'disabled' : ''}></div>
           <div style="width:110px"><label class="field-label">瓶容量</label><input type="number" class="field-input" data-detail-field="bottleVol" value="${p.bottleVol ?? ''}"></div>
           <div style="width:110px"><label class="field-label">開封效期(天)</label><input type="number" class="field-input" data-detail-field="expiry" value="${p.expiry ?? ''}"></div>
           <div style="width:130px"><label class="field-label">自訂效期預警(天)</label><input type="number" class="field-input" data-detail-field="expiryWarnDays" value="${p.expiryWarnDays ?? ''}"></div>
@@ -665,6 +666,26 @@ function renderProducts() {
         catch (e) { console.warn('[admin] 品項詳細儲存失敗', e); alert('儲存失敗，請檢查網路連線'); }
       });
     });
+    // 「彈性供應商」勾選時，同步把安全庫存（主表格 data-field）跟建議訂購量（詳細面板 data-detail-field）
+    // 清空並鎖起來，避免勾了彈性供應商、卻又手動填了庫存數字造成資料自相矛盾。
+    // JS 直接改 el.value 不會觸發 change，這裡清空後要手動 dispatchEvent 補觸發存檔。
+    const noForecastToggle = row.querySelector('.no-forecast-toggle');
+    if (noForecastToggle) {
+      noForecastToggle.addEventListener('change', () => {
+        const mainRow = document.querySelector(`#products-tbody tr[data-id="${id}"]`);
+        const targetInput = mainRow?.querySelector('[data-field="target"]');
+        const reorderInput = row.querySelector('[data-detail-field="reorderQty"]');
+        const checked = noForecastToggle.checked;
+        if (targetInput) {
+          targetInput.disabled = checked;
+          if (checked) { targetInput.value = ''; targetInput.dispatchEvent(new Event('change')); }
+        }
+        if (reorderInput) {
+          reorderInput.disabled = checked;
+          if (checked) { reorderInput.value = ''; reorderInput.dispatchEvent(new Event('change')); }
+        }
+      });
+    }
   });
 }
 

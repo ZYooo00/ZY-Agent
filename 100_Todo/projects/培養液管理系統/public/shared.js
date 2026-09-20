@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.09.20c'; // 格式：YY.MM.DD
+const APP_VERSION = '26.09.20d'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.09.20d',
+    date: '2026-09-20',
+    changes: [
+      '【新功能】後台新增「彈性供應商」設定，同品項有第二家廠商彈性供貨、不需要預估庫存時可以勾選，訂貨管理頁會改顯示「彈性進貨」，不再被誤判成缺貨（首先套用在 102 解凍液的明美這邊）',
+      '【修正】101 冷凍試劑條碼更新為廠商新包裝的條碼，重新可以正常掃碼辨識',
+    ],
+  },
   {
     version: '26.09.20c',
     date: '2026-09-20',
@@ -230,9 +238,9 @@ const PRODUCTS = [
   { id:'601',      name:'601',                vendor:'弘優', unit:'套', group:'試劑',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'602',      name:'602',                vendor:'弘優', unit:'套', group:'試劑',   gtin:'14582231460691', brand:null, gupanId:'f-602',    target:2, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:null, expiryWarnDays:30, sortOrder:12 },
   { id:'spas',     name:'S-PAS',              vendor:'弘優', unit:'盒', group:'試劑',   gtin:'14582231468048', brand:null, gupanId:'s-spas',   target:1, reorderQty:3,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:null, sortOrder:3 },
-  { id:'101',      name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑',   gtin:'04589700012163', brand:null, gupanId:'f-101',    target:2, reorderQty:120,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'亦可向明美訂購', sortOrder:3 },
+  { id:'101',      name:'101（磊柏）',          vendor:'磊柏', unit:'套', group:'試劑',   gtin:'04589700012194', brand:null, gupanId:'f-101',    target:2, reorderQty:120,  bottleVol:null, openExpiryDays:null, needQC:false, location:'冰箱',   orderNote:'亦可向明美訂購', sortOrder:3 },
   { id:'102',      name:'102（磊柏）',          vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102',    target:2, reorderQty:100,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向明美訂購', sortOrder:2 },
-  { id:'102-mm',   name:'102（明美）',          vendor:'明美', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102-mm', target:2, reorderQty:null,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向磊柏訂購', sortOrder:1 },
+  { id:'102-mm',   name:'102（明美）',          vendor:'明美', unit:'盒', group:'試劑',   gtin:'04589700012200', brand:null, gupanId:'f-102-mm', target:null, reorderQty:null,  bottleVol:null, openExpiryDays:null, needQC:true,  location:'冰箱',   orderNote:'月點料 · 亦可向磊柏訂購', sortOrder:1, noForecast:true },
   { id:'tyb',      name:'TYB',               vendor:'磊柏', unit:'盒', group:'試劑',   gtin:'00893727002217', brand:null, gupanId:'s-tyb',    target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'1 盒 = 20 小瓶', sortOrder:4 },
   { id:'brightv',  name:'BrightVit',           vendor:'磊柏', unit:'個', group:'試劑',   gtin:null,             brand:null, gupanId:null,       target:null, reorderQty:null, bottleVol:null, openExpiryDays:null, needQC:false, location:null,   orderNote:null, hidden:true },
   { id:'mountgl',  name:'Mounting Glue',       vendor:'磊柏', unit:'瓶', group:'試劑',   gtin:null,             brand:null, gupanId:'s-mg',     target:1, reorderQty:1,   bottleVol:null, openExpiryDays:null, needQC:false, location:'精蟲室', orderNote:'至少 1/2 瓶', sortOrder:5 },
@@ -298,6 +306,7 @@ function resolveProductsFromConfig(rows) {
       location: r.location ?? null, orderNote: r.orderNote ?? null,
       paused: !!r.paused, expiryWarnDays: r.expiryWarnDays ?? undefined,
       pandianGroup: r.pandianGroup ?? null, sortOrder: r.sortOrder ?? null,
+      noForecast: !!r.noForecast,
     }));
 
   PRODUCTS.length = 0;
@@ -490,6 +499,8 @@ function calcPandianDeltaBuckets(product, pandianHistory, jinhuo, maxBuckets = 3
 // ── 月用量組合函數：優先用 changelog 逐日消耗（精確），沒有才退到盤點快照多期平均（估）──
 // data = { changelog, jinhuo, pandianHistory }
 function calcMonthlyUsage(product, data) {
+  // noForecast（彈性供應商，例如同品項掛第二廠商、盤點恆填 0）不計算用量，避免把「進多少」誤算成「用多少」
+  if (product.noForecast) return { usage: null, monthlyUsage: 0, dailyUsage: 0, label: '—' };
   const rolling = calcRolling30dUsage(product.id, data.changelog, data.jinhuo);
   if (rolling.monthlyUsage > 0) return rolling;
   const pandianAvg = calcPandianDeltaUsage(product, data.pandianHistory, data.jinhuo);
@@ -643,7 +654,9 @@ function calcProductInfo(product, data) {
   }
 
   // ── Target（優先用 PRODUCTS 的最新設定，fallback 到盤點快照的舊值）──
-  const target = PRODUCTS.find(p => p.id === product.id)?.target ?? pandianItem?.target ?? null;
+  let target = PRODUCTS.find(p => p.id === product.id)?.target ?? pandianItem?.target ?? null;
+  // noForecast（彈性供應商）品項強制忽略 target，避免撈到舊盤點快照裡殘留的非 null 舊值
+  if (product.noForecast) target = null;
 
   // ── Pending delivery ──
   let pending = 0;

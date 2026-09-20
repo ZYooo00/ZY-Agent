@@ -37,7 +37,7 @@ var PRODUCTS = [
   { id:'spas',     name:'S-PAS',             vendor:'弘優', unit:'盒', gupanId:'s-spas',   target:1, reorderQty:3,   expiryWarnDays:null, needQC:false },
   { id:'101',      name:'101（磊柏）',         vendor:'磊柏', unit:'套', gupanId:'f-101',    target:2, reorderQty:120, expiryWarnDays:null, needQC:false },
   { id:'102',      name:'102（磊柏）',         vendor:'磊柏', unit:'盒', gupanId:'f-102',    target:2, reorderQty:100, expiryWarnDays:null, needQC:true  },
-  { id:'102-mm',   name:'102（明美）',         vendor:'明美', unit:'盒', gupanId:'f-102-mm', target:2, reorderQty:null, expiryWarnDays:null, needQC:true  },
+  { id:'102-mm',   name:'102（明美）',         vendor:'明美', unit:'盒', gupanId:'f-102-mm', target:null, reorderQty:null, expiryWarnDays:null, needQC:true  },
   { id:'tyb',      name:'TYB',              vendor:'磊柏', unit:'盒', gupanId:'s-tyb',    target:1, reorderQty:1,   expiryWarnDays:null, needQC:false },
   { id:'mountgl',  name:'Mounting Glue',    vendor:'磊柏', unit:'瓶', gupanId:'s-mg',     target:1, reorderQty:1,   expiryWarnDays:null, needQC:false },
   { id:'gm501',    name:'GM501 (SpermMobil)',vendor:'明美', unit:'瓶', gupanId:'f-gm501',  target:1, reorderQty:2,   expiryWarnDays:30,   needQC:false },
