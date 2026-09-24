@@ -179,9 +179,21 @@ function getJinhuoRecords() {
     [{ field: { fieldPath: 'receivedAt' }, direction: 'DESCENDING' }], 800);
 }
 
+// 找到的根因（2026-09-24）：這裡原本沒有加 source == 'manual' 的篩選條件，
+// 註解寫「最多抓 1000 筆手動異動」但程式碼其實是撈整個 kucun_changelog 集合
+// 前 1000 筆（無 orderBy，且 90% 以上都是 beipan/jinhuo 這種自動寫入的紀錄，
+// 不是手動異動）。collection 總筆數一旦超過 1000（目前已破千），撈回來的
+// 1000 筆會變成任意子集，實測發現撈到的全是 5-9 月初的舊資料，9 月中旬後
+// 的手動報廢／使用紀錄完全被排除在外，導致 checkDisposal()／calcAllStock()
+// 看不到最近的手動異動，才會一直誤報「已報廢的批號還沒報廢」。
+// 改成 server 端直接篩 source == 'manual'，這個條件本來就是所有呼叫端
+// （manualDelta()、checkDisposal Route B）唯一在乎的欄位，篩完只剩幾十筆，
+// 不會再有撈不完的問題。
 function getKucunChangelog() {
-  // 最多抓 1000 筆手動異動
-  return firestoreQuery('kucun_changelog', null, 1000);
+  // 不加 orderBy：單純 source 等於篩選不需要複合索引就能查，加了 tsRaw
+  // 排序反而會要求額外建立複合索引；消費端都是用 reduce 加總，不需要順序。
+  return firestoreQuery('kucun_changelog', null, 2000,
+    { fieldFilter: { field: { fieldPath: 'source' }, op: 'EQUAL', value: { stringValue: 'manual' } } });
 }
 
 // 依時間區間查詢 changelog（伺服器端過濾，不整包撈回再用 JS 篩選）
