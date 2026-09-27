@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>耗材訂購清單</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="耗材管理">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "PingFang TC", sans-serif; background: #f5f5f7; color: #1a1a1a; min-height: 100vh; padding-top: 50px; }
+
+/* ── Header（與 count.html 統一） ── */
+.hdr {
+  background: #222; color: #fff;
+  height: 50px; padding: 0 12px; display: flex; align-items: center; gap: 8px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300; border-bottom: 1px solid #444;
+}
+.hdr h1 { font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.hdr .date-badge {
+  background: #333; border-radius: 7px; padding: 3px 10px;
+  font-size: 12px; color: #aaa; flex-shrink: 0;
+}
+.hdr .date-badge span { color: #fff; font-weight: 600; }
+.hdr .spacer { flex: 1; }
+.hdr .reload-btn {
+  background: #3a3a3a; border: 1px solid #555; color: #aaa; border-radius: 7px;
+  padding: 0 9px; height: 28px; font-size: 11px; cursor: pointer; flex-shrink: 0;
+}
+/* Nav tabs（整合進 header） */
+.nav-tab {
+  height: 26px; padding: 0 11px; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; color: #666;
+  background: transparent; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+}
+.nav-tab.active { background: #007aff; color: #fff; }
+.nav-divider { width: 1px; height: 20px; background: #444; margin: 0 4px; flex-shrink: 0; }
+
+/* ── Main ── */
+.main { max-width: 960px; margin: 0 auto; padding: 24px 24px 60px; }
+
+/* ── Room block（胚胎室／精蟲室／其他 三張單）── */
+.room-block { margin-bottom: 32px; }
+.room-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.room-title { font-size: 18px; font-weight: 800; }
+.room-count { font-size: 12px; color: #888; }
+
+/* ── Section ── */
+.section { background: #fff; border-radius: 14px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.sec-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px; border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+.sec-icon { font-size: 18px; }
+.sec-title { font-size: 15px; font-weight: 700; }
+.sec-count { font-size: 12px; color: #888; }
+.empty-msg { padding: 28px; text-align: center; color: #bbb; font-size: 13px; }
+
+/* ── iGo Table ── */
+.igo-table { width: 100%; border-collapse: collapse; }
+.igo-table th {
+  font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
+  letter-spacing: .5px; padding: 10px 16px; background: #f9f9f9;
+  border-bottom: 1px solid #eee; text-align: left;
+}
+.igo-table th.num { text-align: right; }
+.igo-table td { padding: 11px 16px; border-bottom: 1px solid #f5f5f5; font-size: 13px; vertical-align: middle; }
+.igo-table tr:last-child td { border-bottom: none; }
+.igo-table tr:hover td { background: #fafafa; }
+.item-name { font-weight: 600; color: #1a1a1a; }
+.item-igo  { font-size: 11px; color: #888; margin-top: 2px; }
+.warn-tag  { display: inline-block; background: #fff3cd; color: #856404; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+.current-cell { text-align: right; color: #555; }
+.unit-label   { font-size: 11px; color: #aaa; margin-left: 2px; }
+.qty-input {
+  width: 64px; height: 32px; border: 1.5px solid #d0d0d0; border-radius: 8px;
+  text-align: center; font-size: 15px; font-weight: 700; color: #1a1a1a;
+  background: #fff; -webkit-appearance: none;
+  float: right;
+}
+.qty-input:focus { outline: none; border-color: #007aff; }
+.qty-input.changed { border-color: #ff9500; background: #fffbf0; }
+
+/* ── iGo footer ── */
+.igo-footer {
+  padding: 14px 20px; border-top: 1px solid #f0f0f0;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+}
+.igo-footer .hint { font-size: 12px; color: #aaa; }
+.btn-send-igo {
+  background: #007aff; color: #fff; border: none; border-radius: 10px;
+  padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-send-igo:hover { background: #0066dd; }
+.btn-send-igo:disabled { background: #aaa; cursor: default; }
+
+/* ── LINE Section ── */
+.line-list { padding: 8px 0; }
+.line-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px; border-bottom: 1px solid #f5f5f5;
+}
+.line-item:last-child { border-bottom: none; }
+.line-name { flex: 1; font-size: 13px; font-weight: 600; }
+.line-qty  { font-size: 13px; color: #555; min-width: 60px; text-align: right; }
+.btn-copy {
+  background: #f0f0f0; border: none; border-radius: 8px;
+  padding: 6px 14px; font-size: 12px; font-weight: 600; color: #333; cursor: pointer;
+  transition: background .15s;
+}
+.btn-copy:hover { background: #e0e0e0; }
+.btn-copy.copied { background: #34c759; color: #fff; }
+.btn-copy-all {
+  margin: 0 20px 14px; display: block;
+  background: #f0f9ff; border: 1.5px solid #007aff; color: #007aff;
+  border-radius: 9px; padding: 9px 0; font-size: 13px; font-weight: 600;
+  cursor: pointer; text-align: center; width: calc(100% - 40px);
+}
+.btn-copy-all:hover { background: #e0f0ff; }
+.btn-copy-all.copied { background: #e6fff0; border-color: #34c759; color: #34c759; }
+
+/* ── Linkin Section ── */
+.linkin-list { padding: 8px 0; }
+.linkin-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 20px; border-bottom: 1px solid #f5f5f5;
+  font-size: 13px;
+}
+.linkin-item:last-child { border-bottom: none; }
+.linkin-icon { color: #ff9500; font-size: 16px; flex-shrink: 0; }
+.linkin-name { font-weight: 600; flex: 1; }
+.linkin-qty  { color: #555; }
+.linkin-note { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+/* ── Loading / Error ── */
+.status-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.3);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+}
+.status-box {
+  background: #fff; border-radius: 16px; padding: 32px 40px;
+  text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  min-width: 220px;
+}
+.status-box .spinner {
+  width: 32px; height: 32px; border: 3px solid #eee;
+  border-top-color: #007aff; border-radius: 50%;
+  animation: spin .8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-box p { font-size: 14px; color: #555; }
+.status-box .err { color: #ff3b30; }
+.status-box .retry-btn {
+  margin-top: 14px; background: #007aff; color: #fff; border: none;
+  border-radius: 8px; padding: 8px 20px; font-size: 13px; cursor: pointer;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+  background: #1c1c1e; color: #fff; padding: 10px 22px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .2s;
+  pointer-events: none; z-index: 9999;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>實驗室耗材_訂貨</h1>
+  <div class="date-badge">盤點日期：<span id="countDate">—</span></div>
+  <div class="spacer"></div>
+  <button class="reload-btn" onclick="loadOrder()">重新載入</button>
+  <div class="nav-divider"></div>
+  <button class="nav-tab" onclick="location.href='count.html'">① 盤點</button>
+  <button class="nav-tab active">② 訂單</button>
+  <button class="nav-tab" onclick="location.href='receive.html'">③ 到貨</button>
+</div>
+
+<div class="main" id="mainContent" style="display:none">
+  <div id="roomsContainer"></div>
+
+  <!-- LINE／Linkin 是既有的聯絡管道，不依房間拆分，各自一區放在三張 iGo 單之後 -->
+  <div class="section" id="secLine1" style="display:none">
+    <div class="sec-hdr">
+      <span class="sec-icon">💬</span>
+      <span class="sec-title">LINE — 分生室</span>
+      <span class="sec-count" id="line1Count"></span>
+    </div>
+    <div class="line-list" id="line1Body"></div>
+    <button class="btn-copy-all" id="btnCopyLine1" onclick="copyLineAll('line1')">複製全部訊息</button>
+  </div>
+
+  <div class="section" id="secLine2" style="display:none">
+    <div class="sec-hdr">
+      <span class="sec-icon">💬</span>
+      <span class="sec-title">LINE — 艾捷隆</span>
+      <span class="sec-count" id="line2Count"></span>
+    </div>
+    <div class="line-list" id="line2Body"></div>
+    <button class="btn-copy-all" id="btnCopyLine2" onclick="copyLineAll('line2')">複製全部訊息</button>
+  </div>
+
+  <div class="section" id="secLinkin" style="display:none">
+    <div class="sec-hdr">
+      <span class="sec-icon">⚠️</span>
+      <span class="sec-title">Linkin — 人工聯絡</span>
+      <span class="sec-count" id="linkinCount"></span>
+    </div>
+    <div class="linkin-list" id="linkinBody"></div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="status-overlay" id="overlay">
+  <div class="status-box" id="statusBox">
+    <div class="spinner"></div>
+    <p>載入訂購清單中…</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwdoAng6aOcufhV9E_OmrBTDbOV28R_1HMsIg3WKyocHWew0o5LYCX6fQdaJs5kDGXj/exec";
+
+function fmtCountDate(raw, countBy) {
+  const WD = ["日","一","二","三","四","五","六"];
+  const d = new Date(raw);
+  let str = isNaN(d) ? (raw || "（無資料）")
+    : `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${WD[d.getDay()]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  if (countBy) str += ` · ${countBy}`;
+  return str;
+}
+
+let orderData = null;      // 完整 API 回傳
+const ROOM_ORDER = ['胚胎室', '精蟲室', '其他'];
+const ROOM_SLUG  = { '胚胎室': 'embryo', '精蟲室': 'sperm', '其他': 'other' };
+const ROOM_ICON  = { '胚胎室': '🧫', '精蟲室': '🧬', '其他': '📦' };
+let roomData = {}; // slug -> { igo:[], line1:[], line2:[], linkin:[] }
+function roomOf(it) { return it.room || '其他'; }
+
+// GAS 偶爾會因為忙碌回傳 HTML 錯誤頁（不是 JSON），這裡統一處理：
+// 先試著解析，失敗就等一下重試一次，還是失敗才顯示白話的錯誤訊息
+async function fetchJsonRetry(url) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res  = await fetch(url);
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch (_) { throw new Error("伺服器暫時忙碌（回傳非預期格式）"); }
+    } catch (e) {
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 1200)); continue; }
+      throw new Error("連線不穩定，請稍後再試一次");
+    }
+  }
+}
+
+// ── 載入訂購清單 ──────────────────────────────────────────────
+async function loadOrder() {
+  if (new URLSearchParams(location.search).get('src') === '2w') { await load2wOrder(); return; }
+  showLoading("載入訂購清單中…");
+  try {
+    const data = await fetchJsonRetry(`${GAS_URL}?action=order&_t=${Date.now()}`);
+    if (!data.ok) throw new Error(data.error || "API 回傳錯誤");
+    orderData = data;
+    if (data.submittedAt) data.date = data.submittedAt;
+    renderAll(data);
+    hideOverlay();
+  } catch (e) {
+    showError("載入失敗：" + e.message);
+  }
+}
+async function load2wOrder() {
+  showLoading("載入兩週盤點訂單…");
+  try {
+    const data = await fetchJsonRetry(`${GAS_URL}?action=get-2w-draft&_t=${Date.now()}`);
+    if (!data.items?.length) { showError("找不到兩週盤點訂單，請重新從 count.html 提交"); return; }
+    const items = data.items.map(it => ({
+      ...it, suggested: it.suggested ?? it.qty ?? 0, current: null, warning: false
+    }));
+    orderData = { ok: true, date: data.date || "", countBy: "兩週盤點", items };
+    renderAll(orderData);
+    hideOverlay();
+  } catch (e) {
+    showError("載入失敗：" + e.message);
+  }
+}
+
+// ── 分類 & 渲染 ───────────────────────────────────────────────
+// iGo 依 room 拆成胚胎室／精蟲室／其他 三張單（送去不同部門的領料單）；
+// LINE／Linkin 是既有的聯絡管道，跟房間無關，不拆、各自一區放在最下面。
+function renderAll(data) {
+  document.getElementById("countDate").textContent = fmtCountDate(data.date, data.countBy);
+  cleanupOldSentLocks(data.date);
+
+  const items = data.items || [];
+  const container = document.getElementById('roomsContainer');
+  container.innerHTML = ROOM_ORDER.map(roomBlockHTML).join('');
+
+  ROOM_ORDER.forEach(room => {
+    renderIgo(room, items.filter(it => it.channel === "iGo" && roomOf(it) === room));
+    updateRoomVisibility(room);
+  });
+
+  renderLine("line1", items.filter(it => it.channel === "LINE分生室"));
+  renderLine("line2", items.filter(it => it.channel === "LINE艾捷隆"));
+  renderLinkin(items.filter(it => it.channel === "linkin"));
+
+  document.getElementById("mainContent").style.display = "";
+}
+
+function roomBlockHTML(room) {
+  const slug = ROOM_SLUG[room];
+  return `
+  <div class="room-block" id="room-${slug}">
+    <div class="room-hdr">
+      <span style="font-size:20px">${ROOM_ICON[room]}</span>
+      <span class="room-title">${room}</span>
+      <span class="room-count" id="roomCount-${slug}"></span>
+    </div>
+
+    <div class="section" id="secIgo-${slug}" style="display:none">
+      <div class="sec-hdr">
+        <span class="sec-icon">🛒</span>
+        <span class="sec-title">iGo 訂購</span>
+        <span class="sec-count" id="igoCount-${slug}"></span>
+      </div>
+      <table class="igo-table">
+        <thead>
+          <tr>
+            <th style="width:28%">品項</th>
+            <th style="width:22%">iGo 搜尋名稱</th>
+            <th class="num" style="width:16%">基準量 / 安全量</th>
+            <th class="num" style="width:11%">現有量</th>
+            <th class="num" style="width:13%">預計訂購量</th>
+            <th class="num" style="width:10%">訂購量</th>
+          </tr>
+        </thead>
+        <tbody id="igoBody-${slug}"></tbody>
+      </table>
+      <div class="igo-footer">
+        <span class="hint">可手動調整訂購量後再送出</span>
+        <button class="btn-send-igo" id="btnSendIgo-${slug}" onclick="sendToIgo('${room}')">送出 iGo 訂單</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateRoomVisibility(room) {
+  const slug = ROOM_SLUG[room];
+  const d = roomData[slug] || {};
+  const total = d.igo?.length || 0;
+  const block = document.getElementById('room-' + slug);
+  if (!total) { block.style.display = 'none'; return; }
+  block.style.display = '';
+  document.getElementById('roomCount-' + slug).textContent = `共 ${total} 項`;
+}
+
+// ── iGo ──────────────────────────────────────────────────────
+function renderIgo(room, items) {
+  const slug = ROOM_SLUG[room];
+  roomData[slug] = roomData[slug] || {};
+  roomData[slug].igo = items;
+  const sec = document.getElementById("secIgo-" + slug);
+  if (!items.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("igoCount-" + slug).textContent = `共 ${items.length} 項`;
+
+  const tbody = document.getElementById("igoBody-" + slug);
+  tbody.innerHTML = items.map(it => {
+    const warnTag = it.warning ? `<span class="warn-tag">⚠️ 低庫存</span>` : "";
+    const configCheckTag = (it.baseline <= 0 && it.safety <= 0)
+      ? `<span class="warn-tag" style="background:#ffe5e5;color:#c00">⚠️ 未設定基準量，請手動確認</span>` : "";
+    const crossTag = it.crossRoomOther
+      ? `<span class="warn-tag" style="background:#e6f0ff;color:#1a4e8a">↔ ${it.crossRoomOther}也有存放</span>` : "";
+    const currentStr = it.rawCurrent !== null && it.rawCurrent !== undefined
+      ? `${it.rawCurrent}<span class="unit-label">${it.bulkUnit}</span>`
+      : it.current !== null ? `${it.current}<span class="unit-label">${it.unit}</span>` : "—";
+    const baselineStr = it.baseline > 0
+      ? `${it.baseline}<span class="unit-label">${it.unit}</span>`
+      : "—";
+    const safetyStr = it.safety > 0
+      ? `<span style="color:#ff9500">${it.safety}<span class="unit-label">${it.unit}</span></span>`
+      : "";
+    const baselineSafetyStr = it.safety > 0
+      ? `${baselineStr} <span style="color:#bbb;font-size:10px">/</span> ${safetyStr}`
+      : baselineStr;
+    return `<tr>
+      <td>
+        <div class="item-name">${it.name}${warnTag}${configCheckTag}${crossTag}</div>
+        ${it.note ? `<div class="item-igo" style="color:#f80">${it.note}</div>` : ""}
+      </td>
+      <td><div class="item-igo" style="font-size:12px;color:#555">${it.igoName || it.name}</div></td>
+      <td class="current-cell" style="color:#555">${baselineSafetyStr}</td>
+      <td class="current-cell">${currentStr}</td>
+      <td class="current-cell" style="color:#aaa">${it.suggested > 0 ? it.suggested + `<span class="unit-label">${it.unit}</span>` : "—"}</td>
+      <td>
+        <input class="qty-input" type="number" min="0" id="qty-${slug}-${it.id}"
+          value="${it.suggested}" oninput="onQtyChange('${slug}-${it.id}', ${it.suggested}, this)">
+      </td>
+    </tr>`;
+  }).join("");
+
+  applySentLockUI(room);
+}
+
+function onQtyChange(id, original, el) {
+  el.classList.toggle("changed", Number(el.value) !== original);
+}
+
+// ── LINE（不分房間，既有的聯絡管道清單）───────────────────────
+let channelData = { line1: [], line2: [], linkin: [] };
+
+function renderLine(key, items) {
+  channelData[key] = items;
+  const sec   = document.getElementById("sec" + key.charAt(0).toUpperCase() + key.slice(1));
+  const body  = document.getElementById(key + "Body");
+  const count = document.getElementById(key + "Count");
+  if (!items.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  count.textContent = `共 ${items.length} 項`;
+
+  body.innerHTML = items.map(it => `
+    <div class="line-item">
+      <span class="line-name">${it.name}${it.warning ? ' <span class="warn-tag">⚠️</span>' : ""}</span>
+      <span class="line-qty">${it.suggested} ${it.unit}</span>
+      <button class="btn-copy" onclick="copyOne(this, '${escHtml(it.name)}', ${it.suggested}, '${escHtml(it.unit)}')">複製</button>
+    </div>
+  `).join("");
+}
+
+// ── Linkin ────────────────────────────────────────────────────
+function renderLinkin(items) {
+  channelData.linkin = items;
+  const sec = document.getElementById("secLinkin");
+  if (!items.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  document.getElementById("linkinCount").textContent = `共 ${items.length} 項`;
+
+  document.getElementById("linkinBody").innerHTML = items.map(it => `
+    <div class="linkin-item">
+      <span class="linkin-icon">⚠️</span>
+      <div style="flex:1">
+        <div class="linkin-name">${it.name}${it.warning ? ' <span class="warn-tag">低庫存</span>' : ""}</div>
+        ${it.note ? `<div class="linkin-note">${it.note}</div>` : ""}
+      </div>
+      <span class="linkin-qty">${it.suggested} ${it.unit}</span>
+    </div>
+  `).join("");
+}
+
+// ── 送出 iGo（依 room 分開送，PENDING_ORDER 一次只能存一份，需依序送出）──
+async function sendToIgo(room) {
+  const slug = ROOM_SLUG[room];
+  const items = (roomData[slug] && roomData[slug].igo) || [];
+  const payload = items.map(it => {
+    const el = document.getElementById(`qty-${slug}-${it.id}`);
+    const qty = el ? Number(el.value) : it.suggested;
+    return { id: it.id, name: it.name, igoName: it.igoName || it.name, igoSubName: it.igoSubName || "", qty, unit: it.unit };
+  }).filter(it => it.qty > 0);
+
+  if (!payload.length) { toast("沒有需要送出的品項"); return; }
+
+  // 覆寫防呆：先檢查 PENDING_ORDER 是否還有上一張單尚未被 Tampermonkey 取走
+  let pending = null;
+  try {
+    const r = await fetch(`${GAS_URL}?action=pending-order&_t=${Date.now()}`);
+    pending = await r.json();
+  } catch (e) { /* 檢查失敗就不擋，直接嘗試送出 */ }
+
+  if (pending && pending.items && pending.items.length) {
+    showOverwriteGuardModal(room, [...payload]);
+    return;
+  }
+
+  await checkReceiptThenSend(room, payload);
+}
+
+// 送出前檢查上一批收貨（③到貨頁）是否還有沒核點完的品項，
+// 有的話先提醒 ZY 再讓他自己決定要不要繼續送（繼續送出後 Tampermonkey
+// 跑完仍會照舊覆蓋 PENDING_RECEIPT，這是預期中的行為，不用改 saveReceipt()）
+async function checkReceiptThenSend(room, payload) {
+  let receipt = null;
+  try {
+    const r = await fetch(`${GAS_URL}?action=receipt&_t=${Date.now()}`);
+    receipt = await r.json();
+  } catch (e) { /* 檢查失敗就不擋，直接嘗試送出 */ }
+
+  const undone = (receipt && receipt.items) ? receipt.items.filter(it => !it.done) : [];
+  if (undone.length) {
+    showReceiptGuardModal(room, [...payload], undone);
+    return;
+  }
+
+  await doSendToIgo(room, payload);
+}
+
+async function doSendToIgo(room, payload) {
+  const slug = ROOM_SLUG[room];
+  const btn  = document.getElementById("btnSendIgo-" + slug);
+  // session_id 用時間戳記，Tampermonkey 用來比對清單有沒有被新訂單覆寫
+  const sessionId = "igo_" + Date.now();
+
+  btn.disabled = true;
+  btn.textContent = "存入中…";
+  try {
+    const res  = await fetch(GAS_URL, {
+      method: "POST",
+      body:   JSON.stringify({
+        action: "pending-order",
+        sessionId,
+        items: payload,
+        date: orderData?.date || "",
+        room: room
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    localStorage.setItem("igo_session_id", sessionId);
+    markRoomSent(room);
+    toast(`已存入 ${payload.length} 項，即將開啟 iGo`);
+    setTimeout(() => {
+      const popup = window.open("https://tp-igo.e-stork.com.tw/login", "_blank");
+      // 清單已經確實存進 GAS 了，這裡失敗只是「沒開成分頁」，不影響訂單本身，
+      // 所以不用把按鈕解鎖重送，只要提示 ZY 自己點連結手動開啟即可。
+      if (!popup) showPopupBlockedToast();
+    }, 1200);
+  } catch (e) {
+    toast("送出失敗：" + e.message);
+    btn.disabled = false;
+    btn.textContent = "送出 iGo 訂單";
+  }
+}
+
+function showOverwriteGuardModal(room, payload) {
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center";
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#1a1a1a">⚠️ 上一張單尚未處理</div>
+    <div style="font-size:13px;color:#666;margin-bottom:20px;line-height:1.7">iGo 待送清單裡還有上一張訂單的品項，請先完成該筆 Tampermonkey 流程（或到 iGo 分頁把它結帳／清空）再送出這張單。</div>
+    <div style="display:flex;gap:10px">
+      <button id="_ogClose" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:9px;background:#fff;color:#555;font-size:13px;font-weight:600;cursor:pointer">我知道了</button>
+      <button id="_ogForce" style="padding:10px 14px;border:none;border-radius:9px;background:#f0f0f0;color:#999;font-size:12px;cursor:pointer">強制清空並覆寫</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("#_ogClose").onclick = () => ov.remove();
+  ov.querySelector("#_ogForce").onclick = async () => {
+    ov.remove();
+    try { await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "clear-pending-order" }) }); } catch (e) {}
+    await checkReceiptThenSend(room, payload);
+  };
+  ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
+}
+
+function showReceiptGuardModal(room, payload, undoneItems) {
+  const list = undoneItems.map(it => it.name).join('、');
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center";
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#1a1a1a">⚠️ 上一批收貨尚未核點完成</div>
+    <div style="font-size:13px;color:#666;margin-bottom:20px;line-height:1.7">③到貨頁還有 ${undoneItems.length} 項尚未核點：${list}。送出這張新訂單、Tampermonkey 跑完後會用新的收貨清單覆蓋掉這批未核點的資料，建議先去③頁確認清楚。</div>
+    <div style="display:flex;gap:10px">
+      <button id="_rgCancel" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:9px;background:#fff;color:#555;font-size:13px;font-weight:600;cursor:pointer">先不送，我去③頁確認</button>
+      <button id="_rgProceed" style="padding:10px 14px;border:none;border-radius:9px;background:#f0f0f0;color:#999;font-size:12px;cursor:pointer">我知道了，繼續送出</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector("#_rgCancel").onclick = () => ov.remove();
+  ov.querySelector("#_rgProceed").onclick = async () => {
+    ov.remove();
+    await doSendToIgo(room, payload);
+  };
+  ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
+}
+
+// ── 送出狀態鎖定（依 date + room 記在 localStorage，避免搞混哪張單送過了）──
+function markRoomSent(room) {
+  localStorage.setItem(`igo_sent_${orderData?.date || ""}_${room}`, "true");
+  applySentLockUI(room);
+}
+function applySentLockUI(room) {
+  const slug = ROOM_SLUG[room];
+  const btn = document.getElementById("btnSendIgo-" + slug);
+  if (!btn) return;
+  // 按鈕永遠可以點：送過一次後文字變成「重新送單」，既能一眼看出送過、也不怕
+  // 彈出視窗被擋、需要補送等情況卡住沒辦法再按。真的重複送出時，
+  // sendToIgo() 本身的覆寫防呆檢查會擋下還沒被 Tampermonkey 取走的舊清單。
+  const sent = localStorage.getItem(`igo_sent_${orderData?.date || ""}_${room}`) === "true";
+  btn.textContent = sent ? "🔁 重新送單" : "送出 iGo 訂單";
+  btn.disabled = false;
+}
+// 彈出視窗被封鎖時的提示：清單已經存進去了，只是分頁沒開成，給一個手動連結
+function showPopupBlockedToast() {
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.3)";
+  ov.innerHTML = `<span>⚠️ 瀏覽器擋掉彈出視窗了，清單已經存好，請手動開啟：</span>
+    <a href="https://tp-igo.e-stork.com.tw/login" target="_blank" style="color:#4da3ff;font-weight:700;white-space:nowrap">前往 iGo</a>
+    <button style="background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:0 0 0 6px" onclick="this.parentElement.remove()">✕</button>`;
+  document.body.appendChild(ov);
+}
+function cleanupOldSentLocks(currentDate) {
+  const prefix = "igo_sent_";
+  const keep = prefix + (currentDate || "") + "_";
+  Object.keys(localStorage).forEach(k => {
+    if (k.indexOf(prefix) === 0 && k.indexOf(keep) !== 0) localStorage.removeItem(k);
+  });
+}
+
+// ── 複製 LINE 訊息 ─────────────────────────────────────────────
+function copyOne(btnEl, name, qty, unit) {
+  const text = `${name} x${qty}${unit}`;
+  navigator.clipboard.writeText(text).then(() => {
+    btnEl.textContent = "✅";
+    btnEl.classList.add("copied");
+    setTimeout(() => { btnEl.textContent = "複製"; btnEl.classList.remove("copied"); }, 1800);
+  });
+}
+
+function copyLineAll(key) {
+  const items = channelData[key] || [];
+  const text = items.map(it => `${it.name} x${it.suggested}${it.unit}`).join("\n");
+  const btn = document.getElementById("btnCopy" + key.charAt(0).toUpperCase() + key.slice(1));
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✅ 已複製";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "複製全部訊息"; btn.classList.remove("copied"); }, 2000);
+  });
+  toast("已複製 " + items.length + " 項訊息");
+}
+
+// ── 工具 ─────────────────────────────────────────────────────
+function escHtml(s) { return String(s).replace(/'/g, "\\'"); }
+
+function showLoading(msg) {
+  document.getElementById("statusBox").innerHTML = `<div class="spinner"></div><p>${msg}</p>`;
+  document.getElementById("overlay").style.display = "";
+}
+function showError(msg) {
+  document.getElementById("statusBox").innerHTML =
+    `<p class="err">${msg}</p><button class="retry-btn" onclick="loadOrder()">重試</button>`;
+}
+function hideOverlay() {
+  document.getElementById("overlay").style.display = "none";
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+// ── 啟動 ─────────────────────────────────────────────────────
+loadOrder();
+</script>
+</body>
+</html>

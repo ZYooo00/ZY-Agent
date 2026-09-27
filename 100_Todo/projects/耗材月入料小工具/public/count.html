@@ -32,6 +32,10 @@ body {
 .hdr input[type="date"] { width: 126px; }
 .hdr select { width: 70px; }
 .hdr .sp { flex: 1; }
+@media (max-width: 768px) {
+  .hdr h1 { display: none; }
+  .hdr select { width: 58px; padding: 0 3px; }
+}
 .hdr .badge { font-size: 12px; color: #aaa; flex-shrink: 0; }
 /* Nav tabs（整合進 header） */
 .nav-tab {
@@ -161,8 +165,19 @@ body {
   <h1>實驗室耗材_盤點</h1>
   <label>日期</label>
   <input type="date" id="datePicker">
+  <button class="btn-new-count" onclick="jumpToToday()">今天</button>
   <label>盤點人</label>
   <select id="personPicker">
+    <option value="" selected>盤點人</option>
+    <option>Yvette</option><option>Xuan</option><option>Corrine</option>
+    <option>Wilson</option><option>Gordon</option><option>Tini</option>
+    <option>Irene</option><option>Windy</option><option>Linda</option>
+    <option>Harvey</option><option>Lauren</option><option>Tiffany</option>
+    <option>Cara</option><option>Rina</option><option>Alvin</option>
+    <option>Linkin</option><option>Sunny</option><option>Ally</option>
+  </select>
+  <select id="personPicker2">
+    <option value="" selected>盤點人</option>
     <option>Yvette</option><option>Xuan</option><option>Corrine</option>
     <option>Wilson</option><option>Gordon</option><option>Tini</option>
     <option>Irene</option><option>Windy</option><option>Linda</option>
@@ -174,7 +189,9 @@ body {
     <button id="btn4w" class="mode-btn active" onclick="setMode('4w')">四週</button>
     <button id="btn2w" class="mode-btn" onclick="setMode('2w')">兩週</button>
   </div>
+  <button class="btn-new-count" id="btnManualSync" onclick="manualSync()">🔄 同步</button>
   <span id="submitStatus" class="submit-status"></span>
+  <span id="syncStatus" class="submit-status"></span>
   <span class="sp"></span>
   <span class="badge" id="totalBadge">—</span>
   <button class="btn-new-count" onclick="startNew()">＋新盤點</button>
@@ -436,8 +453,149 @@ body {
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwdoAng6aOcufhV9E_OmrBTDbOV28R_1HMsIg3WKyocHWew0o5LYCX6fQdaJs5kDGXj/exec";
 const LS_KEY  = "hc_counts_v5";
 const LS_SUBMIT = "hc_last_submit";
+const LS_FAILED = "hc_failed_sync_v1";
 let allItems = [], counts = {}, curZone = null;
 let npActiveId = null, mode = '4w';
+let pendingSyncQueue = {}; // {id: value}，累積後批次送出
+let syncTimer = null;
+
+// 組合「盤點人」欄位：最多兩位，兩個都選了就合併成 "A、B"；
+// 兩個下拉選單預設都是空值（顯示「盤點人」佔位字樣，尚未選人），
+// 沒選的欄位不計入組合結果。
+function getCountBy() {
+  const p1 = document.getElementById("personPicker").value;
+  const p2 = document.getElementById("personPicker2").value;
+  return [p1, p2].filter(Boolean).join("、");
+}
+
+// ── 即時同步：收集器 + 批次送出（1.8 秒收集一次，降低 GAS 併發負擔）──
+
+function setSyncStatus(text, color) {
+  const el = document.getElementById('syncStatus');
+  if (el) { el.textContent = text; el.style.color = color || '#888'; }
+}
+function loadFailedQueue() {
+  try { return JSON.parse(localStorage.getItem(LS_FAILED) || "[]"); } catch { return []; }
+}
+function saveFailedQueue(arr) { localStorage.setItem(LS_FAILED, JSON.stringify(arr)); }
+function pushFailedBatch(batch) {
+  const q = loadFailedQueue();
+  q.push(batch);
+  saveFailedQueue(q);
+}
+async function postCounts(date, countBy, items) {
+  const res = await fetch(GAS_URL, {
+    method: "POST", headers: {"Content-Type":"text/plain"},
+    body: JSON.stringify({ action: "save-item-counts", date, countBy, items })
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "寫入失敗");
+  return data;
+}
+function queueSync(id, value) {
+  pendingSyncQueue[id] = value;
+  setSyncStatus('同步中…');
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { flushSyncQueue(); }, 1800);
+}
+async function flushSyncQueue() {
+  clearTimeout(syncTimer);
+  const ids = Object.keys(pendingSyncQueue);
+  if (!ids.length) return true;
+  const date = toSD(document.getElementById("datePicker").value);
+  const countBy = getCountBy();
+  const items = ids.map(id => ({ id, value: pendingSyncQueue[id] }));
+  pendingSyncQueue = {};
+  try {
+    await postCounts(date, countBy, items);
+    setSyncStatus('已同步', '#34c759');
+    return true;
+  } catch (e) {
+    pushFailedBatch({ date, countBy, items });
+    setSyncStatus('⚠️ 離線暫存', '#ff9500');
+    return false;
+  }
+}
+// 手動同步：先把還沒送出的本機變更 flush 上去，再重新抓雲端當下這個
+// 日期最新的資料覆蓋畫面。給 ZY 一個明確可控的動作，不完全依賴自動判斷。
+async function manualSync() {
+  const btn = document.getElementById("btnManualSync");
+  btn.disabled = true;
+  setSyncStatus("同步中…");
+  try {
+    await flushSyncQueue();
+    await retryFailedQueue();
+    const date = toSD(document.getElementById("datePicker").value);
+    const r = await fetch(`${GAS_URL}?action=latest-count&date=${encodeURIComponent(date)}&_t=${Date.now()}`);
+    const d = await r.json();
+    // 只有伺服器明確回報成功、且回傳的日期真的等於畫面要求的日期，才敢覆蓋畫面；
+    // 失敗或日期對不上時保留畫面現有資料不動，寧可同步不成功，也不要洗掉已經填好的東西。
+    if (d.ok && d.date === date) {
+      if (mode !== "2w") {
+        counts = {};
+        if (d.counts) for (const [k, v] of Object.entries(d.counts)) counts[k] = String(v);
+        saveLocal();
+      }
+      refreshAll();
+      if (curZone) { renderCards(zoneItems(curZone)); refreshProg(zoneItems(curZone)); }
+      setSyncStatus("已同步", "#34c759");
+      showToastMsg("✅ 已同步最新資料");
+    } else {
+      setSyncStatus("⚠️ 同步失敗", "#ff9500");
+      showToastMsg("⚠️ 同步查詢失敗，已保留畫面上現有資料");
+    }
+  } catch (e) {
+    setSyncStatus("⚠️ 同步失敗", "#ff9500");
+    showToastMsg("同步失敗：" + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// iPad 背景關閉防護：iOS Safari 把分頁切到背景或關閉時會凍結 JS 計時器，
+// 最後一批 pendingSyncQueue 可能來不及靠原本的 1.8 秒計時器送出。用
+// sendBeacon（背景/卸載階段瀏覽器保證送出，一般 fetch 不保證）強制補送。
+function flushSyncQueueBeacon() {
+  const ids = Object.keys(pendingSyncQueue);
+  if (!ids.length) return;
+  const date = toSD(document.getElementById("datePicker").value);
+  const countBy = getCountBy();
+  const items = ids.map(id => ({ id, value: pendingSyncQueue[id] }));
+  pendingSyncQueue = {};
+  const body = JSON.stringify({ action: "save-item-counts", date, countBy, items });
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(GAS_URL, new Blob([body], { type: "text/plain" }));
+  } else {
+    fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: true }).catch(() => {});
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) flushSyncQueueBeacon();
+});
+window.addEventListener("pagehide", () => flushSyncQueueBeacon());
+
+// 離開/重整頁面時若還有未送出的同步佇列，跳出瀏覽器原生確認提示
+// （現代瀏覽器會忽略自訂文字、只顯示公版提示，這是瀏覽器限制，不影響攔截效果）
+window.addEventListener("beforeunload", (e) => {
+  if (Object.keys(pendingSyncQueue).length > 0) {
+    e.preventDefault();
+    e.returnValue = "尚有盤點資料正在同步中，現在離開可能會遺失剛剛點擊的紀錄，確定要離開嗎？";
+  }
+});
+
+async function retryFailedQueue() {
+  const queue = loadFailedQueue();
+  if (!queue.length) return true;
+  const remaining = [];
+  let allOk = true;
+  for (const batch of queue) {
+    try { await postCounts(batch.date, batch.countBy, batch.items); }
+    catch (e) { remaining.push(batch); allOk = false; }
+  }
+  saveFailedQueue(remaining);
+  setSyncStatus(allOk ? '已同步' : '⚠️ 離線暫存', allOk ? '#34c759' : '#ff9500');
+  return allOk;
+}
 
 function showSubmitStatus(m) {
   const now = new Date();
@@ -511,8 +669,18 @@ function setMode(m) {
   saveLocal(); refreshAll();
   if (curZone) { renderCards(zoneItems(curZone)); refreshProg(zoneItems(curZone)); }
 }
+// 固定補貨量品項的「夠/不夠」轉成 GAS 看得懂的哨兵數字：夠 = safety+1，不夠 = 0。
+// set2w() 即時同步跟 submitCount() 最終送出都呼叫這同一份轉換，避免兩條寫入路徑格式不一致。
+function fixedSentinelValue(it, val) {
+  return val === '2w_ok' ? it.safety + 1 : 0;
+}
 function set2w(id, val) {
-  if (counts[id] === val) { delete counts[id]; } else { counts[id] = val; }
+  if (counts[id] === val) { delete counts[id]; } else {
+    counts[id] = val;
+    const it = allItems.find(i => i.id === id);
+    const syncVal = (it && it.fixed > 0) ? fixedSentinelValue(it, val) : val;
+    queueSync(id, syncVal);
+  }
   saveLocal();
   if (curZone) {
     const it = zoneItems(curZone).find(i => i.id === id);
@@ -522,6 +690,12 @@ function set2w(id, val) {
   refreshAll();
 }
 function todayISO() { return new Date().toISOString().slice(0,10); }
+function jumpToToday() {
+  const dp = document.getElementById("datePicker");
+  if (dp.value === todayISO()) return;
+  dp.value = todayISO();
+  dp.dispatchEvent(new Event("change"));
+}
 function toSD(iso) { const [,m,d] = iso.split("-"); return `${+m}/${+d}`; }
 function saveLocal() { localStorage.setItem(LS_KEY, JSON.stringify({ date: document.getElementById("datePicker").value, counts, mode })); }
 function loadLocal() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; } }
@@ -532,11 +706,14 @@ async function init() {
   if (lastSubmit) { const el = document.getElementById('submitStatus'); if (el) el.textContent = lastSubmit; }
   const dp = document.getElementById("datePicker");
   dp.value = todayISO();
+
+  // 本機草稿只在「就是今天」時才拿來接續用（同一天重新整理接續盤點）；
+  // 舊日期的草稿不再自動跳回去——資料現在已經即時同步雲端了，跳去舊
+  // 日期反而會讓這台裝置看到過期畫面，也跟其他裝置的「今天」對不上。
   const saved = loadLocal();
   let loadedFromLocal = false;
-  if (saved && saved.date) {
+  if (saved && saved.date === dp.value) {
     counts = saved.counts || {};
-    dp.value = saved.date;
     if (saved.mode && saved.mode !== mode) {
       mode = saved.mode;
       document.getElementById('btn4w').classList.toggle('active', mode === '4w');
@@ -546,15 +723,26 @@ async function init() {
     loadedFromLocal = true;
   }
   try {
-    const [ir, cr] = await Promise.all([
-      fetch(`${GAS_URL}?action=items`),
-      fetch(`${GAS_URL}?action=latest-count&date=${encodeURIComponent(toSD(dp.value))}`)
-    ]);
-    const id = await ir.json(), cd = await cr.json();
+    const ir = await fetch(`${GAS_URL}?action=items`);
+    const id = await ir.json();
     allItems = id.items || [];
+  } catch(e) { console.warn("GAS items failed:", e); }
+  try {
+    const cr = await fetch(`${GAS_URL}?action=latest-count&date=${encodeURIComponent(toSD(dp.value))}`);
+    const cd = await cr.json();
     if (!loadedFromLocal && cd.counts && mode !== '2w') { counts = {}; for (const [k,v] of Object.entries(cd.counts)) counts[k] = String(v); }
-  } catch(e) { console.warn("GAS init failed:", e); }
+  } catch(e) { console.warn("GAS count failed:", e); }
+
+  // 離線保護：只用同一天的離線暫存資料覆蓋畫面，避免蓋掉雲端其他天的資料，也避免跨日誤植
+  const todaySD = toSD(dp.value);
+  loadFailedQueue().forEach(batch => {
+    if (batch.date !== todaySD) return;
+    (batch.items || []).forEach(it => { counts[it.id] = String(it.value); });
+  });
+
   refreshAll();
+  window.addEventListener('online', () => retryFailedQueue());
+  retryFailedQueue();
 }
 
 function openZone(name) {
@@ -619,7 +807,11 @@ function cardHTML(it) {
   // fixed 品項：兩種模式都用夠/不夠（不數實際量）
   if (it.fixed > 0) {
     const v = counts[it.id];
-    const isOk = v === '2w_ok', isNo = v === '2w_no';
+    // v 可能是按鈕點擊留下的字串（'2w_ok'/'2w_no'），也可能是重新整理/手動同步時
+    // 從 GAS 讀回的哨兵數字（夠=safety+1，不夠=0）——兩種來源都要認得，否則
+    // 重新整理後按鈕會變成兩個都沒反白。
+    const isOk = v === '2w_ok' || (v !== '' && v !== undefined && !isNaN(v) && Number(v) > it.safety);
+    const isNo = v === '2w_no' || v === '0';
     return `<div class="${isNo?'card warn':isOk?'card done':'card'}" id="card-${it.id}">
       <div class="c-info">
         <div class="c-name" title="${it.name}">${it.name}</div>
@@ -671,7 +863,7 @@ function cardHTML(it) {
 }
 function setStock(id, val) {
   if (counts[id] === val) { delete counts[id]; }
-  else { counts[id] = val; }
+  else { counts[id] = val; queueSync(id, val); }
   saveLocal();
   const card = document.getElementById("card-"+id);
   if (card) {
@@ -691,7 +883,7 @@ function adj(id, d) {
 }
 function onInput(id, raw) {
   raw = raw.trim();
-  if (raw === "" || isNaN(+raw)) delete counts[id]; else counts[id] = raw;
+  if (raw === "" || isNaN(+raw)) delete counts[id]; else { counts[id] = raw; queueSync(id, raw); }
   saveLocal();
   const it = allItems.find(i => i.id === id);
   if (it) {
@@ -745,18 +937,23 @@ document.getElementById("datePicker").addEventListener("change", async (e) => {
 });
 async function submitCount() {
   if (!validateBeforeSubmit()) return;
+  const flushOk = await flushSyncQueue();
+  const retryOk = await retryFailedQueue();
+  if (!flushOk || !retryOk) {
+    alert('尚有離線資料無法同步，請確認網路連線後再提交');
+    return;
+  }
   if (mode === '2w') { await submit2wOrder(); return; }
   const ok = await showAerationModal();
   if (!ok) return;
   const date = toSD(document.getElementById("datePicker").value);
-  const countBy = document.getElementById("personPicker").value;
+  const countBy = getCountBy();
   const arr = [];
   for (const [id, v] of Object.entries(counts)) {
     const it = allItems.find(i => i.id === id);
     if (!it) continue;
     if (it.fixed > 0) {
-      // 夠/不夠 轉成哨兵數字給 GAS：夠 = safety+1，不夠 = 0
-      arr.push({id, value: v === '2w_ok' ? it.safety + 1 : 0});
+      arr.push({id, value: fixedSentinelValue(it, v)});
     } else {
       const n = +v;
       if (!isNaN(n)) arr.push({id, value: n});
@@ -805,16 +1002,18 @@ async function submit2wOrder() {
     return;
   }
 
-  // 有缺貨：送出訂單
+  // 有缺貨：存成兩週草稿，交給 order.html 依胚胎室／精蟲室／其他分三張單送出
   const date = toSD(document.getElementById('datePicker').value);
-  const sessionId = 'igo_' + Date.now();
   const items = noItems.map(it => {
-    const qty = it.fixed > 0 ? it.fixed : (it.safety > 0 ? it.safety : it.baseline);
+    let qty = it.fixed > 0 ? it.fixed : (it.safety > 0 ? it.safety : it.baseline);
+    if (!qty || qty <= 0) qty = 1; // 沒設定基準量/安全量時保底叫 1 個，避免整項被靜默排除
+    qty = Number(qty);
     return {
-      id: it.id, name: it.name, unit: it.unit,
+      id: it.id, name: it.name, unit: it.unit, room: it.room || '其他',
       channel: it.channel, igoName: it.igoName || it.name, igoSubName: it.igoSubName || '',
       lineTarget: it.lineTarget || '', suggested: qty, qty,
-      current: null, warning: false, note: it.note || ''
+      current: null, warning: false, note: it.note || '',
+      baseline: it.baseline || 0, safety: it.safety || 0
     };
   });
   const btn = document.getElementById('btnSubmit');
@@ -822,11 +1021,10 @@ async function submit2wOrder() {
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST', headers: {'Content-Type': 'text/plain'},
-      body: JSON.stringify({action: 'pending-order', sessionId, items, date})
+      body: JSON.stringify({action: 'save-2w-draft', items, date})
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '未知錯誤');
-    localStorage.setItem('igo_session_id', sessionId);
     showSubmitStatus('2w');
     showOrderModal(noItems.length, '2w');
   } catch(e) { alert('送出失敗：' + e.message); }
