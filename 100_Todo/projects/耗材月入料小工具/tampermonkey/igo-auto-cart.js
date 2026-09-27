@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         iGo 耗材自動加購
 // @namespace    zy-embryo-lab
-// @version      0.9
+// @version      0.18
 // @description  從 GAS 取待送清單，自動登入 iGo 並加入購物車，停在結帳頁讓 ZY 自行確認
 // @author       ZY
 // @match        https://tp-igo.e-stork.com.tw/*
@@ -58,11 +58,12 @@
         showBanner("⚠️ 待送清單是空的，請先從 order.html 送出訂單", "orange");
         return;
       }
-      GM_setValue("igo_order",   JSON.stringify(order));
-      GM_setValue("igo_index",   0);
-      GM_setValue("igo_filling", true);
-      GM_setValue("igo_skipped", "[]");
-      GM_setValue("igo_receipt", "[]");
+      GM_setValue("igo_order",      JSON.stringify(order));
+      GM_setValue("igo_session_id", order.sessionId || "");
+      GM_setValue("igo_index",      0);
+      GM_setValue("igo_filling",    true);
+      GM_setValue("igo_skipped",    "[]");
+      GM_setValue("igo_receipt",    "[]");
       showBanner(`✅ 待送清單已載入（共 ${order.items.length} 項），請輸入帳號密碼登入`, "green");
       log(`取得 ${order.items.length} 項，等待使用者登入`);
     } catch (e) {
@@ -89,11 +90,12 @@
       try {
         const order = await fetchGAS("pending-order");
         if (!order.items || !order.items.length) return; // 沒有待送清單，不干預
-        GM_setValue("igo_order",   JSON.stringify(order));
-        GM_setValue("igo_index",   0);
-        GM_setValue("igo_filling", true);
-        GM_setValue("igo_skipped", "[]");
-        GM_setValue("igo_receipt", "[]");
+        GM_setValue("igo_order",      JSON.stringify(order));
+        GM_setValue("igo_session_id", order.sessionId || "");
+        GM_setValue("igo_index",      0);
+        GM_setValue("igo_filling",    true);
+        GM_setValue("igo_skipped",    "[]");
+        GM_setValue("igo_receipt",    "[]");
         showBanner(`✅ 待送清單已載入（共 ${order.items.length} 項），開始自動加購…`, "green");
       } catch (e) {
         return; // 無法連到 GAS，不干預
@@ -107,6 +109,7 @@
     if (idx >= items.length) {
       // 全部加完，儲存到貨核點清單到 GAS
       const receipt = JSON.parse(GM_getValue("igo_receipt", "[]"));
+      const skipped = JSON.parse(GM_getValue("igo_skipped", "[]"));
       if (receipt.length > 0) {
         GM_xmlhttpRequest({
           method:  "POST",
@@ -116,14 +119,49 @@
         });
       }
       GM_deleteValue("igo_receipt");
+      GM_deleteValue("igo_session_id");
       // 前往領料車確認頁
       GM_setValue("igo_filling",   false);
       GM_setValue("igo_completed", true);
       clearGasPendingOrder();
-      showBanner(`✅ 全 ${items.length} 項處理完畢！正在前往領料車…`, "green");
-      await sleep(1500);
+
+      // 數量校正：成功加入 + 略過的加總理論上應該等於總數。對不起來代表有
+      // 品項在處理過程中發生未預期錯誤而遺漏（沒被記到略過清單），明確警示
+      // 出來，不要讓使用者誤以為「跑完就是全部處理好了」。
+      const accounted = receipt.length + skipped.length;
+      if (accounted !== items.length) {
+        const missing = items.length - accounted;
+        GM_setValue("igo_count_mismatch", String(missing));
+        showBanner(`⚠️ 應處理 ${items.length} 項，但只有 ${accounted} 項有紀錄（成功 ${receipt.length}＋略過 ${skipped.length}），${missing} 項可能中途遺漏，請務必到購物車核對！`, "red");
+        await sleep(5000);
+      } else {
+        GM_deleteValue("igo_count_mismatch");
+        showBanner(`✅ 全 ${items.length} 項處理完畢！正在前往領料車…`, "green");
+      }
+      await sleep(3000); // 拉長一點，確保最後一項的加入請求真的跑完再跳頁
       location.href = "/staff/cart/show";
       return;
+    }
+
+    // 殭屍分頁防護：每處理 5 項重新比對一次 GAS 上目前的 sessionId
+    // （不用每項都查，避免額外的網路延遲影響 iGo 網頁自己的搜尋節奏）
+    // 如果跟自己手上這份不一致，代表清單已經被「強制清空並覆寫」取代，中止流程
+    if (idx % 5 === 0) {
+      const mySessionId = GM_getValue("igo_session_id", "");
+      try {
+        const liveOrder = await fetchGAS("pending-order");
+        if (mySessionId && liveOrder.sessionId && liveOrder.sessionId !== mySessionId) {
+          GM_setValue("igo_filling", false);
+          showBanner("⚠️ 這份清單已被新訂單取代，即將關閉此分頁", "red");
+          // 這個分頁本來就是 order.html 用 window.open() 開出來的，物理上直接
+          // 關掉它最乾淨，避免使用者誤以為它還在正常運作。瀏覽器擋下的話
+          // window.close() 會靜默失敗，不影響上面已經顯示的提示訊息。
+          setTimeout(() => window.close(), 1500);
+          return;
+        }
+      } catch (e) {
+        // 檢查失敗（網路問題）不中止，避免誤判卡住整個流程
+      }
     }
 
     const item = items[idx];
@@ -137,92 +175,148 @@
       showBanner("⚠️ 等待品項列表逾時", "red"); return;
     }
 
+    // 單項處理邏輯獨立成一個函式：裡面的 return 只結束「這一項」，
+    // 不會影響外層一定會往下一項走的邏輯（見下方 try/catch）。
+    try {
+      await tryAddItem(item);
+    } catch (err) {
+      // 任何未預期的例外（網站結構跟預期不同、DOM 元素瞬間消失、網路瞬斷
+      // 等）都不該讓整個自動化流程安靜地卡死在這一項——記錄成略過並繼續
+      // 下一項，確保最後「成功+略過」的數量一定跟總數量對得起來，不會有
+      // 品項悄悄消失、沒有任何紀錄可查。
+      addSkipped(item.name, "處理時發生未預期錯誤：" + err.message);
+    }
+
+    // 繼續下一項
+    GM_setValue("igo_index", idx + 1);
+    doAddItems();
+  }
+
+  async function tryAddItem(item) {
     // 搜尋
     const searchInput = document.querySelector("div#shuffle-container input[type='text']")
                      || document.querySelector("div.input-group input[type='text']");
-    if (!searchInput) { showBanner("⚠️ 找不到搜尋欄", "red"); return; }
+    if (!searchInput) { addSkipped(item.name, "找不到搜尋欄"); return; }
 
-    fill(searchInput, "");
-    await sleep(200);
-    fill(searchInput, item.igoName); // 只用主品名搜尋
-    searchInput.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
-    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
-    await sleep(800); // 等 Shuffle.js 過濾
+    // 搜尋 + 比對卡片（含一次重試：第一次落空就拉長等待時間再試一次，
+    // 因應連續自動化搜尋時網站篩選反應變慢的狀況）
+    let card = null;
+    for (let attempt = 0; attempt < 2 && !card; attempt++) {
+      fill(searchInput, "");
+      await sleep(200);
+      fill(searchInput, item.igoName); // 只用主品名搜尋
+      searchInput.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
+      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+      await sleep(attempt === 0 ? 800 : 1800); // 等 Shuffle.js 過濾，重試時等更久
+      card = findMatchingCard(item.igoName, item.igoSubName);
+    }
+    if (!card) { addSkipped(item.name, "找不到品項卡片"); return; }
 
-    // 找到符合的卡片（副品名用來從搜尋結果中鎖定正確的那張）
-    const card = findMatchingCard(item.igoName, item.igoSubName);
-    if (!card) {
-      addSkipped(item.name, "找不到品項卡片");
-      await sleep(400);
-      GM_setValue("igo_index", idx + 1);
-      doAddItems();
-      return;
+    // 點卡片觸發「加入領料車」視窗。不同卡片結構不一樣（有些商品是輪播多張圖，
+    // 點圖片可能只是切換照片、不會開視窗；有些是單張圖，點圖片才會開視窗），
+    // 與其賭哪一個元素一定對，改成依序嘗試幾個候選目標，每點一個就立刻檢查
+    // 視窗有沒有真的跳出來，跳出來就停手，沒有就換下一個候選再試。
+    const isModalOpen = () => {
+      const inp = document.querySelector("form#add-to-cart input[name='quantity']");
+      return !!(inp && inp.offsetParent !== null);
+    };
+    const triggerCandidates = [
+      card.querySelector("[data-bs-toggle='modal']"),
+      card.querySelector("a[href*='cart']"),
+      card.querySelector(".btn:not(.disabled)"),
+      card.querySelector(".card-body"), // 卡片文字/庫存資訊區，通常在輪播圖外面
+      card.querySelector(".card"),
+      card.querySelector("img"),
+      card,
+    ].filter(Boolean);
+
+    let qtyInput = null;
+    for (const candidate of triggerCandidates) {
+      candidate.click();
+      for (let i = 0; i < 6 && !isModalOpen(); i++) await sleep(200); // 每個候選給 1.2 秒
+      if (isModalOpen()) {
+        qtyInput = document.querySelector("form#add-to-cart input[name='quantity']");
+        break;
+      }
     }
 
-    // 點卡片的加入按鈕（Bootstrap modal trigger）
-    const trigger = card.querySelector("[data-bs-toggle='modal']")
-                 || card.querySelector("a[href*='cart']")
-                 || card.querySelector(".btn:not(.disabled)");
-    if (!trigger) {
-      addSkipped(item.name, "找不到加入按鈕");
-      await sleep(400);
-      GM_setValue("igo_index", idx + 1);
-      doAddItems();
-      return;
-    }
+    if (!qtyInput) { addSkipped(item.name, "Modal 視窗未成功彈出"); return; }
 
-    trigger.click();
-    log("已點加入按鈕，等待 Modal 出現…");
-
-    // 等 modal 出現並填數量
-    try {
-      await waitFor("form#add-to-cart input[name='quantity']", 5000);
-    } catch {
-      addSkipped(item.name, "Modal 未出現");
-      await sleep(400);
-      GM_setValue("igo_index", idx + 1);
-      doAddItems();
-      return;
-    }
-
-    const qtyInput = document.querySelector("form#add-to-cart input[name='quantity']");
+    log("已點開 Modal，等待資料載入…");
+    await sleep(600); // 視窗顯示後再多等一下，確保網站把商品資料塞進表單
     await sleep(400); // 等 max 屬性載入完畢
     // 讀取 iGo 現有庫存（max 屬性）
-    const maxStock = qtyInput.max !== "" ? Number(qtyInput.max) : null;
+    // 讀取 iGo 現有庫存：庫存寫在 modal 裡的文字（例如「現有庫存：3」），
+    // 不是 input 的 max 屬性——這個欄位根本沒有 max，原本判斷邏輯讀錯地方，
+    // 導致「庫存不足」的警示從來沒有真的觸發過。
+    const modalBody = qtyInput.closest(".modal-body") || document.querySelector(".modal-body");
+    const stockMatch = (modalBody?.textContent || "").match(/現有庫存[：:]\s*(\d+)/);
+    const maxStock = stockMatch ? Number(stockMatch[1]) : null;
     const needQty  = item.qty;
     const unit     = item.unit || "";
 
     let fillQty = needQty;
     if (maxStock !== null && maxStock < needQty) {
       if (maxStock === 0) {
-        // 完全無庫存：仍嘗試送出需求量（讓 iGo 處理），記錄警告
-        addSkipped(item.name, `缺 ${needQty} ${unit}`);
+        addSkipped(item.name, `缺 ${needQty} ${unit}（iGo 現有庫存 0）`);
       } else {
-        // 部分庫存：填入現有最大量，記錄缺口
         fillQty = maxStock;
-        addSkipped(item.name, `缺 ${needQty - maxStock} ${unit}`);
+        addSkipped(item.name, `缺 ${needQty - maxStock} ${unit}（iGo 現有庫存 ${maxStock}）`);
       }
     }
 
     fill(qtyInput, String(fillQty));
     await sleep(300);
 
+    // 防呆：填完後回頭確認欄位數字有沒有被網站自己偷改（例如它自己驗證
+    // 庫存不足時把數字改回去），確保接下來送出的真的是我們以為填進去的數字
+    const actualVal = Number(qtyInput.value);
+    if (actualVal !== fillQty) {
+      if (actualVal === 0) {
+        addSkipped(item.name, `數量被網站改成 0（原本要填 ${fillQty}，可能實際無庫存）`);
+        const closeBtn0 = document.querySelector("[data-bs-dismiss='modal'], .modal-header .btn-close");
+        if (closeBtn0) closeBtn0.click();
+        await sleep(500);
+        return;
+      }
+      addSkipped(item.name, `數量被網站改成 ${actualVal}（原本要填 ${fillQty}）`);
+      fillQty = actualVal;
+    }
+
     // 確認送出
     const submitBtn = document.querySelector("form#add-to-cart button[type='submit']");
     if (submitBtn) {
-      submitBtn.click();
-      log(`已送出 ${item.igoName} × ${fillQty} ${unit}`);
-      // 記錄實際加入購物車的量
-      const receiptList = JSON.parse(GM_getValue("igo_receipt", "[]"));
-      receiptList.push({ id: item.id, name: item.name, qty: fillQty, unit });
-      GM_setValue("igo_receipt", JSON.stringify(receiptList));
+      if (submitBtn.disabled) {
+        addSkipped(item.name, "加入按鈕被網站鎖定（可能需手動選規格）");
+      } else {
+        submitBtn.click();
+        log(`已點送出 ${item.igoName} × ${fillQty} ${unit}，等待網站處理…`);
+
+        // 網站送出後按鈕會轉圈圈處理一陣子，不能只等固定時間——
+        // 改成持續盯著看，視窗真的關掉（代表網站確認接受）才算成功，
+        // 最多等 8 秒；沒等到就當作失敗，不要再假設「點了就算數」
+        let closed = false;
+        for (let i = 0; i < 20; i++) { // 20 * 400ms = 8 秒
+          await sleep(400);
+          const stillOpen = document.querySelector("form#add-to-cart");
+          if (!stillOpen || stillOpen.offsetParent === null) { closed = true; break; }
+        }
+
+        if (closed) {
+          log(`已送出 ${item.igoName} × ${fillQty} ${unit}`);
+          const receiptList = JSON.parse(GM_getValue("igo_receipt", "[]"));
+          receiptList.push({ id: item.id, name: item.name, qty: fillQty, unit });
+          GM_setValue("igo_receipt", JSON.stringify(receiptList));
+        } else {
+          addSkipped(item.name, "網站拒絕加入（請留意是否庫存不足或需特殊操作）");
+          const closeBtn = document.querySelector("[data-bs-dismiss='modal'], .modal-header .btn-close");
+          if (closeBtn) closeBtn.click();
+          await sleep(500);
+        }
+      }
+    } else {
+      addSkipped(item.name, "找不到確認送出按鈕");
     }
-
-    await sleep(1200); // 等 modal 關閉 / 卡片更新
-
-    // 繼續下一項
-    GM_setValue("igo_index", idx + 1);
-    doAddItems();
   }
 
   function addSkipped(name, reason) {
@@ -274,16 +368,42 @@
       log("部門自動填寫失敗：" + e.message);
     }
 
+    // 自動填「請領備註」：標示這張單是懷九-胚胎室／懷九-精蟲室／懷九-其他
+    try {
+      const order = JSON.parse(GM_getValue("igo_order", "{}"));
+      if (order.room) {
+        const noteEl = document.querySelector('textarea[placeholder*="請領備註"]')
+                    || document.querySelector('textarea[placeholder*="備註"]');
+        if (noteEl) {
+          fill(noteEl, "懷九-" + order.room);
+          log("已填入請領備註：懷九-" + order.room);
+        } else {
+          log("找不到請領備註欄位，略過自動填寫");
+        }
+      }
+    } catch (e) {
+      log("填寫請領備註失敗：" + e.message);
+    }
+
     // 顯示摘要報告
     const skipped = JSON.parse(GM_getValue("igo_skipped", "[]"));
     GM_deleteValue("igo_skipped");
 
+    // 數量校正警示（見 doAddItems 結尾）：跟略過報告分開顯示，這個代表
+    // 「有品項連略過紀錄都沒有」，比一般略過更嚴重，要特別醒目提示。
+    const mismatch = GM_getValue("igo_count_mismatch", "");
+    GM_deleteValue("igo_count_mismatch");
+    if (mismatch) {
+      showBanner(`🚨 有 ${mismatch} 項在自動化過程中意外中斷、沒有任何處理紀錄，請務必直接檢查購物車內容！`, "red");
+      await sleep(1500);
+    }
+
     if (skipped.length === 0) {
       GM_deleteValue("igo_last_skipped");
-      showBanner("✅ 自動流程完成！所有品項已加入，請確認數量後按「建立領料單」", "green");
+      if (!mismatch) showBanner("✅ 自動流程完成！所有品項已加入，請確認數量後按「建立領料單」", "green");
     } else {
       GM_setValue("igo_last_skipped", JSON.stringify(skipped));
-      showBanner("✅ 自動流程完成！有品項需要注意，請看下方報告", "orange");
+      if (!mismatch) showBanner("✅ 自動流程完成！有品項需要注意，請看下方報告", "orange");
       showSkippedReport(skipped);
     }
   }
@@ -358,8 +478,10 @@
       if (text.includes(igoName)) return card;
     }
 
-    // 搜尋後只剩一張卡片 → 直接取
-    if (candidates.length === 1) return candidates[0];
+    // 搜尋後只剩一張卡片 → 直接取，但要先確認它「長得像商品卡片」
+    // （有圖片），避免誤把「查無相關商品」的提示區塊當成卡片，
+    // 導致明明搜尋落空，卻硬選一個沒有加入按鈕的東西
+    if (candidates.length === 1 && candidates[0].querySelector("img")) return candidates[0];
 
     return null;
   }
@@ -404,18 +526,34 @@
     return new Promise(r => setTimeout(r, ms));
   }
 
-  function fetchGAS(action) {
+  function fetchGASOnce(action) {
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
-        method: "GET",
-        url:    `${GAS_URL}?action=${action}`,
-        onload: (res) => {
+        method:  "GET",
+        // 加時間戳記避免任何中間層／瀏覽器快取吃到舊回應
+        url:     `${GAS_URL}?action=${action}&_t=${Date.now()}`,
+        timeout: 10000,
+        onload:  (res) => {
           try { resolve(JSON.parse(res.responseText)); }
           catch (e) { reject(new Error("JSON parse error: " + res.responseText.slice(0, 100))); }
         },
-        onerror: (e) => reject(new Error("網路錯誤")),
+        onerror:   (e) => reject(new Error("網路錯誤")),
+        ontimeout: (e) => reject(new Error("連線逾時")),
       });
     });
+  }
+
+  // GAS 偶爾會因為忙碌／流量攔截回傳 HTML 而不是 JSON，先重試一次，
+  // 兩次都失敗才拋出白話錯誤，不把整段 HTML 原始碼丟給使用者看
+  async function fetchGAS(action) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await fetchGASOnce(action);
+      } catch (e) {
+        if (attempt === 0) { await sleep(1500); continue; }
+        throw new Error("GAS 伺服器暫時忙碌或網路不穩，請稍後重新整理頁面再試一次");
+      }
+    }
   }
 
   function clearGasPendingOrder() {
