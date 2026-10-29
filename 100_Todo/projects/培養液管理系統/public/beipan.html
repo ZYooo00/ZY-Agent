@@ -616,7 +616,7 @@
   </div>
 </div>
 
-<script src="shared.js?v=23"></script>
+<script src="shared.js?v=24"></script>
 <script>
 // ── 填充備盤人員選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）──
 let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
@@ -1747,6 +1747,11 @@ function initRadioToggle() {
   });
 }
 
+// 已耗盡：開封瓶沒有殘液、也沒有未開封瓶 → 實際上不能用
+function isDepleted(b) {
+  return (b.remaining || 0) <= 0 && (b.unopened || 0) <= 0;
+}
+
 // ── Build GM508 standalone collapsible card HTML ──
 function buildGM508HTML(savedState) {
   const gm = gm508Config;
@@ -1762,7 +1767,11 @@ function buildGM508HTML(savedState) {
     if (withStock.length > 0) return [withStock[withStock.length - 1]];
     return [expiredBatches[expiredBatches.length - 1]];
   })();
-  const orderedBatches = [...validBatches, ...shownExpired];
+  // 排序：可用 → 灰底（已用盡）→ 已過期 → 已耗盡（無殘液也無未開瓶，維持原樣式但沉底，避免誤找）
+  const usableBatches   = validBatches.filter(b => !isDepleted(b));
+  const grayBatches     = validBatches.filter(b => isDepleted(b) && calcBadge(b, gm.needed).status === 'empty');
+  const depletedBatches = validBatches.filter(b => isDepleted(b) && calcBadge(b, gm.needed).status !== 'empty');
+  const orderedBatches = [...usableBatches, ...grayBatches, ...shownExpired, ...depletedBatches];
   const batchRows = orderedBatches.length
     ? orderedBatches.map(b => buildBatchRow(b, gm.needed, 'aoa-508', savedState?.selectedLot === b.lot)).join('')
     : `<tr><td colspan="7" class="py-4 text-center text-sm text-slate-400">尚無進貨批號資料</td></tr>`;
@@ -1875,8 +1884,12 @@ function buildBatchCardHTML(cfg, savedState) {
     return [expiredBatches[expiredBatches.length - 1]];
   })();
 
-  // 依序排列：可用批號(FEFO，含 open_expired) → 帳面已用盡 → 完全過期
-  const orderedForDisplay = [...validBatches, ...emptyBatches, ...shownExpired];
+  // 依序排列：可用批號(FEFO，含 open_expired) → 帳面已用盡(灰底) → 完全過期 → 已耗盡(無殘液也無未開瓶，沉底)
+  const orderedForDisplay = [
+    ...validBatches.filter(b => !isDepleted(b)),
+    ...emptyBatches, ...shownExpired,
+    ...validBatches.filter(b => isDepleted(b)),
+  ];
   let firstActive = true;
   const rows = orderedForDisplay.map(b => {
     const bs = calcBadge(b, cfg.needed).status;

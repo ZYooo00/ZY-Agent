@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.10.29'; // 格式：YY.MM.DD
+const APP_VERSION = '26.10.29b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.10.29b',
+    date: '2026-10-29',
+    changes: [
+      '【調整】備盤：批號排序改為「該用的批號」排最上面；已耗盡（沒有殘液、也沒有未開瓶）的批號改排到最下面，不再擋在最上方',
+    ],
+  },
   {
     version: '26.10.29',
     date: '2026-10-29',
