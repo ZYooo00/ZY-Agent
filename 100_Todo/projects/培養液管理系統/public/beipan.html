@@ -616,7 +616,7 @@
   </div>
 </div>
 
-<script src="shared.js?v=22"></script>
+<script src="shared.js?v=23"></script>
 <script>
 // ── 填充備盤人員選單（先用 shared.js 內建預設立即渲染，Firebase ready 後嘗試改用 staff_config）──
 let EFFECTIVE_STAFF_LIST = (typeof STAFF_LIST !== 'undefined' ? STAFF_LIST : []);
@@ -782,7 +782,13 @@ function previewBeipan() {
   }
 
   const staffStr = [s1, s2].filter(Boolean).join(' · ') || '—';
-  openSubmitConfirmModal(staffStr);
+  isStockChangedSinceLoad().then(changed => {
+    if (changed) {
+      showToast('⚠️ 開啟備盤頁後，有人修改了庫存（入庫或手動校正）。\n請重新整理頁面（已填內容會自動保留），確認數量後再送出', 'warn', 8000);
+      return;
+    }
+    openSubmitConfirmModal(staffStr);
+  });
 }
 
 // ── 歷史備盤 Modal ──
@@ -1233,6 +1239,50 @@ const gm508Config = {
   bottleVol: PRODUCT_MAP['aoa-508']?.bottleVol ?? 1, batches: []
 };
 
+// Firestore Timestamp / {seconds} / ISO 字串 → ISO 字串（無法解析回傳 null）
+function toIsoTs(v) {
+  if (!v) return null;
+  if (typeof v === 'string') return v;
+  if (typeof v.toDate === 'function') return v.toDate().toISOString();
+  if (typeof v.seconds === 'number') return new Date(v.seconds * 1000).toISOString();
+  return null;
+}
+
+// 入庫是否發生在快照之後：優先用 createdAt 精確時間比 submittedAt，
+// 只比日期會漏掉「當天備盤送出後才入庫」的瓶數（2026-09-07 AOA508 CACT-2607 少 2 瓶案例）
+function isReceivedAfterSnap(r, cutoffIso, snapDate) {
+  const created = toIsoTs(r.createdAt);
+  if (created && cutoffIso && cutoffIso.includes('T')) return created > cutoffIso;
+  return !!(r.receivedAt && r.receivedAt > snapDate);
+}
+
+// ── 送出前庫存變動檢查（2026-10-06 AOA508 手動校正 +2 被備盤送出覆蓋案例）──
+let _stockLoadGuard = null;
+
+// 入庫紀錄指紋：排除本頁「開新批號」自動補登的紀錄，避免自己擋自己
+function jinhuoSignature(records) {
+  return (records || [])
+    .filter(r => !String(r.id || '').startsWith('beipan-newlot-'))
+    .map(r => `${r.id}|${r.isVoided ? 1 : 0}|${r.receivedQty}|${r.qcStatus || ''}`)
+    .sort().join(',');
+}
+
+// 回傳 true = 頁面載入後有人改過庫存；查詢失敗一律放行，不因網路問題擋住備盤
+async function isStockChangedSinceLoad() {
+  if (!_stockLoadGuard) return false;
+  try {
+    const [jinhuoNow, manualNow] = await Promise.all([
+      window._fb.getJinhuoRecords(),
+      _stockLoadGuard.cutoff ? window._fb.getManualKucunLogsAfter(_stockLoadGuard.cutoff) : Promise.resolve([]),
+    ]);
+    return manualNow.length !== _stockLoadGuard.manualCount
+        || jinhuoSignature(jinhuoNow) !== _stockLoadGuard.jinhuoSig;
+  } catch (e) {
+    console.warn('[isStockChangedSinceLoad]', e);
+    return false;
+  }
+}
+
 // ── 從 Firebase 動態載入進貨批號，注入各 reagentConfig ──
 async function initBatchesFromFirebase() {
   try {
@@ -1258,6 +1308,9 @@ async function initBatchesFromFirebase() {
       ? await window._fb.getManualKucunLogsAfter(kucunCutoff)
       : [];
 
+    // 記下載入當下的庫存狀態，送出前比對（防止開著頁面期間別人校正/入庫被舊數字覆蓋）
+    _stockLoadGuard = { cutoff: kucunCutoff, manualCount: kucunLogs.length, jinhuoSig: jinhuoSignature(jinhuoRecords) };
+
     // 建立 kucun 手動異動 delta map（瓶為單位，只影響 unopened）
     const kucunDeltaMap = {};
     kucunLogs.forEach(e => {
@@ -1280,7 +1333,7 @@ async function initBatchesFromFirebase() {
       }
       const qty = r.receivedQty || 0;
       lotMap[key].totalReceived += qty;
-      if (snapDate && r.receivedAt && r.receivedAt > snapDate) {
+      if (snapDate && isReceivedAfterSnap(r, kucunCutoff, snapDate)) {
         lotMap[key].receivedAfterSnap += qty;
       }
     });
@@ -1720,7 +1773,7 @@ function buildGM508HTML(savedState) {
     return s !== 'expired' && s !== 'open_expired' && s !== 'empty';
   });
   const gm508PrimaryLot    = savedState?.selectedLot || '';
-  const gm508SecondHidden  = savedState?.mixOpen ? '' : 'hidden ';
+  const gm508SecondHidden  = 'hidden '; // 混批入口已移除，舊草稿 mixOpen 不再展開
   const lotOpts = activeLots
     .filter(b => b.lot !== gm508PrimaryLot)
     .map(b => `<option value="${b.lot}" ${b.lot === savedState?.secondLot ? 'selected' : ''}>${b.lot}</option>`)
@@ -1758,18 +1811,14 @@ function buildGM508HTML(savedState) {
     </div>
     <div id="gm508-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
       <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請手動展開「混批」</span>
+      <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請先登記新開瓶</span>
     </div>
     <div class="hidden">
       <input type="text" id="gm508-patient-id">
     </div>
     <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
-      <button onclick="toggleSecondBatch('aoa-508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
-      </button>
-      <span class="text-slate-200">|</span>
-      <button onclick="openModal('AOA 明美 GM508','aoa-508')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
+      <button onclick="openModal('AOA 明美 GM508','aoa-508')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>登記新開瓶
       </button>
     </div>
     <div id="gm508-second" class="${gm508SecondHidden}px-5 py-4 bg-slate-50 border-t border-slate-100">
@@ -1848,7 +1897,7 @@ function buildBatchCardHTML(cfg, savedState) {
     .filter(b => b.lot !== primaryLot)
     .map(b => `<option value="${b.lot}" ${b.lot === savedState?.secondLot ? 'selected' : ''}>${b.lot}</option>`)
     .join('');
-  const secondHiddenClass = savedState?.mixOpen ? '' : 'hidden ';
+  const secondHiddenClass = 'hidden '; // 混批入口已移除，舊草稿 mixOpen 不再展開
   const hdrStyle       = cfg.headerBg ? ` style="${cfg.headerBg}"` : '';
 
   return `
@@ -1885,15 +1934,11 @@ function buildBatchCardHTML(cfg, savedState) {
   </div>
   <div id="${cfg.id}-warn-banner" class="hidden px-5 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
     <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.308 0L3.732 16c-.77 1.333.192 3 1.732 3z"/></svg>
-    <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請手動展開「混批」</span>
+    <span class="text-xs font-semibold text-amber-800">⚠️ 帳面剩餘不足今日所需，如需補足請先登記新開瓶</span>
   </div>
   <div class="px-5 py-3 border-t border-slate-100 flex items-center gap-4">
-    <button onclick="toggleSecondBatch('${cfg.id}')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>混批（加入第二瓶）
-    </button>
-    <span class="text-slate-200">|</span>
-    <button onclick="openModal('${cfg.name}','${cfg.id}')" class="text-xs text-slate-400 hover:text-primary font-medium flex items-center gap-1 transition-colors">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>登記新開瓶
+    <button onclick="openModal('${cfg.name}','${cfg.id}')" class="text-xs text-primary hover:text-primary-dark font-medium flex items-center gap-1 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>登記新開瓶
     </button>
   </div>
   <div id="${cfg.id}-second" class="${secondHiddenClass}px-5 py-4 bg-slate-50 border-t border-slate-100">
