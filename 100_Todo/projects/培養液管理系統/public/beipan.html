@@ -836,9 +836,11 @@ async function openHistoryModal() {
     }).join('');
 
     // ── GIVF 盤數區塊（使用 givfDishes 取標籤）──
+    const givfIdx = resolveGivfIndexes(snap.givfKeys, (snap.givf || []).length);
     const givfRows = (snap.givf || []).map((d, i) => {
-      const label = givfDishes[i]?.name || `列${i+1}`;
-      const unit  = givfDishes[i]?.unit === 'mL' ? ' mL' : '';
+      const dish  = givfDishes[givfIdx[i]];
+      const label = dish?.name || `列${i+1}`;
+      const unit  = dish?.unit === 'mL' ? ' mL' : '';
       const val   = d.plan ?? '—';
       return `<tr>
         <td class="py-0.5 pr-3 text-xs text-slate-500">${label}</td>
@@ -905,7 +907,8 @@ async function lockStateB(snapshot) {
 
   // 1. 還原 givf 盤數
   if (snapshot.givf) {
-    snapshot.givf.forEach((d, i) => { if (givfDishes[i]) givfDishes[i].plan = d.plan; });
+    const givfIdx = resolveGivfIndexes(snapshot.givfKeys, snapshot.givf.length);
+    snapshot.givf.forEach((d, i) => { if (givfDishes[givfIdx[i]]) givfDishes[givfIdx[i]].plan = d.plan; });
     const tbody = document.getElementById('givf-dish-body');
     if (tbody) tbody.innerHTML = '';
     buildGivfTable();
@@ -1587,7 +1590,7 @@ async function saveDraft() {
   const payload = {
     note: document.getElementById('beipan-note-input')?.value || '',
     glue: document.getElementById('glue-plan-input')?.value || '',
-    givf, matrix, bulkSmall, bulkLot, cards, batchData,
+    givf, givfKeys: givfDishes.map(d => d.key), matrix, bulkSmall, bulkLot, cards, batchData,
     gupanConfirmedToken: window._gupanConfirmedToken || null,
   };
   const payloadJson = JSON.stringify(payload);
@@ -1629,8 +1632,9 @@ async function loadDraft() {
   if (isStaleAgainstEstimate) {
     console.log('[beipan] 偵測到草稿對應的估盤已過期，略過盤子數量/矩陣/Glue 的還原');
   } else {
+    const draftGivfIdx = resolveGivfIndexes(draft.givfKeys, (draft.givf || []).length);
     draft.givf?.forEach((val, i) => {
-      const inp = document.querySelector(`#givf-row-${i} input[type="number"]`);
+      const inp = document.querySelector(`#givf-row-${draftGivfIdx[i]} input[type="number"]`);
       if (inp && val !== '') { inp.value = val; inp.dispatchEvent(new Event('input')); }
     });
     draft.matrix?.forEach((pair, i) => {
@@ -2461,6 +2465,7 @@ function onLotChange() {
 const DEFAULT_GIVF_DISHES = [
   { key:'opu',     name:'OPU',       plan:0,   unit:'盤' },
   { key:'de',      name:'De',        plan:0,   unit:'盤' },
+  { key:'spindle', name:'Spindle',   plan:0,   unit:'盤' },
   { key:'te',      name:'TE',        plan:0,   unit:'盤' },
   { key:'aoa_ci',  name:'AOA 弘優',  plan:0,   unit:'盤' },
   { key:'aoa508',  name:'AOA 508',   plan:0,   unit:'盤' },
@@ -2470,6 +2475,17 @@ const DEFAULT_GIVF_DISHES = [
   { key:'givf_x',  name:'多配 (mL)', plan:0,   unit:'mL', calc:true, extraTarget:'givf' },
 ];
 let givfDishes = DEFAULT_GIVF_DISHES;
+
+// 加入 spindle 盤之前的盤序。舊快照/舊草稿的 givf 是「依序陣列」且沒有 givfKeys，用這份對回盤名
+const LEGACY_GIVF_KEYS = ['opu','de','te','aoa_ci','aoa508','coc','sperm','givf_ph','givf_x'];
+// 把依序存的 givf 陣列對回目前 givfDishes 的 index（找不到回 -1）。
+// 新資料帶 givfKeys；舊資料長度剛好等於舊盤序就用舊盤序；其餘情況維持原本的 index 對應
+function resolveGivfIndexes(savedKeys, savedLen) {
+  const keys = (Array.isArray(savedKeys) && savedKeys.length === savedLen) ? savedKeys
+    : (savedLen === LEGACY_GIVF_KEYS.length ? LEGACY_GIVF_KEYS : null);
+  return Array.from({ length: savedLen }, (_, i) =>
+    keys ? givfDishes.findIndex(d => d.key === keys[i]) : i);
+}
 
 function buildGivfTable() {
   const tbody = document.getElementById('givf-dish-body');
@@ -2732,7 +2748,7 @@ function recalcAllNeeded() {
 
   // ── Gx-IVF: OPU×3 + (De+TE+AOA弘優+AOA508+COC)×0.6 + 精蟲台×0.7 + Gx-IVF pH×1 + 多配mL ──
   const givfFormula = REAGENT_FORMULAS['givf'] || { fixed: 0, coefs: {
-    opu: 3, de: 0.6, te: 0.6, aoa_ci: 0.6, aoa508: 0.6, coc: 0.6, sperm: 0.7, givf_ph: 1, givf_x: 1,
+    opu: 3, de: 0.6, spindle: 0.05, te: 0.6, aoa_ci: 0.6, aoa508: 0.6, coc: 0.6, sperm: 0.7, givf_ph: 1, givf_x: 1,
   }};
   const givfNeeded = applyFormula(givfFormula, givfByKey);
   const givfCfg = reagentConfig.find(c => c.id === 'givf');
@@ -3074,6 +3090,7 @@ async function submitBeipan() {
     threshold: { orange_days: 3, red_days: 1 },
     note: userNote || null,
     givf: givfSnap,
+    givfKeys: givfDishes.map(d => d.key),
     matrix: matrixSnap,
     glue: parseFloat(document.getElementById('glue-plan-input')?.value) || 0,
     bulk: bulkSnap,

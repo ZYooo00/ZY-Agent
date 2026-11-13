@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.10.29b'; // 格式：YY.MM.DD
+const APP_VERSION = '26.11.13'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.11.13',
+    date: '2026-11-13',
+    changes: [
+      '【新增】估盤／備盤：新增 Spindle 盤（排在 De 之後），估盤建議值同 OPU 台數，每盤用 50 μL（0.05 mL）Gx-IVF，自動計入 Gx-IVF 今日需用量',
+      '【調整】備盤：盤子資料改記錄「盤名清單」，舊歷史紀錄與舊草稿依舊盤序對應，插入新盤後歷史顯示不會錯位',
+    ],
+  },
   {
     version: '26.10.29b',
     date: '2026-10-29',
