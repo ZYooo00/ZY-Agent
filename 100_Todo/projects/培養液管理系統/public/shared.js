@@ -1,9 +1,17 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.11.13'; // 格式：YY.MM.DD
+const APP_VERSION = '26.11.13b'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.11.13b',
+    date: '2026-11-13',
+    changes: [
+      '【新增】後台「Gx-IVF 盤子清單」新增「排序」欄位，可調整盤子在估盤／備盤頁的先後順序（可填小數，例如 2.5 插在 2 與 3 之間）',
+      '【調整】後台盤子「體積係數」可輸入到小數第 2 位（例如 Spindle 0.05）',
+    ],
+  },
   {
     version: '26.11.13',
     date: '2026-11-13',
