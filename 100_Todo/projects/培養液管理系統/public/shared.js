@@ -1,9 +1,16 @@
 // shared.js — 品項主檔、共用函數
 // 所有 HTML 頁面引用此檔，禁止在各頁面重複定義
 
-const APP_VERSION = '26.11.13b'; // 格式：YY.MM.DD
+const APP_VERSION = '26.11.13c'; // 格式：YY.MM.DD
 
 const CHANGELOG = [
+  {
+    version: '26.11.13c',
+    date: '2026-11-13',
+    changes: [
+      '【修正】估盤／備盤頁（含歷史備盤彈窗）標題的「GIVF」統一改為「Gx-IVF」',
+    ],
+  },
   {
     version: '26.11.13b',
     date: '2026-11-13',
